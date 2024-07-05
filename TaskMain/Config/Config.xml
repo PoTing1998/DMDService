@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+	<add key="Host_Name" value="DMDServer" />
+	<add key="DMD_DB_IP" value="127.0.0.1" />
+	<add key="DMD_DB_Port" value="5432" />
+	<add key="DMD_DB_Name" value="DMDDB" />
+	<add key="Current_User_ID" value="DMD Server" />
+	<add key="tasktime" value="tasktime;192.168.145.147;6022" />
+	<add key="Socket_Server_IP" value="10.107.26.99" />
+	<add key="Socket_Server_Port" value="5000" />
+	<add key="DCU_Server" value="IP=10.107.26.99;Port=9000;Type=Client" />
+	<add key="CMFT_Server" value="IP=10.107.26.99;Port=5000;Type=Server" />
+	<add key="Process" value="TaskCMFT" />
+	<add key="Process" value="TaskOCS" />
+	<add key="Process" value="TaskDCU" />
+	<add key="TcpClientIP" value="10.107.26.1" />
+	<add key="TcpClientPort" value="502" />
+	<add key="slaveAddress" value="0" />
+	<add key="numberOfPoints" value="38" />
+
+</configuration>

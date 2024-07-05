@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{242547E6-FB8A-4BB4-84B9-0025079B0817}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TaskCMFT</RootNamespace>
+    <AssemblyName>TaskCMFT</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Helper.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ProcTaskCMFT.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\DMD開發中\ASILib\ASILib.csproj">
+      <Project>{5b6fc193-a36d-409e-8e9b-2c45fe574189}</Project>
+      <Name>ASILib</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\DMD開發中\CMFT_DB\CMFT_DB.csproj">
+      <Project>{76ca49bf-c3a1-43d9-b996-3272ce9ab1ad}</Project>
+      <Name>CMFT_DB</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CMFT_Frame\CMFT_Frame.csproj">
+      <Project>{cd4f4ff4-9d65-45dc-b75d-ce961dc1a1a0}</Project>
+      <Name>CMFT_Frame</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DMD_DB\DMD_DB.csproj">
+      <Project>{26b445f9-2971-44b6-953a-8b9bf8205408}</Project>
+      <Name>DMD_DB</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DMD_Frame\DMD_Frame.csproj">
+      <Project>{a169f312-d665-4361-9a74-edd9d2e807f8}</Project>
+      <Name>DMD_Frame</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql">
+      <Version>7.0.4</Version>
+    </PackageReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy /y "$(ProjectDir)$(OutDir)*.*" "D:\ASI.Wanda.DMD.DMDService"</PostBuildEvent>
+  </PropertyGroup>
+</Project>

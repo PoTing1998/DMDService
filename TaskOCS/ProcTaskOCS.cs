@@ -1,8 +1,11 @@
 ﻿using ASI.Lib.Config;
 using ASI.Lib.Log;
 using ASI.Lib.Process;
+
 using NModbus;
+
 using OCS.Modbus;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +39,6 @@ namespace ASI.Wanda.DMD.TaskOCS
 
         public string mOCSServerConnStr = "";
 
-        ASI.Lib.Comm.SerialPort.SerialPortLib serial = null;
         private byte[] arrPacketByte;
         /// <summary>
         /// 處理OCS模組執行程序所收到之訊息 
@@ -52,7 +54,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             {
                 return 0;
             }
-            
+
             return base.ProcEvent(pLabel, pBody);
         }
 
@@ -68,11 +70,10 @@ namespace ASI.Wanda.DMD.TaskOCS
             {
                 return -1;
             }
-
             //ping OCS Server
             if (this.mOCSServerConnStr != "")
             {
-                try 
+                try
                 {
                     string sOCSServerIP = ASI.Lib.Config.ConfigApp.Instance.GetIPFromConnStr(this.mOCSServerConnStr);
 
@@ -100,45 +101,46 @@ namespace ASI.Wanda.DMD.TaskOCS
         {
             mTimerTick = 30;
             mProcName = "TaskOCS";
-            OCS_Data  oCS_Data = new OCS_Data();
-            string sDBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
-            string sDBPort = ConfigApp.Instance.GetConfigSetting("DMD_DB_Port");
-            string sDBName = ConfigApp.Instance.GetConfigSetting("DMD_DB_Name");
-            string sUserID = "postgres";
-            string sPassword = "postgres";
-            string sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
-            serial.ReceivedEvent += new Lib.Comm.ReceivedEvents.ReceivedEventHandler(SerialPort_ReceivedEvent);
+            OCSData oCS_Data = new OCSData();
+            var sDBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
+            var sDBPort = ConfigApp.Instance.GetConfigSetting("DMD_DB_Port");
+            var sDBName = ConfigApp.Instance.GetConfigSetting("DMD_DB_Name");
+            var sUserID = "postgres";
+            var sPassword = "postgres";
+            var sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
+            //設定modbus的初始資料 
+            var TcpClientIP = ConfigApp.Instance.GetConfigSetting("TcpClientIP");
+            var TcpClientPort = ConfigApp.Instance.GetConfigSetting("TcpClientPort");
+            oCS_Data.ModbusFactory = new ModbusFactory();
+            oCS_Data.Master = oCS_Data.ModbusFactory.CreateMaster(new TcpClient(TcpClientIP, int.Parse(TcpClientPort)));
+            oCS_Data.Master.Transport.ReadTimeout = oCS_Data.TransactionTimeout;
+            oCS_Data.Master.Transport.Retries = oCS_Data.ConnectionTries;
+            oCS_Data.Master.Transport.WaitToRetryMilliseconds = oCS_Data.WaitToRetryMilliseconds;
+
             try
             {
                 //"Server='localhost'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'"; 
                 if (!ASI.Wanda.DMD.DB.Manager.Initializer(sDBIP, sDBPort, sDBName, sUserID, sPassword, sCurrentUserID))
                 {
-                    ErrorLog.Log(mProcName, $"資料庫連線失敗!{sDBIP}:{sDBPort};userid={sUserID}");  
+                    ErrorLog.Log(mProcName, $"資料庫連線失敗!{sDBIP}:{sDBPort};userid={sUserID}");
                 }
             }
             catch (System.Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log(mProcName, $"資料庫連線失敗!{sDBIP}:{sDBPort};userid={sUserID};ex={ex}");
             }
-            
-            return base.StartTask(pComputer, pProcName); 
+
+            return base.StartTask(pComputer, pProcName);
         }
-        /// <summary>
-        /// 來自號誌的資料流
-        /// </summary>
-        /// <param name="dataBytes"></param>
-        /// <param name="ID"></param>
-        private void SerialPort_ReceivedEvent(byte[]dataBytes, string ID)
-        {
-           
-        }
+       
+       
         /// <summary>
         /// 處理額外的index 11 13 27 29
         /// </summary>
         bool IsSpecialIndex(int index)
         {
             HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
-            
+
             return specialIndices.Contains(index);
         }
         void Process(ushort[] registerBuffer, List<byte> newByteList)
@@ -157,12 +159,75 @@ namespace ASI.Wanda.DMD.TaskOCS
                     byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]);
                     newByteList.Add(ushortBytes[0]);
                     newByteList.Add(ushortBytes[1]);
-                  
+
                 }
             }
 
         }
 
-       
+        /// <summary>
+        /// 處理號誌的資料流
+        /// </summary>
+        /// <param name="dataBytes"></param>
+        /// <param name="ID"></param>
+        private void SerialPort_ReceivedEvent(byte[] dataBytes, string ID)
+        {
+            OCSData oCS_Data = new OCSData();
+            try
+            {
+
+                ///設定modbus的初始資料 
+                oCS_Data.ModbusFactory = new ModbusFactory();
+                oCS_Data.Master = oCS_Data.ModbusFactory.CreateMaster(new TcpClient("10.107.26.99", 502));
+                oCS_Data.Master.Transport.ReadTimeout = oCS_Data.TransactionTimeout;
+                oCS_Data.Master.Transport.Retries = oCS_Data.ConnectionTries;
+                oCS_Data.Master.Transport.WaitToRetryMilliseconds = oCS_Data.WaitToRetryMilliseconds;
+                ushort startAddress = 30001;
+                int numIterations = 18;/// 要讀取的迴圈次數  (以要抓取月台數量為準)
+
+                for (int iteration = 0; iteration < numIterations; iteration++)
+                {
+                    var newByteList = new List<byte>();
+                    ///讀取salve的資料
+                    var registerBuffer = oCS_Data.Master.ReadInputRegisters(0, 30001, (ushort)38);
+                    ///獲得原始資料後，就寫log檔案
+                    string registerBufferData = "";
+                    int b = 1;
+                    foreach (var a in registerBuffer)
+                    {
+                        registerBufferData += $"原始資料第 {b} 個資料:{a}\n";
+                        b++;
+                    }
+                    ASI.Lib.Log.DebugLog.Log("Raw_OCS_Data", registerBufferData);
+                    switch (30001)
+                    {
+                        ///正常號誌範圍內 
+                        case int address when address > 30000 && address < 31800:
+                            ///進行拆解
+                            Process(registerBuffer, newByteList);
+                            break;
+                        default:
+                            /// 在沒有符合的條件下，執行正常的處理邏輯 
+                            registerBuffer = oCS_Data.Master.ReadInputRegisters(0, 30001, 38);
+                            Process(registerBuffer, newByteList);
+                            break;
+                    }
+                    startAddress += 100; /// 每次迴圈遞增的寄存器位址間距
+                    string logMessage = $"目前的Address{startAddress}：\n";
+                    int i = 1;
+                    ///寫進log檔的資料 時間 名稱代號 原本值ushort  拆解後(byte) 
+                    foreach (var a in newByteList)
+                    {
+                        logMessage += $"接收後整理第 {i} 個資料:{a} \n";
+                        i++;
+                    }
+                    ASI.Lib.Log.DebugLog.Log("Processed_OCS_Data", logMessage);
+                }
+            }
+            catch (System.Exception)
+            {
+
+            }
+        }
     }
 }

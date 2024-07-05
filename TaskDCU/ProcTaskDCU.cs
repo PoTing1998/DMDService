@@ -253,10 +253,12 @@ namespace ASI.Wanda.DMD.TaskDCU
                     {
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
                             MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);
-                            DetermineSendDestination((Message.Message)MSG);
+                            mDMD_API.Send((Message.Message)MSG);
+                            //DetermineSendDestination((Message.Message)MSG);
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息
-                            MSG = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT); 
+                            MSG = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
+                            mDMD_API.Send((Message.Message)MSG);
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定
                             break;
@@ -316,7 +318,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                     if (clientParts.Length == 2)
                     {
                         string clientIP = clientParts[0];
-                        
+
                         // 在這裡進行相應的處理，例如取得 stationID 
                         foreach (var targetDu in targetDuList)
                         {

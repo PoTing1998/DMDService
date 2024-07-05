@@ -254,7 +254,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
                             MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);
                             mDMD_API.Send((Message.Message)MSG);
-                            //DetermineSendDestination((Message.Message)MSG);
+                            //DetermineSendDestination((Message.Message)MSG);  全部都送
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息
                             MSG = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);

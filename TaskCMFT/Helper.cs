@@ -45,7 +45,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             //收到封包
             var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
-            //組封包
+            //組封包 
             var sendPreRecordMessage = new JsonObject.DCU.FromDMD.SendPreRecordMessage(Enum.Station.OCC);  
             sendPreRecordMessage.seatID = oJsonObject.SeatID; 
             sendPreRecordMessage.msg_id = oJsonObject.msg_id;
@@ -87,10 +87,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
             res_SendPreRecordMessage.station_id = stationId;
             res_SendPreRecordMessage.is_success = isSuccess;
             res_SendPreRecordMessage.failed_target = isSuccess ? null : failedTargets;
-
             ///組成 CMFT要的訊息內容
             var MSG = new ASI.Wanda.CMFT.Message.Message(CMFT.Message.Message.eMessageType.Response, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(res_SendPreRecordMessage));
-
             sendAction?.Invoke(API, MSG);
             ASI.Lib.Log.DebugLog.Log("ResponPreRecord", MSG.JsonContent); 
         }

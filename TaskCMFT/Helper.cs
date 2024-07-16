@@ -60,7 +60,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         ///傳送到內部MSG   
         private void SendToTaskDCU(int msgType, int msgID, string jsonData)
         {
-            try
+            try 
             {
                 var MSGFromTaskCMFT = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskCMFT(new MSGFrameBase("TaskCMFT", "dmdserverTaskDCU"));
                 //組相對應的封包
@@ -242,6 +242,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage>();
             }  
         }
+       
+
         /// <summary>
         /// 從CMFT更新Config的表 拿到相對色碼顏色 
         /// </summary>

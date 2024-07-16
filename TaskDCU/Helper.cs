@@ -9,14 +9,14 @@ namespace ASI.Wanda.DMD.TaskDCU
 {
     public static class Constants
     {
-        public const string SendPreRecordMsg            = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage";
-        public const string SendInstantMsg              = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendInstantMessage";
-        public const string SendScheduleSetting         = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.ScheduleSetting";
-        public const string SendPreRecordMessageSetting = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PreRecordMessageSetting";
-        public const string SendTrainMessageSetting     = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.TrainMessageSetting";
-        public const string SendPowerTimeSetting        = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PowerTimeSetting";
-        public const string SendGroupSetting            = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.GroupSetting";
-        public const string SendParameterSetting        = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.ParameterSetting";
+        public const string SendPreRecordMsg            = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage";
+        public const string SendInstantMsg              = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendInstantMessage";
+        public const string SendScheduleSetting         = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.ScheduleSetting";
+        public const string SendPreRecordMessageSetting = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PreRecordMessageSetting";
+        public const string SendTrainMessageSetting     = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.TrainMessageSetting";
+        public const string SendPowerTimeSetting        = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PowerTimeSetting";
+        public const string SendGroupSetting            = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.GroupSetting";
+        public const string SendParameterSetting        = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.ParameterSetting";
     }
 
    
@@ -61,7 +61,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             var sendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
             sendPreRecordMessage.seatID = oJOFromCMFT.seatID;
             sendPreRecordMessage.msg_id = oJOFromCMFT.msg_id;
-            sendPreRecordMessage.target_du = oJOFromCMFT.target_du;
+            sendPreRecordMessage.target_du = oJOFromCMFT.target_du;  
             
             var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, DMDServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
 

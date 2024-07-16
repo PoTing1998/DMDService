@@ -245,18 +245,22 @@ namespace ASI.Wanda.DMD.TaskDCU
                     string sStationID = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "StationID");
                     string sSeatID = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "SeatID");
                     int iMsgID = mSGFromTaskCMFT.MessageID;
-                    ASI.Lib.Log.DebugLog.Log(mProcName, $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
+                    ASI.Lib.Log.DebugLog.Log(mProcName + " fromTaskCMFT", $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
                     var Helper = new DCUHelper();
                     var MSG = new object();
+
+                    mDMD_API = new DMD_API();
                     //回應Ack給CMFT 
                     switch (sJsonObjectName)
                     {
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
-                            MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);
-                            mDMD_API.Send((Message.Message)MSG);
+                            MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
+                            var result  =  mDMD_API.Send((Message.Message)MSG);
+
+                            ASI.Lib.Log.DebugLog.Log("傳送結果" ,result.ToString());
                             //DetermineSendDestination((Message.Message)MSG);  全部都送
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息 
                             MSG = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
                             mDMD_API.Send((Message.Message)MSG);
                             break;
@@ -264,7 +268,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendGroupSetting:      //群組設定
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排成設定
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排成設定 川普選上對台灣的影響 ptt
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定
                             break;
@@ -319,7 +323,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                     {
                         string clientIP = clientParts[0];
 
-                        // 在這裡進行相應的處理，例如取得 stationID 
+                        // 在這裡進行相應的處理，例如取得 stationID  
                         foreach (var targetDu in targetDuList)
                         {
                             // 在這裡進行字串操作，提取 stationID    

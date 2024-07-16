@@ -147,7 +147,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
         /// <param name="DMDServerMessage"></param> 
         private void CMFT_API_ReceivedEvent(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
         {
-            string sLog = ""; 
             try
             {
                 
@@ -156,71 +155,78 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 string sJsonData = CMFTServerMessage.JsonContent;
                 string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "JsonObjectName");
                 int iMsgID = CMFTServerMessage.MessageID;
+
                 //建立CMFTHelper並將 CMFT_API的send 委派 
                 var CMFTHelper = new CMFTHelper<ASI.Wanda.CMFT.CMFT_API>(mCMFT_API, (api, message) => api.Send(message));
-                if (CMFTServerMessage.MessageType == ASI.Wanda.CMFT.Message.Message.eMessageType.Ack)
-                { 
-                    ///Ack
-                    sLog = string.Format("Ack，訊息識別碼:[{0}]", CMFTServerMessage.MessageID);
-                    
-                    CMFTHelper.HandleAckMessage(CMFTServerMessage); 
-                }
-                else if (CMFTServerMessage.MessageType == ASI.Wanda.CMFT.Message.Message.eMessageType.Command)
+                switch (CMFTServerMessage.MessageType)
                 {
-                    sLog = $"從CMFT Server收到:{sByteArray}；訊息類別碼:{CMFTServerMessage.MessageType}；識別碼:{iMsgID}；長度:{CMFTServerMessage.MessageLength}；內容:{sJsonData}；JsonObjectName:{sJsonObjectName}";
-                    ASI.Lib.Log.DebugLog.Log("FromCMFTDate", $"{sLog}\r\n");
-                    //判斷從過來的ObjactName 
-                    switch (sJsonObjectName)
-                    {
-                        case ASI.Wanda.DMD.TaskCMFT.Constants.SendPreRecordMsg: //預錄訊息   
-                            CMFTHelper.UpdateDMDPlayList();
-                            CMFTHelper.UpdataDMDPreRecordMessage();
-                            CMFTHelper.UpdataConfig();
-                            CMFTHelper.SendPreRecordMSGToDCU(CMFTServerMessage); 
-                            break;
-                        case ASI.Wanda.DMD.TaskCMFT.Constants.SendInstantMsg: //即時訊息 
-                            CMFTHelper.UpdateDMDPlayList();
-                            CMFTHelper.UpdataDMDPreRecordMessage();
-                            CMFTHelper.UpdataConfig();
-                            break;
-                        case ASI.Wanda.DMD.TaskCMFT.Constants.SendScheduleSetting: //訊息排程 
-                            CMFTHelper.HandleAckMessage(CMFTServerMessage);
-                            break;
-                        case ASI.Wanda.DMD.TaskCMFT.Constants.SendPreRecordMessageSetting: //預錄訊息設定 
-                            CMFTHelper.HandleAckMessage(CMFTServerMessage);
-                            break;
-                        case ASI.Wanda.DMD.TaskCMFT.Constants.SendTrainMessageSetting: //列車訊息
-                            CMFTHelper.HandleAckMessage(CMFTServerMessage);
-                            break;
-                        case ASI.Wanda.DMD.TaskCMFT.Constants.SendPowerTimeSetting: //電池設定
-                            CMFTHelper.HandleAckMessage(CMFTServerMessage);
-                            break;
-                        case ASI.Wanda.DMD.TaskCMFT.Constants.SendGroupSetting: //群組設定
-                            CMFTHelper.HandleAckMessage(CMFTServerMessage);
-                            break;
-                        case ASI.Wanda.DMD.TaskCMFT.Constants.SendParameterSetting: //參數設定 
-                            CMFTHelper.HandleAckMessage(CMFTServerMessage);
-                            break;
-                    }
-                    var jsonObject = CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent); 
-                }
-                else if (CMFTServerMessage.MessageType == CMFT.Message.Message.eMessageType.Response)
-                {
-                    ///Response
-                    ///從CMFT來的訊息不應有Response 
-                    ASI.Lib.Log.ErrorLog.Log(mProcName, $"從HMI來的訊息不應有Response，MessageType:{CMFTServerMessage.MessageType}");
-                }
-                else
-                {
-                    ///無此種訊息類別
-                    sLog = string.Format("無此種訊息類別:[{0}]", CMFTServerMessage.MessageType);
-                }
+                    case ASI.Wanda.CMFT.Message.Message.eMessageType.Ack:
+                        HandleAckMessage(CMFTServerMessage, CMFTHelper);
+                        break;
 
+                    case ASI.Wanda.CMFT.Message.Message.eMessageType.Command:
+                        HandleCommandMessage(CMFTServerMessage, sByteArray, sJsonObjectName, iMsgID, sJsonData, CMFTHelper);
+                        break;
+
+                    case ASI.Wanda.CMFT.Message.Message.eMessageType.Response:
+                        ASI.Lib.Log.ErrorLog.Log(mProcName, $"從HMI來的訊息不應有Response，MessageType:{CMFTServerMessage.MessageType}");
+                        break;
+
+                    default:
+                        ASI.Lib.Log.ErrorLog.Log(mProcName, $"無此種訊息類別:[{CMFTServerMessage.MessageType}]");
+                        break;
+                }
             }
             catch (System.Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log("TaskDMD", ex);
             }
+        }
+
+        /// <summary>
+        /// 處理Ack訊息
+        /// </summary>
+        private void HandleAckMessage(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
+        {
+            string sLog = $"Ack，訊息識別碼:[{CMFTServerMessage.MessageID}]";
+            ASI.Lib.Log.DebugLog.Log("FromCMFTDate", $"{sLog}\r\n");
+            CMFTHelper.HandleAckMessage(CMFTServerMessage);
+        }
+        /// <summary>
+        /// 處理Command訊息
+        /// </summary>
+        private void HandleCommandMessage(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, string sByteArray, string sJsonObjectName, int iMsgID, string sJsonData, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
+        {
+            string sLog = $"從CMFT Server收到:{sByteArray}；訊息類別碼:{CMFTServerMessage.MessageType}；識別碼:{iMsgID}；長度:{CMFTServerMessage.MessageLength}；內容:{sJsonData}；JsonObjectName:{sJsonObjectName}";
+            ASI.Lib.Log.DebugLog.Log("FromCMFTDate", $"{sLog}\r\n");
+
+            switch (sJsonObjectName)
+            {
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendPreRecordMsg:
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendInstantMsg:
+                    HandlePreRecordOrInstantMsg(CMFTServerMessage, CMFTHelper);
+                    break;
+
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendScheduleSetting:
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendPreRecordMessageSetting:
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendTrainMessageSetting:
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendPowerTimeSetting:
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendGroupSetting:
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendParameterSetting:
+                    CMFTHelper.HandleAckMessage(CMFTServerMessage);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 處理預錄或即時訊息
+        /// </summary>
+        private void HandlePreRecordOrInstantMsg(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
+        {
+            CMFTHelper.UpdateDMDPlayList();
+            CMFTHelper.UpdataDMDPreRecordMessage();
+            CMFTHelper.UpdataConfig();
+            CMFTHelper.SendPreRecordMSGToDCU(CMFTServerMessage);
         }
         /// <summary>
         /// 結束處理DMD模組執行程序

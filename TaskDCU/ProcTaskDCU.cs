@@ -87,6 +87,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             {
                 ASI.Lib.Log.ErrorLog.Log(mProcName, $"資料庫連線失敗!{sDBIP}:{sDBPort};userid={sUserID};ex={ex}");
             }
+            ConnToDCUServer();
             return base.StartTask(pComputer, pProcName);
         }
         public void SendMessage()
@@ -297,93 +298,98 @@ namespace ASI.Wanda.DMD.TaskDCU
         }
 
         //判別要傳送的目的碼  
-        private void DetermineSendDestination(ASI.Wanda.DMD.Message.Message message)
-        {
-            try
-            {
-                if (message.JsonContent == null)
-                {
-                    ASI.Lib.Log.ErrorLog.Log(mProcName, "JsonContent is null. Unable to determine send destination.");
-                    return;
-                }
-                // 解析 JsonContent   
-                var jsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage)ASI.Lib.Text.Parsing.Json.DeserializeObject(message.JsonContent, typeof(ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage));
-                // 提取 target_du  
-                var targetDuList = jsonObject.target_du; 
-                //讀取現有連線的clinet
-                var Client = mDMD_API.ClientIDList;
+        //private void DetermineSendDestination(ASI.Wanda.DMD.Message.Message message)
+        //{
+        //    try
+        //    {
+        //        if (message.JsonContent == null)
+        //        {
+        //            ASI.Lib.Log.ErrorLog.Log(mProcName, "JsonContent is null. Unable to determine send destination.");
+        //            return;
+        //        }
+        //        // 解析 JsonContent   
+        //        var jsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage)ASI.Lib.Text.Parsing.Json.DeserializeObject(message.JsonContent, typeof(ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage));
+        //        // 提取 target_du  
+        //        var targetDuList = jsonObject.target_du; 
+        //        //讀取現有連線的clinet
+        //        var Client = mDMD_API.ClientIDList;
 
-                foreach (var clientEntry in Client)
-                {
-                    string clientIPPort = clientEntry.Value;
-                    //  clientIPPort 的格式為 "IP:Port"  
-                    string[] clientParts = clientIPPort.Split(':');
+        //        foreach (var clientEntry in Client)
+        //        {
+        //            string clientIPPort = clientEntry.Value;
+        //            //  clientIPPort 的格式為 "IP:Port"  
+        //            string[] clientParts = clientIPPort.Split(':');
 
-                    if (clientParts.Length == 2)
-                    {
-                        string clientIP = clientParts[0];
+        //            if (clientParts.Length == 2)
+        //            {
+        //                string clientIP = clientParts[0];
 
-                        // 在這裡進行相應的處理，例如取得 stationID  
-                        foreach (var targetDu in targetDuList)
-                        {
-                            // 在這裡進行字串操作，提取 stationID    
-                            string[] parts = targetDu.Split('_');
-                            if (parts.Length >= 1)
-                            {
-                                // parts[0] 就是 stationID   
-                                string stationID = parts[0];
+        //                // 在這裡進行相應的處理，例如取得 stationID  
+        //                foreach (var targetDu in targetDuList)
+        //                {
+        //                    // 在這裡進行字串操作，提取 stationID    
+        //                    string[] parts = targetDu.Split('_');
+        //                    if (parts.Length >= 1)
+        //                    {
+        //                        // parts[0] 就是 stationID   
+        //                        string stationID = parts[0];
 
-                                mDMD_API.Send(message, clientIPPort);
-                                ASI.Lib.Log.DebugLog.Log("DetermineSendDestination", $"Connected client to the target IP: {clientIP}");
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ASI.Lib.Log.ErrorLog.Log("DetermineSendDestination", ex);
-                ASI.Lib.Log.DebugLog.Log("DetermineSendDestination", $"Failed to determine send destination. Message: {message.JsonContent}");
-            }
+        //                        mDMD_API.Send(message, clientIPPort);
+        //                        ASI.Lib.Log.DebugLog.Log("DetermineSendDestination", $"Connected client to the target IP: {clientIP}");
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        ASI.Lib.Log.ErrorLog.Log("DetermineSendDestination", ex);
+        //        ASI.Lib.Log.DebugLog.Log("DetermineSendDestination", $"Failed to determine send destination. Message: {message.JsonContent}");
+        //    }
 
-        }
+        //}
 
         /// <summary>
-        /// 與CMFT Server連線
+        /// 與DCU Server連線
         /// </summary>
-        private void ConnToDMDServer()
+        private void ConnToDCUServer()
         {
             try
             {
-                if (mDMD_API != null)
-                {
-                    mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
-                    mDMD_API.DisconnectedEvent -= DMD_API_DisconnectedEvent;
-                    mDMD_API.Dispose();
-                }
+                DisconnectExistingDMDAPI();
 
                 mDMD_API = new ASI.Wanda.DMD.DMD_API();
                 mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;
                 mDMD_API.DisconnectedEvent += DMD_API_DisconnectedEvent;
                 mDMDServerConnStr = ConfigApp.Instance.GetConfigSetting("DCU_Server");
+
                 int iResult = mDMD_API.Initial(mDMDServerConnStr);
                 if (iResult == 0)
                 {
                     mIsConnectedToDCU = true;
-                    ASI.Lib.Log.DebugLog.Log(mProcName, $"與CMFT Server連線成功");
-                    
-                    //連線成功時，重新計算最後一次收到DMD的時間
-                    LastHeartbeatTime = System.DateTime.Now;
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "與DCU Server連線成功");
+                    LastHeartbeatTime = DateTime.Now;
                 }
-                else 
+                else
                 {
                     mIsConnectedToDCU = false;
-                    ASI.Lib.Log.DebugLog.Log(mProcName, $"與CMFT Server連線失敗，DMD_Server:{mDMDServerConnStr}");
+                    ASI.Lib.Log.DebugLog.Log(mProcName, $"與DCU Server連線失敗，DMD_Server: {mDMDServerConnStr}");
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
+                ASI.Lib.Log.ErrorLog.Log(mProcName, $"Exception in ConnToDCUServer: {ex}");
+            }
+        }
+
+        private void DisconnectExistingDMDAPI()
+        {
+            if (mDMD_API != null)
+            {
+                mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
+                mDMD_API.DisconnectedEvent -= DMD_API_DisconnectedEvent;
+                mDMD_API.Dispose();
+                ASI.Lib.Log.DebugLog.Log(mProcName, "Existing DMD_API disconnected and disposed.");
             }
         }
         /// <summary>

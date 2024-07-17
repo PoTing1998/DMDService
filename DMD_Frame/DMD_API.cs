@@ -32,6 +32,12 @@ namespace ASI.Wanda.DMD
         /// </summary>
         public event OpenedEventHandler OpenedEvent;
 
+        public delegate void ClosedEventHandler(string source);
+        /// <summary>
+        /// Socket Server專用，當Socket Server關閉的事件
+        /// </summary>
+        public event ClosedEventHandler ClosedEvent;
+
         public delegate void ClientConnectedEventHandler(string source);
         /// <summary>
         /// Socket Server專用，當Socket Client連接的事件
@@ -45,27 +51,6 @@ namespace ASI.Wanda.DMD
         public event DisconnectedEventHandler DisconnectedEvent;
 
         /// <summary>
-        /// server端判斷 目前連線的client的IP以及Port
-        /// </summary>
-        private readonly Dictionary<int, string> clientIDList = new Dictionary<int, string>();
-
-        /// <summary>
-        /// 已經連線的Client列表 key=連線順序；value=IP:port
-        /// </summary>
-        public Dictionary<int, string> ClientIDList
-        {
-            get
-            {
-                if (mSocket != null)
-                {
-                    return clientIDList;
-                }
-
-                return new Dictionary<int, string>();
-            }
-        }
-
-        /// <summary>
         /// API初始化
         /// </summary>
         /// <param name="connStr">存取通訊裝置之連線字串。例如，Server端設定："IP=192.168.0.1;Port=8000;Type=Server"；Client端設定："IP=192.168.0.1;Port=8000;Type=Client"</param>
@@ -74,17 +59,10 @@ namespace ASI.Wanda.DMD
         /// </returns> 
         public int Initial(string connStr)
         {
-            var iRtn = 0;
+            int iRtn = 0;
             try
             {
-                if (mThread != null) 
-                {
-                    //若為重新初始化，先停止原有執行緒 
-                    mThreadRun = false;
-                    System.Threading.Thread.Sleep(100);
-                    mThread.Abort();
-                    mThread = null;
-                }
+                StopExistingThread();
 
                 mThreadRun = true;
                 mThread = new System.Threading.Thread(new System.Threading.ThreadStart(MsgParsingThread));
@@ -92,12 +70,54 @@ namespace ASI.Wanda.DMD
 
                 mSocketConnStr = connStr;
                 iRtn = SocketConnect(connStr);
+                LogResult(iRtn);
                 return iRtn;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, ex.StackTrace);
+                ASI.Lib.Log.ErrorLog.Log(mProcName, $"Exception in Initial: {ex}");
                 return -1;
+            }
+        }
+        private void StopExistingThread()
+        {
+            if (mThread != null)
+            {
+                mThreadRun = false;
+                System.Threading.Thread.Sleep(100);
+                mThread.Abort();
+                mThread = null;
+                ASI.Lib.Log.DebugLog.Log(mProcName, "Existing thread stopped.");
+            }
+        }
+        private void LogResult(int result)
+        {
+            switch (result)
+            {
+                case 0:
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "初始化成功。");
+                    break;
+                case -1:
+                    ASI.Lib.Log.ErrorLog.Log(mProcName, "例外錯誤。");
+                    break;
+                case -2:
+                    ASI.Lib.Log.ErrorLog.Log(mProcName, "未成功開啟。");
+                    break;
+                case -3:
+                    ASI.Lib.Log.ErrorLog.Log(mProcName, "剖析連線字串發生錯誤。");
+                    break;
+                case -4:
+                    ASI.Lib.Log.ErrorLog.Log(mProcName, "初始化 Socket 相關屬性發生錯誤。");
+                    break;
+                case -5:
+                    ASI.Lib.Log.ErrorLog.Log(mProcName, "關閉所有 Sockets 時發生錯誤。");
+                    break;
+                case -6:
+                    ASI.Lib.Log.ErrorLog.Log(mProcName, "Socket 服務器無法正常繫結通訊埠。");
+                    break;
+                default:
+                    ASI.Lib.Log.ErrorLog.Log(mProcName, $"未知錯誤代碼: {result}");
+                    break;
             }
         }
 
@@ -252,22 +272,44 @@ namespace ASI.Wanda.DMD
 
                 mSocket.ConnectionString = connStr;
                 mSocket.ReceivedEvent += Socket_ReceivedEvent;
-                mSocket.DisconnectedEvent += Socket_DisconnectedEvent;
                 mSocket.ErrorEvent += Socket_ErrorEvent;
-                mSocket.OtherSideDisconnectEvent += Socket_OtherSideDisconnectEvent;
 
-                ASI.Lib.Log.DebugLog.Log(mProcName, "Socket 嘗試連線，ConnectionString = " + mSocket.ConnectionString);
-
-                iOpenResult = mSocket.Open();
-                if (iOpenResult == 0 &&
-                    mSocket.IsConnect)
+                if (mSocket.Type == "Server")
                 {
-                    ASI.Lib.Log.DebugLog.Log(mProcName, "Socket 連線成功! ConnectionString = " + mSocket.ConnectionString);
+                    mSocket.OpenEvent += Socket_OpenEvent;
+                    mSocket.CloseEvent += Socket_CloseEvent;
+                    mSocket.ConnectedEvent += Socket_ConnectedEvent;
+                    mSocket.DisconnectedEvent += Socket_DisconnectedEvent;
+
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Server嘗試開啟，ConnectionString = " + mSocket.ConnectionString);
+                    iOpenResult = mSocket.Open();
+                    if (iOpenResult == 0 &&
+                        mSocket.IsConnect)
+                    {
+                        ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Server開啟成功! ConnectionString = " + mSocket.ConnectionString);
+                    }
+                    else
+                    {
+                        ASI.Lib.Log.DebugLog.Log(mProcName, $"Socket Server開啟失敗! 失敗碼:{iOpenResult} ； ConnectionString = {mSocket.ConnectionString}");
+                    }
                 }
                 else
-                {   
-                    ASI.Lib.Log.ErrorLog.Log(mProcName, string.Format("Socket 連線失敗! 失敗碼:{0} ； ConnectionString = {1}", iOpenResult, mSocket.ConnectionString));
-                } 
+                {
+                    //Socket Client
+                    mSocket.OtherSideDisconnectEvent += Socket_OtherSideDisconnectEvent;
+
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Client嘗試連線，ConnectionString = " + mSocket.ConnectionString);
+                    iOpenResult = mSocket.Open();
+                    if (iOpenResult == 0 &&
+                        mSocket.IsConnect)
+                    {
+                        ASI.Lib.Log.DebugLog.Log(mProcName, "Socket 連線成功! ConnectionString = " + mSocket.ConnectionString);
+                    }
+                    else
+                    {
+                        ASI.Lib.Log.DebugLog.Log(mProcName, $"Socket 連線失敗! 失敗碼:{iOpenResult} ； ConnectionString = {mSocket.ConnectionString}");
+                    }
+                }
 
                 return iOpenResult;
             }
@@ -336,6 +378,10 @@ namespace ASI.Wanda.DMD
         private void Socket_ErrorEvent(Exception exception)
         {
 
+        }
+        private void Socket_CloseEvent(string source)
+        {
+            ClosedEvent?.Invoke(source);
         }
 
     }

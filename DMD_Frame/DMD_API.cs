@@ -362,17 +362,17 @@ namespace ASI.Wanda.DMD
 
         private void Socket_OpenEvent(string source)
         {
-            OpenedEvent(source);
+            OpenedEvent?.Invoke(source);
         }
         
         private void Socket_ConnectedEvent(string source)
         {
-            ConnectedEvent(source);
+            ConnectedEvent?.Invoke(source);
         }
 
         private void Socket_DisconnectedEvent(string source)
         {
-            //DisconnectedEvent(source);
+            DisconnectedEvent?.Invoke(source);
         }
 
         private void Socket_ErrorEvent(Exception exception)

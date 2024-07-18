@@ -357,7 +357,6 @@ namespace ASI.Wanda.DMD.TaskDCU
             try
             {
                 DisconnectExistingDMDAPI();
-
                 mDMD_API = new ASI.Wanda.DMD.DMD_API();
                 mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;
                 mDMD_API.DisconnectedEvent += DMD_API_DisconnectedEvent;

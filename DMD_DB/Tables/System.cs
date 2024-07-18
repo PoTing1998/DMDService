@@ -43,9 +43,14 @@ namespace ASI.Wanda.DMD.DB.Tables.System
     public class sysConfig : ASI.Wanda.DMD.DB.Tables.Table<sys_config>
     {
         #region Methods
-        public static void InsertSystemConfig(string configName, string configValue, string configDescription)
+        public static void InsertSystemConfig(string configName, string configValue, string configDescription, string remark)
         {
-            Update(configName, configValue, configDescription);
+            Insert(configName, configValue, configDescription, remark);
+        }
+        static public void DeletePlayingItem(string configName)
+        {
+            string whereString = string.Format("where config_name = '{0}' ", configName);
+            DeleteWhere(whereString);
         }
         public static void UpdataSystemConfig(string configName, string configValue, string configDescription)
         {

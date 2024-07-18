@@ -266,14 +266,20 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time,
                     })  
                     .ToList();
-
+                ///刪除原本的資料  
+                convertedList.ForEach(item =>
+                {
+                    ASI.Wanda.DMD.DB.Tables.System.sysConfig.DeletePlayingItem(
+                        item.config_name);
+                });
                 ///遍歷轉換後的列表，進行更新操作 
                 foreach (var item in convertedList)
                 {   
                     DB.Tables.System.sysConfig.InsertSystemConfig(  
                        item.config_name, 
                        item.config_value, 
-                       item.config_description 
+                       item.config_description ,
+                       item.remark 
                     );
                 }
                 
@@ -282,7 +288,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             catch (Exception updateException) 
             {
                 ///記錄例外狀況 
-                ASI.Lib.Log.ErrorLog.Log("Error updating dmdPreRecordMessage", updateException);
+                ASI.Lib.Log.ErrorLog.Log("Error updating sysConfig", updateException);
                 return Enumerable.Empty<DB.Tables.System.sysConfig>();
             }
         }

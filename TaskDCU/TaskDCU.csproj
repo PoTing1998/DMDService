@@ -57,6 +57,10 @@
       <Project>{5b6fc193-a36d-409e-8e9b-2c45fe574189}</Project>
       <Name>ASILib</Name>
     </ProjectReference>
+    <ProjectReference Include="..\CMFT_Frame\CMFT_Frame.csproj">
+      <Project>{cd4f4ff4-9d65-45dc-b75d-ce961dc1a1a0}</Project>
+      <Name>CMFT_Frame</Name>
+    </ProjectReference>
     <ProjectReference Include="..\DMD_DB\DMD_DB.csproj">
       <Project>{26b445f9-2971-44b6-953a-8b9bf8205408}</Project>
       <Name>DMD_DB</Name>

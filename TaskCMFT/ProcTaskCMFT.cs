@@ -161,10 +161,15 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 switch (CMFTServerMessage.MessageType)
                 {
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Ack:
+
                         HandleAckMessage(CMFTServerMessage, CMFTHelper);
+                        var MSG = new ASI.Wanda.CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Ack, CMFTServerMessage.MessageID, null);
+                        mCMFT_API.Send(MSG);
                         break;
 
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Command:
+                        var MSG2 = new ASI.Wanda.CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Ack, CMFTServerMessage.MessageID, null);
+                        mCMFT_API.Send(MSG2);
                         HandleCommandMessage(CMFTServerMessage, sByteArray, sJsonObjectName, iMsgID, sJsonData, CMFTHelper);
                         break;
 
@@ -225,7 +230,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             CMFTHelper.UpdateDMDPlayList();
             CMFTHelper.UpdataDMDPreRecordMessage();
-            CMFTHelper.UpdataConfig();
+          //  CMFTHelper.UpdataConfig();
             CMFTHelper.SendPreRecordMSGToDCU(CMFTServerMessage);
         }
         /// <summary>

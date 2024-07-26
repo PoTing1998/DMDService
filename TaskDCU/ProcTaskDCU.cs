@@ -2,11 +2,14 @@
 using ASI.Lib.DB;
 using ASI.Lib.Log;
 using ASI.Lib.Process;
+using ASI.Lib.UC;
 using ASI.Wanda.DMD.ProcMsg;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Timers;
+
 
 
 
@@ -20,7 +23,7 @@ namespace ASI.Wanda.DMD.TaskDCU
 
         public string mDMDServerConnStr = "";
 
-
+        private Timer _timer;
         public bool mIsConnectedToDCU = false;
 
 
@@ -74,7 +77,10 @@ namespace ASI.Wanda.DMD.TaskDCU
             string sUserID = "postgres";
             string sPassword = "postgres";
             string sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
-
+            _timer = new Timer(5);
+            _timer.Elapsed += OnTimedEvent;
+            _timer.AutoReset = true;
+            _timer.Enabled = true;
             try
             {
                 //"Server='localhost'; Port='5432'; Database='DCUDB'; User Id='postgres'; Password='postgres'"; 
@@ -249,15 +255,13 @@ namespace ASI.Wanda.DMD.TaskDCU
                     ASI.Lib.Log.DebugLog.Log(mProcName + " fromTaskCMFT", $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
                     var Helper = new DCUHelper();
                     var MSG = new object();
-
-                    mDMD_API = new DMD_API();
-                    //回應Ack給CMFT 
+                    //回應Ack給CMFT
                     switch (sJsonObjectName)
                     {
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
                             MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
                             var result  =  mDMD_API.Send((Message.Message)MSG);
-
+                            testBtn_Click();
                             ASI.Lib.Log.DebugLog.Log("傳送結果" ,result.ToString());
                             //DetermineSendDestination((Message.Message)MSG);  全部都送
                             break;
@@ -296,7 +300,10 @@ namespace ASI.Wanda.DMD.TaskDCU
             }
             return -1;
         }
-
+        private void OnTimedEvent(object source, ElapsedEventArgs e)
+        {
+            testBtn_Click();
+        }
         //判別要傳送的目的碼  
         //private void DetermineSendDestination(ASI.Wanda.DMD.Message.Message message)
         //{
@@ -358,6 +365,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             {
                 DisconnectExistingDMDAPI();
                 mDMD_API = new ASI.Wanda.DMD.DMD_API();
+                mDMD_API.ConnectedEvent += MDMD_API_ConnectedEvent;
                 mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;
                 mDMD_API.DisconnectedEvent += DMD_API_DisconnectedEvent;
                 mDMDServerConnStr = ConfigApp.Instance.GetConfigSetting("DCU_Server");
@@ -368,6 +376,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                     mIsConnectedToDCU = true;
                     ASI.Lib.Log.DebugLog.Log(mProcName, "與DCU Server連線成功");
                     LastHeartbeatTime = DateTime.Now;
+                    testBtn_Click();
                 }
                 else
                 {
@@ -379,6 +388,13 @@ namespace ASI.Wanda.DMD.TaskDCU
             {
                 ASI.Lib.Log.ErrorLog.Log(mProcName, $"Exception in ConnToDCUServer: {ex}");
             }
+        }
+
+        private void MDMD_API_ConnectedEvent(string source)
+        {
+
+            ASI.Lib.Log.DebugLog.Log(mProcName, $"與DCU連進，DMD_Server: {source}");
+            throw new NotImplementedException();
         }
 
         private void DisconnectExistingDMDAPI()
@@ -404,5 +420,48 @@ namespace ASI.Wanda.DMD.TaskDCU
 
             base.StopTask();
         }
+
+        private void testBtn_Click()
+        {
+            ASI.Wanda.CMFT.Message.Message oMessage = new ASI.Wanda.CMFT.Message.Message();
+            oMessage.MessageID = GenerateUniqueMessageID();
+            oMessage.MessageType = ASI.Wanda.CMFT.Message.Message.eMessageType.Command;
+
+            var SendPreRecordMessage = new ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage("001");
+            SendPreRecordMessage.SeatID = "TEST";
+            SendPreRecordMessage.msg_id.Add("測試內容");
+            SendPreRecordMessage.target_du = new List<string>
+            {
+                "LG01_CCS_CDU-1",
+                "LG01_CCS_CDU-2",
+                "LG01_UPF_PDU-1",
+                "LG08A_DPF_PDU-4"
+            };
+            SendPreRecordMessage.dbName1 = "dmd_pre_record_message";
+            SendPreRecordMessage.dbName2 = "dmd_target";
+
+            oMessage.JsonContent = ASI.Lib.Text.Parsing.Json.SerializeObject(SendPreRecordMessage);
+
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(oMessage.JsonContent);
+            //組封包
+            var sendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
+            sendPreRecordMessage.msg_id = oJsonObject.msg_id;
+            sendPreRecordMessage.target_du = oJsonObject.target_du;
+            sendPreRecordMessage.seatID = oJsonObject.SeatID;
+
+            var ObjectName = ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage);
+            //組成給DCU的封包
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, oMessage.MessageID, ObjectName);
+            var RESLUT = mDMD_API.Send(MSG);
+            ASI.Lib.Log.DebugLog.Log("測試模擬訊息", MSG.JsonContent);
+          //  MessageBox.Show("傳送:" + RESLUT.ToString());
+        }
+
+        private int GenerateUniqueMessageID()
+        {
+            // 實作一個方法來生成唯一的訊息識別碼
+            return new Random().Next(1, 100000);
+        }
+
     }
 }

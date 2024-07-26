@@ -135,7 +135,8 @@ namespace ASI.Wanda.DMD
 
             try
             {
-                if (mSocket != null && mSocket.IsConnect)
+                //if (mSocket != null && mSocket.IsConnect)
+                if (mSocket != null )
                 { 
                     arrSendBytes = ASI.Wanda.DMD.Message.Helper.Pack(DMDmessage);
                     if (arrSendBytes != null)

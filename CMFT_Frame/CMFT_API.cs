@@ -508,17 +508,10 @@ namespace ASI.Wanda.CMFT
         {
             OpenedEvent?.Invoke(source);
         }
-
-        private void Socket_CloseEvent(string source)
-        {
-            ClosedEvent?.Invoke(source);
-        }
-
         private void Socket_ConnectedEvent(string source)
         {
             ConnectedEvent?.Invoke(source);
         }
-
         private void Socket_DisconnectedEvent(string source)
         {
             DisconnectedEvent?.Invoke(source);
@@ -528,5 +521,10 @@ namespace ASI.Wanda.CMFT
         {
 
         }
+        private void Socket_CloseEvent(string source)
+        {
+            ClosedEvent?.Invoke(source);
+        }
+
     }
 }

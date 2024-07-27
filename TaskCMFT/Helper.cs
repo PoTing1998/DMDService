@@ -259,7 +259,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         config_name = item.config_name,
                         config_value = item.config_value, 
                         config_description = item.config_description, 
-                        remark = item.remark,  
+                        remark = item.remark,
+                        system_id = item.system_id,
                         ins_user = item.ins_user,  
                         ins_time = item.ins_time,
                         upd_user = item.upd_user,
@@ -267,11 +268,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     })  
                     .ToList();
                 ///刪除原本的資料  
-                convertedList.ForEach(item =>
-                {
-                    ASI.Wanda.DMD.DB.Tables.System.sysConfig.DeletePlayingItem(
-                        item.config_name);
-                });
+              
                 ///遍歷轉換後的列表，進行更新操作 
                 foreach (var item in convertedList)
                 {   
@@ -279,6 +276,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                        item.config_name, 
                        item.config_value, 
                        item.config_description ,
+                       item.system_id,
                        item.remark 
                     );
                 }

@@ -11,12 +11,9 @@ using ASI.Lib.DB;
 using Npgsql;
 
 
-
-
-
 namespace ASI.Wanda.DMD.DB
 {
-    static public class Manager
+    static public class Manager 
     {
         #region Properties
         #region Properties
@@ -49,7 +46,7 @@ namespace ASI.Wanda.DMD.DB
         {
             get;
             private set;
-        } = "Server='127.0.0.1'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";
+        } = "Server='10.107.26.55'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";
         static public string CurrentUserID
         {
             get;
@@ -70,8 +67,8 @@ namespace ASI.Wanda.DMD.DB
 
         static  public  bool Initializer(string Host, string connPort,string Database, string userID, string Password , string currentUserID)
         {
-     
-            //設定連接資料庫字串所需參數 
+
+            //設定連接資料庫字串所需參數   
             ConnectIP = Host;
             ConnPort = connPort;
             DataBaseName = Database;
@@ -97,18 +94,18 @@ namespace ASI.Wanda.DMD.DB
 
                 try
                 {
-                    //先確認網路連線正常
+                    //先確認網路連線正常    
                     if (!ASI.Lib.Comm.Network.NetworkLib.Ping(ConnectIP, 1000))
                     {
                         ErrorHandle?.Invoke();
-                        throw new Exception($"與{ConnectIP}網路連接失敗!");
+                        throw new Exception($"與{ConnectIP}網路連接失敗!");  
                     }
 
                     try
                     {
                         connection.ConnectionString = ASI.Wanda.DMD.DB.Manager.ConnectionString;
                         connection.Open();
-                    }
+                    } 
                     catch (Exception ex)
                     {
                         ErrorHandle?.Invoke();

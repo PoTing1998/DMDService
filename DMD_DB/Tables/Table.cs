@@ -1,4 +1,5 @@
-﻿
+﻿using Npgsql;
+using Npgsql.Replication;
 
 using System;
 using System.Collections.Generic;
@@ -11,10 +12,7 @@ using System.Runtime.Remoting.Contexts;
 using System.Text;
 using System.Threading.Tasks;
 
-using Npgsql;
-
-
-namespace ASI.Wanda.DMD.DB.Tables 
+namespace ASI.Wanda.DMD.DB.Tables
 {
     abstract public class Table<T>
     {
@@ -59,14 +57,14 @@ namespace ASI.Wanda.DMD.DB.Tables
                 IDbCommand command = new NpgsqlCommand();
                 command.CommandText = commandString;
                 command.Connection = connection;
-                if(sqlParameters != null)
+                if (sqlParameters != null)
                 {
                     command.Parameters.Add(sqlParameters);
                 }
 
 
                 IDataReader reader;
-                reader = command.ExecuteReader(CommandBehavior.CloseConnection| CommandBehavior.SingleResult);
+                reader = command.ExecuteReader(CommandBehavior.CloseConnection | CommandBehavior.SingleResult);
 
 
                 while (reader.Read())
@@ -75,7 +73,7 @@ namespace ASI.Wanda.DMD.DB.Tables
                     model = Activator.CreateInstance<T>();
 
 
-                    foreach(PropertyInfo property in model.GetType().GetRuntimeProperties())
+                    foreach (PropertyInfo property in model.GetType().GetRuntimeProperties())
                     {
                         Type _modelColType = property.PropertyType;
                         string _modelColName = property.Name;
@@ -89,12 +87,12 @@ namespace ASI.Wanda.DMD.DB.Tables
                             property.SetValue(model, _colValue, null);
                         }
                     }
-                   
+
                     modelList.Add(model);
 
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 // 如果發生異常，在錯誤訊息中包含 SQL 命令，然後重新拋出異常  
                 string errorMsg = string.Format(
@@ -115,7 +113,7 @@ namespace ASI.Wanda.DMD.DB.Tables
         static protected int NonQuery(string commandString, SqlParameter[] sqlParams = null)
         {
             List<T> modelList = new List<T>();
-            IDbConnection connection = new NpgsqlConnection();  
+            IDbConnection connection = new NpgsqlConnection();
             int impactRow = 0;
             try
             {
@@ -132,7 +130,7 @@ namespace ASI.Wanda.DMD.DB.Tables
 
                 impactRow = command.ExecuteNonQuery();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 string errorMsg = $"Sql命令:{Environment.NewLine}{commandString}";
                 throw new Exception(errorMsg, ex);
@@ -219,7 +217,7 @@ namespace ASI.Wanda.DMD.DB.Tables
             //endString
             whereString = string.Format(@"where");
             i = 0;
-            //遍歷模型的屬性，檢查是否有被標記為主鍵的屬性
+            //遍歷模型的屬性，檢查是否有被標記為主鍵的屬性 
             foreach (PropertyInfo property in properties)
             {
                 KeyAttribute attribute = Attribute.GetCustomAttribute(property, typeof(KeyAttribute)) as KeyAttribute;
@@ -238,7 +236,7 @@ namespace ASI.Wanda.DMD.DB.Tables
         }
 
 
-        static protected int Insert(params object [] paramObjects)
+        static protected int Insert(params object[] paramObjects)
         {
             string modelName = typeof(T).Name;
             string insertString = string.Empty;
@@ -316,7 +314,7 @@ namespace ASI.Wanda.DMD.DB.Tables
             string commandString = deleteString + "\n" + whereString + ";";
             return NonQuery(commandString, null);
         }
-       
+
         static protected List<T> SelectWhere(string where, eSortWay inserTimeSortWay = eSortWay.Asc)
         {
             ICollection<T> result = null;
@@ -344,7 +342,7 @@ namespace ASI.Wanda.DMD.DB.Tables
         }
 
 
-  
+
 
         static protected int DeleteWhere(string where)
         {

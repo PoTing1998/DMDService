@@ -269,7 +269,14 @@ namespace ASI.Wanda.DMD.DB.Models.System
             get;
             set;
         }
-
+        /// <summary>  
+        /// 系統ID       
+        /// </summary> 
+        public string system_id
+        {
+            get;
+            set;
+        }
         /// <summary>  
         /// 備註        
         /// </summary> 
@@ -278,6 +285,7 @@ namespace ASI.Wanda.DMD.DB.Models.System
             get;
             set;
         }
+
 
         /// <summary>  
         /// 資料新增人員        

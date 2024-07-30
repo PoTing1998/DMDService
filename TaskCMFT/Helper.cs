@@ -57,6 +57,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             
             ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCU", MSG.JsonContent);
         }
+      
         ///傳送到內部MSG   
         private void SendToTaskDCU(int msgType, int msgID, string jsonData)
         {
@@ -168,8 +169,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList>();
             }
 
-        }
-            
+        }   
         /// <summary>
         /// 更新DMDPreRecordMessage資料表  
         /// </summary>
@@ -242,8 +242,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage>();
             }  
         }
-       
-
         /// <summary>
         /// 從CMFT更新Config的表 拿到相對色碼顏色 
         /// </summary>
@@ -290,6 +288,154 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<DB.Tables.System.sysConfig>();
             }
         }
+
+        /// <summary>
+        /// 更新dmd_schedule資料表  
+        /// </summary>
+        /// <returns></returns>    
+        public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule> UpSchedule()
+        {
+            try
+            {
+                var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdSchedule.SelectAll();
+                ///轉換過程  
+                var convertedList = tempList
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_schedule
+                    {
+                        schedule_id= item.schedule_id,
+                        schedule_name= item.schedule_name,
+                        is_enable = item.is_enable,
+                        start_date= item.start_date,
+                        end_date= item.end_date,
+                        ins_user = item.ins_user,
+                        ins_time = item.ins_time,
+                        upd_user = item.upd_user,
+                        upd_time = item.upd_time,
+                    })
+                    .ToList();
+                convertedList.ForEach(item =>
+                {
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule.DeleteSchedule(
+                       item.schedule_id
+                    );
+                });
+                ///遍歷轉換後的列表，進行更新操作
+                foreach (var item in convertedList)
+                {
+                    ///MSGtype  0 =預錄  1= 及時 
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule.InsertSchedule(
+                       item.schedule_id,
+                       item.schedule_name,
+                       item.is_enable,
+                       item.start_date,
+                       item.end_date
+                    );
+                }
+
+                return convertedList.Cast<DMD.DB.Tables.DMD.dmdSchedule>();
+            }
+            catch (Exception updateException)
+            {
+                ///記錄例外狀況 
+                ASI.Lib.Log.ErrorLog.Log("Error updating dmdSchedule", updateException);
+                return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule>();
+            }
+        }
+
+        public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList> UpDMDSchedulePlaylist()
+        {
+            try
+            {
+                var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdSchedulePlayList.SelectAll();
+                ///轉換過程  
+                var convertedList = tempList
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_schedule_playlist
+                    {
+                        schedule_id = item.schedule_id,
+                        message_id = item.message_id,
+                        station_id = item.station_id,
+                        device_id = item.device_id,
+                        sned_time = item.sned_time,
+                        ins_user = item.ins_user,
+                        ins_time = item.ins_time,
+                        upd_user = item.upd_user,
+                        upd_time = item.upd_time,
+                    })
+                    .ToList();
+                convertedList.ForEach(item =>
+                {
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.DeleteSchedulePlayListItems(
+                       item.schedule_id
+                    );
+                });
+                ///遍歷轉換後的列表，進行更新操作
+                foreach (var item in convertedList)
+                {
+                    ///MSGtype  0 =預錄  1= 及時 
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.InsertSchedulePlayListItem(
+                       item.schedule_id,
+                       item.message_id,
+                       item.station_id,
+                       item.device_id
+                    );
+                }
+
+                return convertedList.Cast<DMD.DB.Tables.DMD.dmdSchedulePlayList>();
+            }
+            catch (Exception updateException)
+            {
+                ///記錄例外狀況 
+                ASI.Lib.Log.ErrorLog.Log("Error updating dmdSchedulePlayList", updateException);
+                return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList>();
+            }
+        }
+        public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting> UpDateDMDPowerSetting()
+        {
+            try
+            {
+                var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdPowerSetting.SelectAll();
+                ///轉換過程  
+                var convertedList = tempList
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_power_setting
+                    {
+                        station_id = item.station_id,
+                        eco_mode = item.eco_mode,
+                        eco_time = item.eco_time,
+                        not_eco_day = item.not_eco_day,
+                        auto_play_time = item.auto_play_time,
+                        auto_eco_time= item.auto_eco_time,
+                        ins_user = item.ins_user,
+                        ins_time = item.ins_time,
+                        upd_user = item.upd_user,
+                        upd_time = item.upd_time,
+                    })
+                    .ToList();
+               
+                ///遍歷轉換後的列表，進行更新操作
+                foreach (var item in convertedList)
+                {
+                    ///MSGtype  0 =預錄  1= 及時 
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting.UpdatePowerSetting(
+                       item.station_id,
+                       item.eco_mode,
+                       item.eco_time,
+                       item.not_eco_day,
+                       item.auto_play_time,
+                       item.auto_eco_time
+                    );
+                }
+
+                return convertedList.Cast<DMD.DB.Tables.DMD.dmdPowerSetting>();
+            }
+            catch (Exception updateException)
+            {
+                ///記錄例外狀況 
+                ASI.Lib.Log.ErrorLog.Log("Error updating dmdPowerSetting", updateException);
+                return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting>();
+            }
+        }
+
+
 
         #endregion
     }

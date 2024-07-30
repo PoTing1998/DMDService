@@ -242,28 +242,38 @@ namespace ASI.Wanda.DMD.TaskDCU
                     ASI.Lib.Log.DebugLog.Log(mProcName + " fromTaskCMFT", $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
                     var Helper  = new DCUHelper();
                     var MSG     = new object();
+                    int result;
                     //回應Ack給CMFT
                     switch (sJsonObjectName)
                     {
+
+                         
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
                             MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
-                            var result  =  mDMD_API.Send((Message.Message)MSG);
+                             result  =  mDMD_API.Send((Message.Message)MSG);
                             ASI.Lib.Log.DebugLog.Log("傳送結果" ,result.ToString());
                             //DetermineSendDestination((Message.Message)MSG);  全部都送
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息 
                             MSG = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
-                            mDMD_API.Send((Message.Message)MSG);
+                             result =  mDMD_API.Send((Message.Message)MSG);
+                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString() );
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendGroupSetting:      //群組設定
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排成設定 川普選上對台灣的影響 ptt
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排程設定
+                            MSG = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
+                            result= mDMD_API.Send((Message.Message)MSG);
+                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPowerTimeSetting:  //電力設定
+                            MSG = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
+                            result =  mDMD_API.Send((Message.Message)MSG);
+                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:  //群組設定
                             break;

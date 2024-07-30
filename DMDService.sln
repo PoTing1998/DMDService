@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34723.18
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KernelService", "DMD_Service\KernelService.csproj", "{43467E49-C6F2-4FCE-936A-61442408B876}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMD_DB", "DMD_DB\DMD_DB.csproj", "{26B445F9-2971-44B6-953A-8B9BF8205408}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMD_Frame", "DMD_Frame\DMD_Frame.csproj", "{A169F312-D665-4361-9A74-EDD9D2E807F8}"
@@ -25,16 +23,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASILib", "..\..\DMD開發�
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CMFT_DB", "..\..\DMD開發中\CMFT_DB\CMFT_DB.csproj", "{76CA49BF-C3A1-43D9-B996-3272CE9AB1AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KernelService", "KernelService\KernelService.csproj", "{43467E49-C6F2-4FCE-936A-61442408B876}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{43467E49-C6F2-4FCE-936A-61442408B876}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{43467E49-C6F2-4FCE-936A-61442408B876}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{43467E49-C6F2-4FCE-936A-61442408B876}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{43467E49-C6F2-4FCE-936A-61442408B876}.Release|Any CPU.Build.0 = Release|Any CPU
 		{26B445F9-2971-44B6-953A-8B9BF8205408}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{26B445F9-2971-44B6-953A-8B9BF8205408}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{26B445F9-2971-44B6-953A-8B9BF8205408}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -75,6 +71,10 @@ Global
 		{76CA49BF-C3A1-43D9-B996-3272CE9AB1AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76CA49BF-C3A1-43D9-B996-3272CE9AB1AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76CA49BF-C3A1-43D9-B996-3272CE9AB1AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43467E49-C6F2-4FCE-936A-61442408B876}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43467E49-C6F2-4FCE-936A-61442408B876}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43467E49-C6F2-4FCE-936A-61442408B876}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43467E49-C6F2-4FCE-936A-61442408B876}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -53,7 +53,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\DMD開發中\ASILib\ASILib.csproj">
+    <ProjectReference Include="..\ASILib\ASILib.csproj">
       <Project>{5b6fc193-a36d-409e-8e9b-2c45fe574189}</Project>
       <Name>ASILib</Name>
     </ProjectReference>

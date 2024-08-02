@@ -1,0 +1,124 @@
+﻿using System;
+using System.Net;
+using System.Net.Sockets;
+
+namespace ASI.Lib.Comm.NTP
+{
+    public class NtpLib
+    {
+        /// <summary>
+        /// 取得指定NTP伺服器所提供的時間 
+        /// </summary>
+        /// <param name="ntpServerIP">NTP伺服器IP</param>
+        /// <param name="ntpPort">NTP伺服器port</param>
+        /// <returns></returns>
+        public static DateTime GetNetworkTime(string ntpServerIP,int ntpPort)
+        {
+            try
+            {
+                //IPAddress iPAddress = new IPAddress(new byte[] { 10, 106, 29, 10 });
+                IPAddress iPAddress = null;
+                if (!System.Net.IPAddress.TryParse(ntpServerIP, out iPAddress))
+                {
+                    //判斷m_IPAddressString為DNS
+                    string sIP = GetHostAddrFromDNS(ntpServerIP);
+
+                    if (!System.Net.IPAddress.TryParse(sIP, out iPAddress))
+                    {
+                        //this.OnErrorEvent($"由DNS: {ntpServerIP} 所取得的IP: {sIP} ，並非有效的IP位址..."); 
+                    }
+                }
+                
+                var ipEndPoint = new IPEndPoint(iPAddress, ntpPort);
+
+                var ntpData = new byte[48];
+                ntpData[0] = 0x1B; // NTP通訊協定Header   
+
+                using (var socket = new System.Net.Sockets.Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+                {
+                    socket.Connect(ipEndPoint);
+                    socket.ReceiveTimeout = 500; // 設定接收Timeout 500毫秒 
+                    socket.Send(ntpData);
+                    socket.Receive(ntpData);
+                    socket.Close();
+                }
+
+                const byte serverReplyTime = 40;
+
+                DateTime ptnTime = ComputeDate(GetMilliSeconds(ntpData,serverReplyTime));
+
+                // Take care of the time zone
+                TimeSpan offSpan = TimeZone.CurrentTimeZone.GetUtcOffset(DateTime.Now);
+                DateTime serverTime = ptnTime + offSpan;
+
+                return serverTime;
+            }
+            catch (Exception ex)
+            {                
+                Console.WriteLine("獲取NTP時間失敗：" + ex.Message);
+                throw ex;                
+            }
+        }
+
+        /// <summary>
+        /// 取得指定DNS所代表的IP Address
+        /// </summary>
+        /// <param name="dns">DNS</param>
+        /// <returns></returns>
+        private static string GetHostAddrFromDNS(string dns)
+        {
+            string sIP = "";
+
+            try
+            {
+                System.Net.IPAddress[] oAddressArray = System.Net.Dns.GetHostAddresses(dns);
+
+                if (oAddressArray != null &&
+                    oAddressArray.Length > 0)
+                {
+                    sIP = oAddressArray[0].ToString();
+                }
+
+                return sIP;
+            }
+            catch (System.Exception ex)
+            {    
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Compute date, given the number of milliseconds since January 1, 1900
+        /// </summary>
+        /// <param name="milliseconds"></param>
+        /// <returns></returns>
+        private static DateTime ComputeDate(ulong milliseconds)
+        {
+            TimeSpan span = TimeSpan.FromMilliseconds((double)milliseconds);
+            DateTime time = new DateTime(1900, 1, 1);
+            time += span;
+            return time;
+        }
+
+        /// <summary>
+        /// Compute the number of milliseconds, given the offset of a 8-byte array
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <returns></returns>
+        private static ulong GetMilliSeconds(byte[] ntpData, byte offset)
+        {
+            ulong intpart = 0, fractpart = 0;
+
+            for (int i = 0; i <= 3; i++)
+            {
+                intpart = 256 * intpart + ntpData[offset + i];
+            }
+            for (int i = 4; i <= 7; i++)
+            {
+                fractpart = 256 * fractpart + ntpData[offset + i];
+            }
+            ulong milliseconds = intpart * 1000 + (fractpart * 1000) / 0x100000000L;
+            return milliseconds;
+        }
+    }
+}

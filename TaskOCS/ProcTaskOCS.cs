@@ -23,7 +23,7 @@ namespace ASI.Wanda.DMD.TaskOCS
     public class ProcTaskOCS : ProcBase
     {
         private System.DateTime LastHeartbeatTime = System.DateTime.Now;
-
+        
         private List<string> Description = new List<string>() {
             "No Of Platforms" , "Platform ID", "Arrival", "Departure",
             "Hold", "NbJourneyData","Validity = 1,NbCars = 2","Train ID","Service","Trip","Destination_ID",
@@ -39,6 +39,7 @@ namespace ASI.Wanda.DMD.TaskOCS
 
         public string mOCSServerConnStr = "";
 
+        ASI.Lib.Comm.SerialPort.SerialPortLib serial = null;
         private byte[] arrPacketByte;
         /// <summary>
         /// 處理OCS模組執行程序所收到之訊息 
@@ -77,7 +78,7 @@ namespace ASI.Wanda.DMD.TaskOCS
                 {
                     string sOCSServerIP = ASI.Lib.Config.ConfigApp.Instance.GetIPFromConnStr(this.mOCSServerConnStr);
 
-                    bool bStatus = ASI.Lib.Comm.Network.NetworkLib.TryPing(sOCSServerIP, 300, 4);
+                    bool bStatus = ASI.Lib.Comm.Network.NetworkLib.TryPing(sOCSServerIP, 300, 4); 
                     ASI.Lib.Log.DebugLog.Log(mProcName, $"嘗試ping OCS Server IP = {sOCSServerIP}，連線狀態:{bStatus}");
                 }
                 catch (System.Exception ex)
@@ -85,7 +86,6 @@ namespace ASI.Wanda.DMD.TaskOCS
                     ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
                 }
             }
-
             //讀取資料庫
             //送出訊息播放命令給DMD Server 
             return 1;
@@ -101,28 +101,33 @@ namespace ASI.Wanda.DMD.TaskOCS
         {
             mTimerTick = 30;
             mProcName = "TaskOCS";
+
+            serial = new ASI.Lib.Comm.SerialPort.SerialPortLib();
+             serial = new ASI.Lib.Comm.SerialPort.SerialPortLib();
+            serial.ReceivedEvent += new ASI.Lib.Comm.ReceivedEvents.ReceivedEventHandler(SerialPort_ReceivedEvent);
+            serial.DisconnectedEvent += new ASI.Lib.Comm.ReceivedEvents.DisconnectedEventHandler(SerialPort_DisconnectedEvent);  
+
             OCSData oCS_Data = new OCSData();
             var sDBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
             var sDBPort = ConfigApp.Instance.GetConfigSetting("DMD_DB_Port");
             var sDBName = ConfigApp.Instance.GetConfigSetting("DMD_DB_Name");
             var sUserID = "postgres";
             var sPassword = "postgres";
-            var sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
-            //設定modbus的初始資料 
+            var sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID"); 
+            //設定modbus的初始資料   
             var TcpClientIP = ConfigApp.Instance.GetConfigSetting("TcpClientIP");
             var TcpClientPort = ConfigApp.Instance.GetConfigSetting("TcpClientPort");
             oCS_Data.ModbusFactory = new ModbusFactory();
             oCS_Data.Master = oCS_Data.ModbusFactory.CreateMaster(new TcpClient(TcpClientIP, int.Parse(TcpClientPort)));
             oCS_Data.Master.Transport.ReadTimeout = oCS_Data.TransactionTimeout;
-            oCS_Data.Master.Transport.Retries = oCS_Data.ConnectionTries;
-            oCS_Data.Master.Transport.WaitToRetryMilliseconds = oCS_Data.WaitToRetryMilliseconds;
-
+            oCS_Data.Master.Transport.Retries = oCS_Data.ConnectionTries; 
+            oCS_Data.Master.Transport.WaitToRetryMilliseconds = oCS_Data.WaitToRetryMilliseconds; 
             try
             {
-                //"Server='localhost'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'"; 
+                //"Server='localhost'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";  
                 if (!ASI.Wanda.DMD.DB.Manager.Initializer(sDBIP, sDBPort, sDBName, sUserID, sPassword, sCurrentUserID))
                 {
-                    ErrorLog.Log(mProcName, $"資料庫連線失敗!{sDBIP}:{sDBPort};userid={sUserID}");
+                    ErrorLog.Log(mProcName, $"資料庫連線失敗!{sDBIP}:{sDBPort};userid={sUserID}");  
                 }
             }
             catch (System.Exception ex)
@@ -133,38 +138,34 @@ namespace ASI.Wanda.DMD.TaskOCS
             return base.StartTask(pComputer, pProcName);
         }
        
-       
         /// <summary>
-        /// 處理額外的index 11 13 27 29
+        /// 處理額外的index 11 13 27 29 
         /// </summary>
         bool IsSpecialIndex(int index)
         {
-            HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
-
+            HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };  
             return specialIndices.Contains(index);
         }
-        void Process(ushort[] registerBuffer, List<byte> newByteList)
+        void Process(ushort[] registerBuffer, List<byte> newByteList) 
         {
             for (int i = 0; i < registerBuffer.Length; i++)
             {
                 if (IsSpecialIndex(i))
                 {
-                    ushort value1 = registerBuffer[i];
-                    ushort value2 = registerBuffer[i + 1];
-                    i++; // 跳過下一個索引
+                    ushort value1 = registerBuffer[i]; 
+                    ushort value2 = registerBuffer[i + 1]; 
+                    i++; // 跳過下一個索引 
                 }
 
                 else
                 {
-                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]);
+                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]); 
                     newByteList.Add(ushortBytes[0]);
                     newByteList.Add(ushortBytes[1]);
 
                 }
             }
-
         }
-
         /// <summary>
         /// 處理號誌的資料流
         /// </summary>
@@ -175,7 +176,6 @@ namespace ASI.Wanda.DMD.TaskOCS
             OCSData oCS_Data = new OCSData();
             try
             {
-
                 ///設定modbus的初始資料 
                 oCS_Data.ModbusFactory = new ModbusFactory();
                 oCS_Data.Master = oCS_Data.ModbusFactory.CreateMaster(new TcpClient("10.107.26.99", 502));
@@ -191,7 +191,7 @@ namespace ASI.Wanda.DMD.TaskOCS
                     ///讀取salve的資料
                     var registerBuffer = oCS_Data.Master.ReadInputRegisters(0, 30001, (ushort)38);
                     ///獲得原始資料後，就寫log檔案
-                    string registerBufferData = "";
+                    string registerBufferData = ""; 
                     int b = 1;
                     foreach (var a in registerBuffer)
                     {
@@ -229,5 +229,27 @@ namespace ASI.Wanda.DMD.TaskOCS
 
             }
         }
+
+       
+        void SerialPort_DisconnectedEvent(string source) //斷線處理  
+        {
+            try
+            {
+                this.serial.Close();
+                this.serial = null;
+                serial = new ASI.Lib.Comm.SerialPort.SerialPortLib();
+                serial.ReceivedEvent += new ASI.Lib.Comm.ReceivedEvents.ReceivedEventHandler(SerialPort_ReceivedEvent);
+                serial.DisconnectedEvent += new ASI.Lib.Comm.ReceivedEvents.DisconnectedEventHandler(SerialPort_DisconnectedEvent);
+            }
+            catch (Exception) 
+            {
+                ASI.Lib.Log.ErrorLog.Log(mProcName, "斷線處理錯誤"); 
+            }
+        }
+       
+
+        #region 判斷
+
+        #endregion
     }
 }

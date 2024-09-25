@@ -57,7 +57,38 @@ namespace ASI.Wanda.DMD.TaskCMFT
             
             ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCU", MSG.JsonContent);
         }
-      
+
+        public  void SendPowerSettingToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
+        {
+            //收到封包  
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PowerTimeSetting)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
+            //組封包 
+            var sendPowerSetting = new JsonObject.DCU.FromDMD.PowerTimeSetting(Enum.Station.OCC);
+            sendPowerSetting.seatID = oJsonObject.SeatID;
+            sendPowerSetting.SqlCommand = (Enum.SqlCommand)oJsonObject.command;
+            //組成給DCU的封包
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPowerSetting));
+            //傳送不同的格式
+            SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPowerSetting));
+
+            ASI.Lib.Log.DebugLog.Log("SendPowerSettingToDCU", MSG.JsonContent);
+        }
+
+        public void SendScheduleSettingToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
+        {
+            //收到封包
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.ScheduleSetting)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
+            //組封包 
+            var sendSchedule = new JsonObject.DCU.FromDMD.SendScheduleSetting(Enum.Station.OCC);
+            sendSchedule.seatID = oJsonObject.SeatID;
+            sendSchedule.SqlCommand = (Enum.SqlCommand)oJsonObject.command;
+            sendSchedule.sched_id = oJsonObject.sched_id;
+            //組成給DCU的封包
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendSchedule));
+            //傳送不同的格式
+            SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendSchedule));
+            ASI.Lib.Log.DebugLog.Log("SendScheduleSettingToDCU", MSG.JsonContent); 
+        }
         ///傳送到內部MSG   
         private void SendToTaskDCU(int msgType, int msgID, string jsonData)
         {
@@ -107,7 +138,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             ///組成 CMFT要的訊息內容 並依造需求 發送出去   
             var MSG = new ASI.Wanda.CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Response, CMFTServerMessage.MessageID, Lib.Text.Parsing.Json.SerializeObject(res_SendInstantMessage));
             
-            sendAction?.Invoke(API, MSG);
+            sendAction?.Invoke(API, MSG);  
             ASI.Lib.Log.DebugLog.Log("ResponInstant", MSG.JsonContent);
         }
 
@@ -265,12 +296,10 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time,
                     })  
                     .ToList();
-                ///刪除原本的資料  
-              
                 ///遍歷轉換後的列表，進行更新操作 
                 foreach (var item in convertedList)
                 {   
-                    DB.Tables.System.sysConfig.InsertSystemConfig(  
+                    DB.Tables.System.sysConfig.UpdataSystemConfig(  
                        item.config_name, 
                        item.config_value, 
                        item.config_description ,

@@ -193,7 +193,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             }
             catch (System.Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log("TaskDMD", ex);
+                ASI.Lib.Log.ErrorLog.Log("TaskCMFT", ex);
             }
         }
 
@@ -254,7 +254,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
         private void HandlePowerSetting(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
         {
             CMFTHelper.UpDateDMDPowerSetting();
-           
+            //新增 傳送到DCU 
+            CMFTHelper.SendPowerSettingToDCU(CMFTServerMessage);
         }
         /// <summary>
         /// 處理預錄訊息的排成
@@ -265,7 +266,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             CMFTHelper.UpSchedule();
             CMFTHelper.UpDMDSchedulePlaylist();
-
+            //新增 傳送到DCU
+            CMFTHelper.SendScheduleSettingToDCU(CMFTServerMessage);
         }
 
         /// <summary>
@@ -296,7 +298,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     if (mSGFromTaskDCU.MessageType == 1)
                     {
                         //DMD內部通訊定義:Ack  
-                        //從TaskDCU過來不應該有Ack
+                        //從TaskDCU過來不應該有Ack 
                         ASI.Lib.Log.ErrorLog.Log(mProcName, $"從TaskDCU來的訊息不應有DMD內部通訊定義:Ack，MessageType:{mSGFromTaskDCU.MessageType}"); ;
                     }
                     else if (mSGFromTaskDCU.MessageType == 2)

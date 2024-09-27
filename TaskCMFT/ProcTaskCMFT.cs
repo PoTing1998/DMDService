@@ -213,6 +213,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             string sLog = $"從CMFT Server收到:{sByteArray}；訊息類別碼:{CMFTServerMessage.MessageType}；識別碼:{iMsgID}；長度:{CMFTServerMessage.MessageLength}；內容:{sJsonData}；JsonObjectName:{sJsonObjectName}";
             ASI.Lib.Log.DebugLog.Log("FromCMFTDate", $"{sLog}\r\n");
+            // 處理不同的 JSON 物件類型
+            if (string.IsNullOrEmpty(sJsonObjectName)) return; // 基本檢查
 
             switch (sJsonObjectName)
             {
@@ -232,6 +234,9 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendGroupSetting:
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendParameterSetting:
                     CMFTHelper.HandleAckMessage(CMFTServerMessage);
+                    break;
+                default:
+                    ASI.Lib.Log.DebugLog.Log("UnknownJsonObject", $"無法處理的 jsonObjectName: {sJsonObjectName}");
                     break;
             }
         }
@@ -280,7 +285,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 mCMFT_API.Dispose();
                 mCMFT_API = null;
             }
-
             base.StopTask();
         }
         /// <summary>
@@ -316,7 +320,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         ASI.Lib.Log.DebugLog.Log(mProcName, sLog);
                         //將訊息傳給CMFT 
                         var oJsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage)ASI.Wanda.DMD.Message.Helper.GetJsonObject(mSGFromTaskDCU.JsonData);
-
                         //組封包  
                         var Res_SendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
                         Res_SendPreRecordMessage.seatID = oJsonObject.seatID;

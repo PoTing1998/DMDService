@@ -14,6 +14,7 @@ namespace ASI.Wanda.DMD.TaskDCU
 {
     public class ProcTaskDCU : ProcBase
     {
+        #region construct
         private ASI.Wanda.DMD.DMD_API mDMD_API = null;
 
         private System.DateTime LastHeartbeatTime = System.DateTime.Now;
@@ -21,13 +22,17 @@ namespace ASI.Wanda.DMD.TaskDCU
         public string mDMDServerConnStr = "";
 
         public bool mIsConnectedToDCU = false;
-
+        /// <summary>
+        /// 儲存已連接的客戶端
+        /// </summary>
+        private List<string> connectedClients = new List<string>();
         public class DeviceInfo 
         {
             public string StationID { get; set; }
             public string AreaID { get; set; }
             public string DeviceID { get; set; }
         }
+        #endregion
 
         /// <summary>
         /// 處理DCU模組執行程序所收到之訊息
@@ -50,7 +55,6 @@ namespace ASI.Wanda.DMD.TaskDCU
             }
             return base.ProcEvent(pLabel, pBody);
         }
-
 
         /// <summary>
         /// 啟始處理DCU模組執行程序
@@ -100,16 +104,33 @@ namespace ASI.Wanda.DMD.TaskDCU
             ConnectToDCUServer();
             return base.StartTask(pComputer, pProcName);
         }
-        private void DMD_API_DisconnectedEvent(string source)
+        /// <summary>
+        /// 結束處理DMD模組執行程序
+        /// </summary>
+        public override void StopTask()
         {
-            //string sStatusType = "default";
-            //string sStatusValue = false.ToString();
+            if (mDMD_API != null)
+            {
+                mDMD_API.Dispose();
+                mDMD_API = null;
+            }
+
+            base.StopTask();
         }
 
-       /// <summary>
-       /// 從DCU 接收訊號
-       /// </summary>
-       /// <param name="DCUServerMessage"></param>
+
+        private void DMD_API_DisconnectedEvent(string clientInfo)
+        {
+            // 從列表中移除已斷開的客戶端
+            connectedClients.Remove(clientInfo);
+            ASI.Lib.Log.DebugLog.Log(mProcName, $"客戶端已斷開連接: {clientInfo}");
+
+        }
+
+        /// <summary>
+        /// 從DCU 接收訊號
+        /// </summary>
+        /// <param name="DCUServerMessage"></param>
         private void DMD_API_ReceivedEvent(ASI.Wanda.DMD.Message.Message DCUServerMessage)
         {
             string sLog = "";
@@ -130,13 +151,10 @@ namespace ASI.Wanda.DMD.TaskDCU
                 {
                     ///Change/Command
                     sLog = $"從DCU Server收到:{sByteArray}；訊息類別碼:{DCUServerMessage.MessageType}；識別碼:{iMsgID}；長度:{DCUServerMessage.MessageLength}；內容:{sJsonData}；JsonObjectName:{sJsonObjectName}";
-
                 }
                 else if (DCUServerMessage.MessageType == ASI.Wanda.DMD.Message.Message.eMessageType.Response)
                 {
                     sLog = $"從DCU Server收到:{sByteArray}；訊息類別碼:{DCUServerMessage.MessageType}；識別碼:{iMsgID}；長度:{DCUServerMessage.MessageLength}；內容:{sJsonData}；JsonObjectName:{sJsonObjectName}";
-                    ///Response
-
                     ///DCU Server to DMD
                     if (sJsonObjectName == "ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage")
                     {
@@ -158,7 +176,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             .Where(Targetdu => Targetdu.Split('_').Length >= 3)
                             .Select(Targetdu =>
                             {
-                                var parts = Targetdu.Split('_');
+                                var parts = Targetdu.Split('_'); 
                                 return new DeviceInfo
                                 {
                                     StationID = parts[0],
@@ -173,8 +191,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(deviceInfo.StationID, deviceInfo.AreaID, deviceInfo.DeviceID);
                         }
                         //接下來回傳給Task CMFT 
-
-
+                        
                     }
                     else if (sJsonObjectName == "ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendInstantMessage")
                     {
@@ -210,7 +227,6 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(deviceInfo.StationID, deviceInfo.AreaID, deviceInfo.DeviceID);
                         }
                         //接下來回傳給Task CMFT
-
                     }
                 }
 
@@ -227,7 +243,6 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// </summary>
         private int ProMsgFromCMFT(string pMessage)
         {
-          
             try
             {
                 ASI.Wanda.DMD.ProcMsg.MSGFromTaskCMFT mSGFromTaskCMFT = new ProcMsg.MSGFromTaskCMFT(new MSGFrameBase(""));
@@ -246,8 +261,6 @@ namespace ASI.Wanda.DMD.TaskDCU
                     //回應Ack給CMFT
                     switch (sJsonObjectName)
                     {
-
-                         
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
                             MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
                              result  =  mDMD_API.Send((Message.Message)MSG);
@@ -290,6 +303,61 @@ namespace ASI.Wanda.DMD.TaskDCU
           
             return -1;
         }
+
+        /// <summary>
+        /// 開啟與DCU伺服器的Socket連線
+        /// </summary>
+        private void ConnectToDCUServer()
+        {
+            try
+            {
+                DisconnectExistingDMDAPI();
+                mDMD_API = new ASI.Wanda.DMD.DMD_API();
+                mDMD_API.ConnectedEvent += DMD_API_ConnectedEvent;
+                mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;
+                mDMD_API.DisconnectedEvent += DMD_API_DisconnectedEvent;
+                mDMDServerConnStr = ConfigApp.Instance.GetConfigSetting("DCU_Server");
+
+                int iResult = mDMD_API.Initial(mDMDServerConnStr);
+                if (iResult == 0)
+                {
+                    mIsConnectedToDCU = true;
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "與DCU Server的Socket開啟成功");
+                    LastHeartbeatTime = DateTime.Now;
+                }
+                else
+                {
+                    mIsConnectedToDCU = false;
+                    ASI.Lib.Log.DebugLog.Log(mProcName, $"與DCU Server的Socket開啟失敗，DMD_Server: {mDMDServerConnStr}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(mProcName, $"Exception in ConnToDCUServer: {ex}");
+            }
+        }
+
+        private void DMD_API_ConnectedEvent(string clientInfo)
+        {
+            // 添加已連接的客戶端到列表
+            connectedClients.Add(clientInfo);
+            ASI.Lib.Log.DebugLog.Log(mProcName, $"客戶端連接成功: {clientInfo}");
+        }
+
+        private void DisconnectExistingDMDAPI()
+        {
+            if (mDMD_API != null)
+            {
+                mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
+                mDMD_API.DisconnectedEvent -= DMD_API_DisconnectedEvent;
+                mDMD_API.Dispose();
+                ASI.Lib.Log.DebugLog.Log(mProcName, "Existing DMD_API disconnected and disposed.");
+            }
+        }
+
+
+
+        #region  
         //判別要傳送的目的碼  
         //private void DetermineSendDestination(ASI.Wanda.DMD.Message.Message message)
         //{
@@ -341,109 +409,6 @@ namespace ASI.Wanda.DMD.TaskDCU
         //    }
 
         //}
-
-        /// <summary>
-        /// 與DCU伺服器建立Socket連線
-        /// </summary>
-        private void ConnectToDCUServer()
-        {
-            try
-            {
-                DisconnectExistingDMDAPI();
-                mDMD_API = new ASI.Wanda.DMD.DMD_API();
-                mDMD_API.ConnectedEvent += MDMD_API_ConnectedEvent;
-                mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;
-                mDMD_API.DisconnectedEvent += DMD_API_DisconnectedEvent;
-                mDMDServerConnStr = ConfigApp.Instance.GetConfigSetting("DCU_Server");
-
-                int iResult = mDMD_API.Initial(mDMDServerConnStr);
-                if (iResult == 0)
-                {
-                    mIsConnectedToDCU = true;
-                    ASI.Lib.Log.DebugLog.Log(mProcName, "與DCU Server的Socket開啟成功");
-                    LastHeartbeatTime = DateTime.Now;
-                   
-                }
-                else
-                {
-                    mIsConnectedToDCU = false;
-                    ASI.Lib.Log.DebugLog.Log(mProcName, $"與DCU Server的Socket開啟失敗，DMD_Server: {mDMDServerConnStr}");
-                }
-            }
-            catch (Exception ex)
-            {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"Exception in ConnToDCUServer: {ex}");
-            }
-        }
-
-        private void MDMD_API_ConnectedEvent(string source)
-        {
-
-            ASI.Lib.Log.DebugLog.Log(mProcName, $"與DCU連線，DMD_Server: {source}");
-            throw new NotImplementedException();
-        }
-
-        private void DisconnectExistingDMDAPI()
-        {
-            if (mDMD_API != null)
-            {
-                mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
-                mDMD_API.DisconnectedEvent -= DMD_API_DisconnectedEvent;
-                mDMD_API.Dispose();
-                ASI.Lib.Log.DebugLog.Log(mProcName, "Existing DMD_API disconnected and disposed.");
-            }
-        }
-        /// <summary>
-        /// 結束處理DMD模組執行程序
-        /// </summary>
-        public override void StopTask()
-        {
-            if (mDMD_API != null)
-            {
-                mDMD_API.Dispose();
-                mDMD_API = null;
-            }
-
-            base.StopTask();
-        }
-
-        private void testBtn_Click()
-        {
-            ASI.Wanda.CMFT.Message.Message oMessage = new ASI.Wanda.CMFT.Message.Message();
-            oMessage.MessageID = new Random().Next(1, 100000); 
-            oMessage.MessageType = ASI.Wanda.CMFT.Message.Message.eMessageType.Command;
-
-            var SendPreRecordMessage = new ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage("001");
-            SendPreRecordMessage.SeatID = "TEST";
-            SendPreRecordMessage.msg_id.Add("測試內容");
-            SendPreRecordMessage.target_du = new List<string>
-            {
-                "LG01_CCS_CDU-1",
-                "LG01_CCS_CDU-2",
-                "LG01_UPF_PDU-1",
-                "LG08A_DPF_PDU-4"
-            };
-            SendPreRecordMessage.dbName1 = "dmd_pre_record_message";
-            SendPreRecordMessage.dbName2 = "dmd_target";
-
-            oMessage.JsonContent = ASI.Lib.Text.Parsing.Json.SerializeObject(SendPreRecordMessage);
-
-            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(oMessage.JsonContent);
-            //組封包
-            var sendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
-            sendPreRecordMessage.msg_id = oJsonObject.msg_id;
-            sendPreRecordMessage.target_du = oJsonObject.target_du;
-            sendPreRecordMessage.seatID = oJsonObject.SeatID;
-
-            var ObjectName = ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage);
-            //組成給DCU的封包
-            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, oMessage.MessageID, ObjectName);
-            var RESLUT = mDMD_API.Send(MSG);
-            ASI.Lib.Log.DebugLog.Log("測試模擬訊息", MSG.JsonContent);
-          //  MessageBox.Show("傳送:" + RESLUT.ToString());
-        }
-
-       
-
+        #endregion
     }
 }

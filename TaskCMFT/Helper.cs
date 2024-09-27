@@ -54,7 +54,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
             var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
             //傳送不同的格式
             SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
-            
             ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCU", MSG.JsonContent);
         }
 
@@ -70,7 +69,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
             var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPowerSetting));
             //傳送不同的格式
             SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPowerSetting));
-
             ASI.Lib.Log.DebugLog.Log("SendPowerSettingToDCU", MSG.JsonContent);
         }
 
@@ -96,7 +94,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
             {
                 var MSGFromTaskCMFT = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskCMFT(new MSGFrameBase("TaskCMFT", "dmdserverTaskDCU"));
                 //組相對應的封包
-                
                 MSGFromTaskCMFT.MessageType = msgType;
                 MSGFromTaskCMFT.MessageID = msgID;  
                 MSGFromTaskCMFT.JsonData = jsonData;
@@ -137,7 +134,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
             res_SendInstantMessage.failed_target = isSuccess ? null : failedTargets;
             ///組成 CMFT要的訊息內容 並依造需求 發送出去   
             var MSG = new ASI.Wanda.CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Response, CMFTServerMessage.MessageID, Lib.Text.Parsing.Json.SerializeObject(res_SendInstantMessage));
-            
             sendAction?.Invoke(API, MSG);  
             ASI.Lib.Log.DebugLog.Log("ResponInstant", MSG.JsonContent);
         }

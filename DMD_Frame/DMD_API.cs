@@ -284,8 +284,7 @@ namespace ASI.Wanda.DMD
 
                     ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Server嘗試開啟，ConnectionString = " + mSocket.ConnectionString);
                     iOpenResult = mSocket.Open();
-                    if (iOpenResult == 0 &&
-                        mSocket.IsConnect)
+                    if (iOpenResult == 0 && mSocket.IsConnect)
                     {
                         ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Server開啟成功! ConnectionString = " + mSocket.ConnectionString);
                     }
@@ -301,8 +300,7 @@ namespace ASI.Wanda.DMD
 
                     ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Client嘗試連線，ConnectionString = " + mSocket.ConnectionString);
                     iOpenResult = mSocket.Open();
-                    if (iOpenResult == 0 &&
-                        mSocket.IsConnect)
+                    if (iOpenResult == 0 &&  mSocket.IsConnect)
                     {
                         ASI.Lib.Log.DebugLog.Log(mProcName, "Socket 連線成功! ConnectionString = " + mSocket.ConnectionString);
                     }

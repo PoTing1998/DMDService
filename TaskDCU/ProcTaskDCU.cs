@@ -316,6 +316,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                 mDMD_API.ConnectedEvent += DMD_API_ConnectedEvent;
                 mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;
                 mDMD_API.DisconnectedEvent += DMD_API_DisconnectedEvent;
+                mDMD_API.ErrorEvent += DMD_API_ErrorEvent;
                 mDMDServerConnStr = ConfigApp.Instance.GetConfigSetting("DCU_Server");
 
                 int iResult = mDMD_API.Initial(mDMDServerConnStr);
@@ -337,6 +338,11 @@ namespace ASI.Wanda.DMD.TaskDCU
             }
         }
 
+        private void DMD_API_ErrorEvent(string source)
+        {
+            ASI.Lib.Log.ErrorLog.Log(mProcName, source);
+        }
+
         private void DMD_API_ConnectedEvent(string clientInfo)
         {
             // 添加已連接的客戶端到列表
@@ -351,13 +357,10 @@ namespace ASI.Wanda.DMD.TaskDCU
                 mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
                 mDMD_API.DisconnectedEvent -= DMD_API_DisconnectedEvent;
                 mDMD_API.Dispose();
-                ASI.Lib.Log.DebugLog.Log(mProcName, "Existing DMD_API disconnected and disposed.");
+                ASI.Lib.Log.DebugLog.Log(mProcName, "Existing DMD_API disconnected and disposed.");  
             }
         }
-
-
-
-        #region  
+        #region   判斷方式
         //判別要傳送的目的碼  
         //private void DetermineSendDestination(ASI.Wanda.DMD.Message.Message message)
         //{

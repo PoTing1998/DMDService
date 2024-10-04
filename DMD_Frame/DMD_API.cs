@@ -50,6 +50,12 @@ namespace ASI.Wanda.DMD
         /// </summary>
         public event DisconnectedEventHandler DisconnectedEvent;
 
+        public delegate void ErrorEventHandler (string source);
+        /// <summary>
+        /// Socket Server 專用 Socket Server 錯誤資訊
+        /// </summary>
+        public event ErrorEventHandler ErrorEvent;
+
         /// <summary>
         /// API初始化
         /// </summary>
@@ -376,7 +382,7 @@ namespace ASI.Wanda.DMD
 
         private void Socket_ErrorEvent(Exception exception)
         {
-
+            ErrorEvent?.Invoke(exception);
         }
         private void Socket_CloseEvent(string source)
         {

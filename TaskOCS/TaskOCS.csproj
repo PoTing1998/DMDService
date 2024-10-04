@@ -45,10 +45,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ByteArrayHandler.cs" />
     <Compile Include="OCSModbus.cs" />
     <Compile Include="ProcTaskOCS.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SignalCenterHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

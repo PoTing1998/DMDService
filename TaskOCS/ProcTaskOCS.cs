@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 namespace ASI.Wanda.DMD.TaskOCS
 {
 
+    #region construct
     /// <summary>
     /// 處理OCS模組執行程序
     /// </summary>
@@ -41,6 +42,9 @@ namespace ASI.Wanda.DMD.TaskOCS
 
         ASI.Lib.Comm.SerialPort.SerialPortLib serial = null;
         private byte[] arrPacketByte;
+        #endregion
+        #region  ttaskocs資料處理
+
         /// <summary>
         /// 處理OCS模組執行程序所收到之訊息 
         /// </summary>
@@ -101,9 +105,9 @@ namespace ASI.Wanda.DMD.TaskOCS
         {
             mTimerTick = 30;
             mProcName = "TaskOCS";
-
+          
             serial = new ASI.Lib.Comm.SerialPort.SerialPortLib();
-             serial = new ASI.Lib.Comm.SerialPort.SerialPortLib();
+            serial = new ASI.Lib.Comm.SerialPort.SerialPortLib();
             serial.ReceivedEvent += new ASI.Lib.Comm.ReceivedEvents.ReceivedEventHandler(SerialPort_ReceivedEvent);
             serial.DisconnectedEvent += new ASI.Lib.Comm.ReceivedEvents.DisconnectedEventHandler(SerialPort_DisconnectedEvent);  
 
@@ -137,35 +141,61 @@ namespace ASI.Wanda.DMD.TaskOCS
 
             return base.StartTask(pComputer, pProcName);
         }
-       
+
         /// <summary>
-        /// 處理額外的index 11 13 27 29 
+        /// 判斷當前索引是否為特殊索引。
         /// </summary>
+        /// <param name="index">當前索引</param>
+        /// <returns>若為特殊索引則返回 true，否則返回 false</returns>
         bool IsSpecialIndex(int index)
         {
-            HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };  
+            // 定義特殊索引集合
+            HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
             return specialIndices.Contains(index);
         }
         void Process(ushort[] registerBuffer, List<byte> newByteList) 
         {
+
             for (int i = 0; i < registerBuffer.Length; i++)
             {
+                // 如果索引為特殊索引，進行特殊資料處理
                 if (IsSpecialIndex(i))
                 {
-                    ushort value1 = registerBuffer[i]; 
-                    ushort value2 = registerBuffer[i + 1]; 
-                    i++; // 跳過下一個索引 
-                }
+                    ushort firstValue = registerBuffer[i];
+                    ushort secondValue = registerBuffer[i + 1];
+                    // 將兩個 ushort 組合成 byte 數組並加入到 newByteList 中
+                    byte[] combinedBytes = CombineBytes(firstValue, secondValue);
+                    newByteList.AddRange(combinedBytes);
 
+                    i++; // 跳過下一個索引
+                }
                 else
                 {
-                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]); 
-                    newByteList.Add(ushortBytes[0]);
-                    newByteList.Add(ushortBytes[1]);
+                    // 將單個 ushort 轉換為 byte 數組
+                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]);
+                    newByteList.AddRange(ushortBytes);
 
+                 
                 }
             }
         }
+        /// <summary>
+        /// 將兩個 ushort 的高低位組合為 4 個 byte 數組。
+        /// </summary>
+        /// <param name="highOrder">高位 ushort 數值</param>
+        /// <param name="lowOrder">低位 ushort 數值</param>
+        /// <returns>組合後的 byte 數組</returns>
+        byte[] CombineBytes(ushort highOrder, ushort lowOrder)
+        {
+            // 創建 4 個 byte 的數組來表示組合的結果
+            byte[] bytes = new byte[4];
+            // 將兩個 ushort 數值的高低位分別放入 byte 數組中
+            bytes[3] = (byte)(lowOrder >> 8);
+            bytes[2] = (byte)lowOrder;
+            bytes[1] = (byte)(highOrder >> 8);
+            bytes[0] = (byte)highOrder;
+            return bytes;
+        } 
         /// <summary>
         /// 處理號誌的資料流
         /// </summary>
@@ -187,11 +217,11 @@ namespace ASI.Wanda.DMD.TaskOCS
 
                 for (int iteration = 0; iteration < numIterations; iteration++)
                 {
-                    var newByteList = new List<byte>();
+                    var newByteList = new List<byte>(); 
                     ///讀取salve的資料
                     var registerBuffer = oCS_Data.Master.ReadInputRegisters(0, 30001, (ushort)38);
                     ///獲得原始資料後，就寫log檔案
-                    string registerBufferData = ""; 
+                    string registerBufferData = "";  
                     int b = 1;
                     foreach (var a in registerBuffer)
                     {
@@ -224,13 +254,11 @@ namespace ASI.Wanda.DMD.TaskOCS
                     ASI.Lib.Log.DebugLog.Log("Processed_OCS_Data", logMessage);
                 }
             }
-            catch (System.Exception)
+            catch (System.Exception ex )
             {
-
+                ASI.Lib.Log.ErrorLog.Log("Processed_OCS_Data",ex);
             }
         }
-
-       
         void SerialPort_DisconnectedEvent(string source) //斷線處理  
         {
             try
@@ -246,10 +274,6 @@ namespace ASI.Wanda.DMD.TaskOCS
                 ASI.Lib.Log.ErrorLog.Log(mProcName, "斷線處理錯誤"); 
             }
         }
-       
-
-        #region 判斷
-
         #endregion
     }
 }

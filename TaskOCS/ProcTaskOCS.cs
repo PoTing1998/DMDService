@@ -124,14 +124,14 @@ namespace ASI.Wanda.DMD.TaskOCS
             oCS_Data.ModbusFactory = new ModbusFactory();
             oCS_Data.Master = oCS_Data.ModbusFactory.CreateMaster(new TcpClient(TcpClientIP, int.Parse(TcpClientPort)));
             oCS_Data.Master.Transport.ReadTimeout = oCS_Data.TransactionTimeout;
-            oCS_Data.Master.Transport.Retries = oCS_Data.ConnectionTries; 
+            oCS_Data.Master.Transport.Retries = oCS_Data.ConnectionTries;
             oCS_Data.Master.Transport.WaitToRetryMilliseconds = oCS_Data.WaitToRetryMilliseconds; 
             try
             {
                 //"Server='localhost'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";  
                 if (!ASI.Wanda.DMD.DB.Manager.Initializer(sDBIP, sDBPort, sDBName, sUserID, sPassword, sCurrentUserID))
                 {
-                    ErrorLog.Log(mProcName, $"資料庫連線失敗!{sDBIP}:{sDBPort};userid={sUserID}");  
+                    ErrorLog.Log(mProcName, $"資料庫連線失敗!{sDBIP}:{sDBPort};userid={sUserID}");
                 }
             }
             catch (System.Exception ex)
@@ -166,7 +166,6 @@ namespace ASI.Wanda.DMD.TaskOCS
                     // 將兩個 ushort 組合成 byte 數組並加入到 newByteList 中
                     byte[] combinedBytes = CombineBytes(firstValue, secondValue);
                     newByteList.AddRange(combinedBytes);
-
                     i++; // 跳過下一個索引
                 }
                 else
@@ -174,8 +173,6 @@ namespace ASI.Wanda.DMD.TaskOCS
                     // 將單個 ushort 轉換為 byte 數組
                     byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]);
                     newByteList.AddRange(ushortBytes);
-
-                 
                 }
             }
         }
@@ -206,7 +203,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             OCSData oCS_Data = new OCSData();
             try
             {
-                ///設定modbus的初始資料 
+                //設定modbus的初始資料 
                 oCS_Data.ModbusFactory = new ModbusFactory();
                 oCS_Data.Master = oCS_Data.ModbusFactory.CreateMaster(new TcpClient("10.107.26.99", 502));
                 oCS_Data.Master.Transport.ReadTimeout = oCS_Data.TransactionTimeout;

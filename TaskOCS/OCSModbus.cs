@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
+using System.Net.Sockets;
 
 namespace OCS.Modbus
 {
@@ -202,7 +203,12 @@ namespace OCS.Modbus
             }
             ASI.Lib.Log.DebugLog.Log("To_OCS_Data", logMessage);
         }
-
+        /// <summary>
+        /// 位元轉移 
+        /// </summary>
+        /// <param name="byte1"></param>
+        /// <param name="byte2"></param>
+        /// <returns></returns>
         private int CombineBytesToInt(ushort byte1, ushort byte2)
         {
             byte[] bytes = new byte[4];
@@ -212,7 +218,12 @@ namespace OCS.Modbus
             bytes[0] = (byte)byte1;
             return BitConverter.ToInt32(bytes, 0);
         }
-
+        /// <summary>
+        /// 位移轉移 
+        /// </summary>
+        /// <param name="byte1"></param>
+        /// <param name="byte2"></param>
+        /// <returns></returns>
         private byte[] CombineByte(ushort byte1, ushort byte2)
         {
             byte[] bytes = new byte[4];
@@ -222,13 +233,22 @@ namespace OCS.Modbus
             bytes[0] = (byte)byte1;
             return bytes;
         }
-
+        /// <summary>
+        ///特定 index 的判斷
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
         private bool IsSpecialIndex(int index)
         {
             HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
             return specialIndices.Contains(index);
         }
-
+        /// <summary>
+        /// xor 的判斷
+        /// </summary>
+        /// <param name="hex1"></param>
+        /// <param name="hex2"></param>
+        /// <returns></returns>
         public static ushort[] XOR(ushort[] hex1, ushort[] hex2)
         {
             ushort[] hexOut = new ushort[hex1.Length];

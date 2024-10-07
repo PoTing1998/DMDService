@@ -265,7 +265,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
                              result  =  mDMD_API.Send((Message.Message)MSG);
                             ASI.Lib.Log.DebugLog.Log("傳送結果" ,result.ToString());
-                            //DetermineSendDestination((Message.Message)MSG);  全部都送
+                            //DetermineSendDestination((Message.Message)MSG);  
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息 
                             MSG = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
@@ -273,6 +273,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString() );
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定
+
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendGroupSetting:      //群組設定
                             break;
@@ -338,7 +339,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             }
         }
 
-        private void DMD_API_ErrorEvent(string source)
+        private void DMD_API_ErrorEvent(Exception source)
         {
             ASI.Lib.Log.ErrorLog.Log(mProcName, source);
         }

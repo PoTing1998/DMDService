@@ -50,7 +50,8 @@ namespace ASI.Wanda.DMD
         /// </summary>
         public event DisconnectedEventHandler DisconnectedEvent;
 
-        public delegate void ErrorEventHandler (string source);
+
+        public delegate void ErrorEventHandler (Exception source);
         /// <summary>
         /// Socket Server 專用 Socket Server 錯誤資訊
         /// </summary>

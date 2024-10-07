@@ -34,6 +34,8 @@ namespace ASI.Wanda.DMD.TaskDCU
         }
         #endregion
 
+
+        #region 啟動Task
         /// <summary>
         /// 處理DCU模組執行程序所收到之訊息
         /// </summary>
@@ -117,7 +119,7 @@ namespace ASI.Wanda.DMD.TaskDCU
 
             base.StopTask();
         }
-
+        #endregion
 
         private void DMD_API_DisconnectedEvent(string clientInfo)
         {
@@ -256,20 +258,19 @@ namespace ASI.Wanda.DMD.TaskDCU
                     int iMsgID  = mSGFromTaskCMFT.MessageID;
                     ASI.Lib.Log.DebugLog.Log(mProcName + " fromTaskCMFT", $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
                     var Helper  = new DCUHelper();
-                    var MSG     = new object();
+                    var message     = new object();
                     int result;
                     //回應Ack給CMFT
                     switch (sJsonObjectName)
                     {
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
-                            MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
-                             result  =  mDMD_API.Send((Message.Message)MSG);
+                            message = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
+                             result  =  mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("傳送結果" ,result.ToString());
-                            //DetermineSendDestination((Message.Message)MSG);  
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息 
-                            MSG = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
-                             result =  mDMD_API.Send((Message.Message)MSG);
+                            message = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
+                             result =  mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString() );
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定
@@ -278,15 +279,15 @@ namespace ASI.Wanda.DMD.TaskDCU
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendGroupSetting:      //群組設定
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排程設定
-                            MSG = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
-                            result= mDMD_API.Send((Message.Message)MSG);
+                            message = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
+                            result= mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPowerTimeSetting:  //電力設定
-                            MSG = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
-                            result =  mDMD_API.Send((Message.Message)MSG);
+                            message = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
+                            result =  mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:  //群組設定

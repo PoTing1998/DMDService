@@ -63,13 +63,13 @@ namespace ASI.Wanda.DMD.TaskDCU
                               DMDServerMessage.MessageID,
                               ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
 
-            // 紀錄將傳送的預錄訊息內容到日誌中
+            // 紀錄將傳送的預錄訊息內容到日誌中   
             ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCU", Message.JsonContent);
 
             // 傳回已建立的訊息物件
             return Message;
         }
-
+        
         /// <summary>
         /// 將即時訊息傳送給 DCU 伺服器
         /// </summary>

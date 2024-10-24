@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using ASI.Wanda.CMFT.DB.Models.OTCS;
 
 namespace ASI.Wanda.CMFT.DB.Tables.OTCS
@@ -38,72 +37,5 @@ namespace ASI.Wanda.CMFT.DB.Tables.OTCS
  
         #endregion
     }
-    public class otcsEquipStatus : ASI.Wanda.CMFT.DB.Tables.Table<otcs_equip_status>
-    {
-        #region Methods
-
-
-        #endregion
-    }
-    public class otcsEventList : ASI.Wanda.CMFT.DB.Tables.Table<otcs_event_list>
-    {
-        #region Methods
-
-
-        #endregion
-    }
-    public class otcsEvent : ASI.Wanda.CMFT.DB.Tables.Table<otcs_event>
-    {
-        #region Methods
-        /// <summary>
-        /// 出現異常 高(1) 未確認
-        /// 出現異常 高(1) 已確認
-        /// 異常回復 高(1) 未確認 select 
-        /// 異常回復 高(1) 已確認 select  
-        /// </summary>
-        /// <returns></returns>
-        public static List<ASI.Wanda.CMFT.DB.Models.OTCS.otcs_event> SelectUnReleaseedEvents()
-        {
-            var temp = SelectAll().Where(x => string.IsNullOrEmpty(x.release_time) == true).ToList();
-            return temp;
-        }
-        /// <summary>
-        /// 出現異常 高(1) 未確認 select 
-        /// 出現異常 高(1) 已確認 select 
-        /// 異常回復 高(1) 未確認 select 
-        /// 異常回復 高(1) 已確認
-        /// </summary>
-        /// <returns></returns>
-        public static List<ASI.Wanda.CMFT.DB.Models.OTCS.otcs_event> SelectDisplayEvent()
-        {
-            string whereString = string.Format("where (release_time = '{0}' and check_time = '{1}') or (release_time = '{2}') or (check_time = '{3}')"
-               , string.Empty
-               , string.Empty
-               , string.Empty
-               , string.Empty);
-
-            var temp = SelectWhere(whereString);
-
-            return temp;
-        }
-        /// <summary>
-        /// 出現異常 高(1) 未確認
-        /// 出現異常 高(1) 已確認
-        /// 異常回復 高(1) 未確認
-        /// 異常回復 高(1) 已確認 select 
-        /// </summary>
-        /// <returns></returns>
-        public static List<ASI.Wanda.CMFT.DB.Models.OTCS.otcs_event> SelectHistoryEvent()
-        {
-            var temp = SelectAll()
-                      .Where(x => string.IsNullOrEmpty(x.release_time) == false && string.IsNullOrEmpty(x.check_account_id) == false)
-                      .ToList();
-
-            return temp;
-        }
-
-
-
-        #endregion
-    }
+    
 }

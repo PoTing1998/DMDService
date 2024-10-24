@@ -86,17 +86,31 @@ namespace ASI.Wanda.DMD
                 return -1;
             }
         }
-        private void StopExistingThread()
+
+        /// <summary>
+        /// 停止現有的執行緒
+        /// </summary>
+        public void StopExistingThread()
         {
             if (mThread != null)
             {
+                // 設定執行緒的運行標誌為 false，通知執行緒應該停止運行
                 mThreadRun = false;
-                System.Threading.Thread.Sleep(100);
-                mThread.Abort();
+
+                // 等待執行緒結束
+                if (mThread.Join(2000)) // 等待最多 2 秒
+                {
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "Existing thread stopped gracefully.");
+                }
+                else
+                {
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "Existing thread did not stop in time, forcing abort.");
+                    mThread.Abort(); // 最後手段，不推薦，僅在無法停止時使用
+                }
                 mThread = null;
-                ASI.Lib.Log.DebugLog.Log(mProcName, "Existing thread stopped.");
             }
         }
+
         private void LogResult(int result)
         {
             switch (result)
@@ -227,6 +241,7 @@ namespace ASI.Wanda.DMD
                 return -1;
             }
         }
+
 
         private void MsgParsingThread()
         {

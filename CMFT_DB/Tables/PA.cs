@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Collections.Generic;
 using ASI.Wanda.CMFT.DB.Models.PA;
-using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
 
 namespace ASI.Wanda.CMFT.DB.Tables.PA
 {
@@ -13,23 +12,13 @@ namespace ASI.Wanda.CMFT.DB.Tables.PA
         {
             return Select(daypartTimeID);
         }
-        static public List<pa_daypart_time> SelectStationDaypartTime(string satationID)
+        static public void InsertDaypartTime(Guid daypartTimeID, string stationID, int weekDay, string startTime, string endTime, int dayPart)
         {
-            var temp = SelectAll().Where(x => x.station_id == satationID);
-            return temp.ToList();
+            Insert(daypartTimeID, stationID, weekDay, startTime, endTime, dayPart);
         }
-        static public List<pa_daypart_time> SelectStationWeekDayDaypartTime(string satationID,int weekdayID)
+        static public void UpdateDaypartTime(Guid daypartTimeID, string stationID, int weekDay, string startTime, string endTime, int dayPart)
         {
-            var temp = SelectAll().Where(x => x.station_id == satationID&& x.week_day == weekdayID);
-            return temp.ToList();
-        }
-        static public void InsertDaypartTime(Guid daypartTimeID, string stationID, int weekDayID, string startTime, string endTime, int dayPart)
-        {
-            Insert(daypartTimeID, stationID, weekDayID, startTime, endTime, dayPart);
-        }
-        static public void UpdateDaypartTime(Guid daypartTimeID, string stationID, int weekDayID, string startTime, string endTime, int dayPart)
-        {
-            Update(daypartTimeID, stationID, weekDayID, startTime, endTime, dayPart);
+            Update(daypartTimeID, stationID, weekDay, startTime, endTime, dayPart);
         }
         static public void DeleteDaypartTime(Guid daypartTimeID)
         {
@@ -38,11 +27,6 @@ namespace ASI.Wanda.CMFT.DB.Tables.PA
         static public void DeleteDaypartTime(string stationID, int weekDay)
         {
             string whereString = string.Format("where station_id = '{0}' and week_day = {1} ", stationID, weekDay);
-            DeleteWhere(whereString);
-        }
-        static public void DeleteDaypartTime(string stationID)
-        {
-            string whereString = string.Format("where station_id = '{0}'", stationID);
             DeleteWhere(whereString);
         }
         #endregion
@@ -69,27 +53,9 @@ namespace ASI.Wanda.CMFT.DB.Tables.PA
     public class paDaypartVolume : ASI.Wanda.CMFT.DB.Tables.Table<pa_daypart_volume>
     {
         #region Methods
-        static public void UpdateDaypartVolume(string stationID, int daypartID, int volume)
+        static public void UpdateDaypartTime(string stationID, int daypart, int volume)
         {
-            Update(stationID, daypartID, volume);
-        }
-        static public void UpdateDaypartVolume(string stationID, int peakTimeVolume, int offPeakTimeVolume, int nightTimeVolume)
-        {                                                        
-            Update(stationID, 1, peakTimeVolume);
-            Update(stationID, 2, offPeakTimeVolume);
-            Update(stationID, 3, nightTimeVolume);
-        }
-        static public Dictionary<string, string> GetStations()
-        {
-            var temp = new Dictionary<string, string>();
-            var stationIDs = ASI.Wanda.CMFT.DB.Tables.PA.paDaypartVolume.SelectAll().Select(x => x.station_id).Distinct();
-            foreach (var stationID in stationIDs)
-            {
-                string stationName = ASI.Wanda.CMFT.DB.Tables.System.sysStation.GetStationName(stationID);
-
-                temp.Add(stationID, stationName);
-            }
-            return temp;
+            Update(stationID, daypart, volume);
         }
         #endregion
 

@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Reflection;
 using Npgsql;
-
 
 namespace ASI.Wanda.CMFT.DB
 {
@@ -56,10 +53,6 @@ namespace ASI.Wanda.CMFT.DB
             set;
         } = true;
         static public Action ErrorHandle;
-
-
-        static public Action<string> onNonQueryExcuted;
-
         #endregion
 
         /// <summary>
@@ -103,6 +96,7 @@ namespace ASI.Wanda.CMFT.DB
                     //先確認網路連線正常
                     if (!ASI.Lib.Comm.Network.NetworkLib.Ping(ConnectIP, 1000))
                     {
+                        ErrorHandle?.Invoke();
                         throw new Exception($"與{ConnectIP}網路連接失敗!");
                     }
 
@@ -113,13 +107,14 @@ namespace ASI.Wanda.CMFT.DB
                     }
                     catch (Exception ex)
                     {
+                        ErrorHandle?.Invoke();
                         throw new Exception($"與CMFT資料庫連接失敗!{Environment.NewLine}", ex);
                     }
+
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    ErrorHandle?.Invoke();
                     throw ex;
                 }
                 finally
@@ -130,56 +125,5 @@ namespace ASI.Wanda.CMFT.DB
             }
             return true;
         }
-
-        static public DateTime? GetNow( )
-        {
-            string commandString = string.Format(@"select now();");
-            if (ASI.Wanda.CMFT.DB.Manager.IsUseDatabase)
-            {
-                IDbConnection connection = new NpgsqlConnection();
-
-                try
-                {
-                    //先確認網路連線正常
-                    if (!ASI.Lib.Comm.Network.NetworkLib.Ping(ASI.Wanda.CMFT.DB.Manager.ConnectIP, 1000))
-                    {
-                        Manager.ErrorHandle?.Invoke();
-                        throw new Exception($"與{ASI.Wanda.CMFT.DB.Manager.ConnectIP}網路連接失敗!");
-                    }
-
-                    connection.ConnectionString = ASI.Wanda.CMFT.DB.Manager.ConnectionString;
-                    connection.Open();
-
-                    IDbCommand command = new NpgsqlCommand();
-                    command.CommandText = commandString;
-                    command.Connection = connection;
-                   
-
-                    IDataReader reader;
-                    reader = command.ExecuteReader(CommandBehavior.CloseConnection | CommandBehavior.SingleResult);
-                    var result = reader.Read();
-                    if (result == true)
-                    {
-                        var now = reader["now"];
-                        var temp = Convert.ToDateTime(now);
-                        return temp;                    
-                    }
-
-                }
-                catch (Exception ex)
-                {
-                    string errorMsg = $"Sql命令:{Environment.NewLine}{commandString}";
-                    throw new Exception(errorMsg, ex);
-                }
-                finally
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-
-            return null;
-        }
-       
     }
 }

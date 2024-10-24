@@ -154,7 +154,6 @@ namespace ASI.Wanda.CMFT.DB.Tables
 
                     impactRow = command.ExecuteNonQuery();
 
-                    Manager.onNonQueryExcuted?.Invoke(commandString);
                 }
                 catch (Exception ex)
                 {
@@ -231,6 +230,7 @@ namespace ASI.Wanda.CMFT.DB.Tables
         }
 
         static protected int Insert(params object[] paramObjects)
+
         {
             string modelName = typeof(T).Name;
             string insertString = string.Empty;
@@ -284,6 +284,7 @@ namespace ASI.Wanda.CMFT.DB.Tables
             string commandString = insertString + "\n" + endString + ";";
 
             return NonQuery(commandString, null);
+
         }
 
         static protected int Update(params object[] paramObjects)
@@ -293,12 +294,13 @@ namespace ASI.Wanda.CMFT.DB.Tables
             string setString = string.Empty;
             string whereString = string.Empty;
 
-            //updateString
+            //startString
             updateString = string.Format(@"update dbo.{0} set", modelName);
 
-            //setString
+            //contentString
             int i = 0;
             PropertyInfo[] properties = typeof(T).GetProperties();
+
             foreach (object paramObject in paramObjects)
             {                
                 Type propertyType = paramObject.GetType();
@@ -321,9 +323,10 @@ namespace ASI.Wanda.CMFT.DB.Tables
             setString += string.Format(@", upd_user = '{0}'", ASI.Wanda.CMFT.DB.Manager.CurrentUserID) + "\n";
             setString += string.Format(@", upd_time = {0}", ASI.Wanda.CMFT.DB.Manager.CurrentSqlTime);
 
-            //whereString
+            //endString
             whereString = string.Format(@"where");
             i = 0;
+
             foreach (PropertyInfo property in properties)
             {
                 KeyAttribute attribute = Attribute.GetCustomAttribute(property, typeof(KeyAttribute)) as KeyAttribute;
@@ -334,8 +337,7 @@ namespace ASI.Wanda.CMFT.DB.Tables
                     i++;
                 }
             }
-            whereString = whereString.Substring(0, whereString.Length - 4);//移除\n跟and
-
+            whereString = whereString.Substring(0, whereString.Length - 3);
 
             string commandString = updateString + "\n" + setString + "\n" + whereString + ";";
 
@@ -349,10 +351,10 @@ namespace ASI.Wanda.CMFT.DB.Tables
             string setString = string.Empty;
             string whereString = string.Empty;
 
-            //updateString
+            //startString
             updateString = string.Format(@"update dbo.{0} set", modelName);
 
-            //setString
+            //contentString
             for (int ii = 0; ii < columnVals.Count; ii++)
             {
                 string sColumnName = columnVals.ElementAt(ii).Key;
@@ -363,25 +365,23 @@ namespace ASI.Wanda.CMFT.DB.Tables
 
                 if (propertyType.Equals(typeof(string)) || propertyType.Equals(typeof(Guid)))
                 {
-                    setString += "\n" + string.Format(@", {0} = '{1}'", sColumnName, oValue);
+                    setString += "\n" + string.Format(@" {0} = '{1}',", sColumnName, oValue);
                 }
                 else if (propertyType.Equals(typeof(DateTime)))
                 {
-                    setString += "\n" + string.Format(@", {0} = '{1}'", sColumnName, Convert.ToDateTime(oValue).ToString("yyyy/MM/dd HH:mm:ss"));
+                    setString += "\n" + string.Format(@" {0} = '{1}',", sColumnName, Convert.ToDateTime(oValue).ToString("yyyy/MM/dd HH:mm:ss"));
                 }
                 else
                 {
-                    setString += "\n" + string.Format(@", {0} = '{1}'", sColumnName, oValue);
+                    setString += "\n" + string.Format(@" {0} = {1},", sColumnName, oValue);
                 }
             }
-            setString = "  " + setString.Substring(3, setString.Length - 3) + "\n";
-            setString += string.Format(@", upd_user = '{0}'", ASI.Wanda.CMFT.DB.Manager.CurrentUserID) + "\n";
-            setString += string.Format(@", upd_time = {0}", ASI.Wanda.CMFT.DB.Manager.CurrentSqlTime);
 
-            //whereString
-            whereString = where;
+            setString += string.Format(@" upd_user = '{0}',", ASI.Wanda.CMFT.DB.Manager.CurrentUserID) + "\n";
+            setString += string.Format(@" upd_time = {0}", ASI.Wanda.CMFT.DB.Manager.CurrentSqlTime);
 
-            string commandString = updateString + "\n" + setString + "\n" + whereString + ";";
+
+            string commandString = updateString + "\n" + setString + "\n" + where + ";";
 
             return NonQuery(commandString, null);
         }
@@ -421,60 +421,6 @@ namespace ASI.Wanda.CMFT.DB.Tables
 
             string commandString = deleteString + "\n" + whereString + ";";
             return NonQuery(commandString, null);
-        }
-
-        static public bool IsExist()
-        {
-            string modelName = typeof(T).Name;
-            string commandString = string.Format( @"select exists(select from pg_tables where schemaname = 'dbo' AND tablename = '{0}' );", modelName);
-            bool isExists = false;
-
-            if (ASI.Wanda.CMFT.DB.Manager.IsUseDatabase)
-            {
-                IDbConnection connection = new NpgsqlConnection();
-
-                T model;
-               
-                try
-                {
-                    //先確認網路連線正常
-                    if (!ASI.Lib.Comm.Network.NetworkLib.Ping(ASI.Wanda.CMFT.DB.Manager.ConnectIP, 1000))
-                    {
-                        Manager.ErrorHandle?.Invoke();
-                        throw new Exception($"與{ASI.Wanda.CMFT.DB.Manager.ConnectIP}網路連接失敗!");
-                    }
-
-                    connection.ConnectionString = ASI.Wanda.CMFT.DB.Manager.ConnectionString;
-                    connection.Open();
-
-                    IDbCommand command = new NpgsqlCommand();
-                    command.CommandText = commandString;
-                    command.Connection = connection;
-                  
-                    IDataReader reader;
-                    reader = command.ExecuteReader(CommandBehavior.CloseConnection | CommandBehavior.SingleResult);
-
-                    var result = reader.Read();
-                    if(result == true)
-                    {
-                        string strResult = reader["exists"].ToString();
-                        isExists = bool.Parse(strResult);
-                    }
-                    
-                }
-                catch (Exception ex)
-                {
-                    string errorMsg = $"Sql命令:{Environment.NewLine}{commandString}";
-                    throw new Exception(errorMsg, ex);
-                }
-                finally
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-
-            return isExists;
         }
 
         #endregion

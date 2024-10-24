@@ -19,27 +19,12 @@ namespace ASI.Wanda.DMD
         /// </summary>
         static void Main()
         {
-            //if (Environment.UserInteractive)
-            //{
-            //    KernelService s = new KernelService();
-            //    s.Start(null);
-            //    Console.WriteLine("Service on");
-            //    Console.ReadLine();
-            //   //  s.Stop();
-            //  //  Console.WriteLine("Service off");
-            //}
-            //else
-            //{
                 ServiceBase[] ServicesToRun;
                 ServicesToRun = new ServiceBase[]
                 {
                 new KernelService()
                 };
                 ServiceBase.Run(ServicesToRun);
-            //}
-
-           
-
         }
 
 

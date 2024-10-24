@@ -34,10 +34,6 @@ namespace ASI.Wanda.DMD.TaskOCS
             "Trip","Destination_ID", "ArrivalTime","ArrivalTime","DepartureTime","DepartureTime","DelayAtArrival",
             "DelayAtDeparture","NextTrainWillnotStop","Train End of service","Last Train of Operating Day & Train Not in service " ,
             "Time table mode &  Normal Train","Train Direction"};
-
-
-        ASI.Wanda.DMD.DMD_API mDMD_API = new DMD_API();
-
         public string mOCSServerConnStr = "";
 
         ASI.Lib.Comm.SerialPort.SerialPortLib serial = null;
@@ -83,11 +79,11 @@ namespace ASI.Wanda.DMD.TaskOCS
                     string sOCSServerIP = ASI.Lib.Config.ConfigApp.Instance.GetIPFromConnStr(this.mOCSServerConnStr);
 
                     bool bStatus = ASI.Lib.Comm.Network.NetworkLib.TryPing(sOCSServerIP, 300, 4);
-                    ASI.Lib.Log.DebugLog.Log(mProcName, $"嘗試ping OCS Server IP = {sOCSServerIP}，連線狀態:{bStatus}");
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, $"嘗試ping OCS Server IP = {sOCSServerIP}，連線狀態:{bStatus}");
                 }
                 catch (System.Exception ex)
                 {
-                    ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
                 }
             }
             //讀取資料庫
@@ -104,7 +100,7 @@ namespace ASI.Wanda.DMD.TaskOCS
         public override int StartTask(string pComputer, string pProcName)
         {
             mTimerTick = 30;
-            mProcName = "TaskOCS";
+            _mProcName = "TaskOCS";
 
             // 初始化 Serial Port 並處理可能的例外狀況
             try
@@ -113,7 +109,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             }
             catch (Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"初始化 Serial Port 失敗: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 Serial Port 失敗: {ex.Message}");
                 return -1; // 異常狀態回傳 -1
             }
 
@@ -124,14 +120,14 @@ namespace ASI.Wanda.DMD.TaskOCS
             }
             catch (Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
                 return -1; // 異常狀態回傳 -1
             }
 
             // 初始化資料庫連線
             if (!InitializeDatabaseConnection())
             {
-                ErrorLog.Log(mProcName, $"資料庫連線失敗! {ConfigApp.Instance.GetConfigSetting("DMD_DB_IP")}:" +
+                ErrorLog.Log(_mProcName, $"資料庫連線失敗! {ConfigApp.Instance.GetConfigSetting("DMD_DB_IP")}:" +
                                         $"{ConfigApp.Instance.GetConfigSetting("DMD_DB_Port")}; userid=postgres");
                 return -1; // 異常狀態回傳 -1
             }
@@ -153,7 +149,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             catch (Exception ex)
             {
                 // 記錄 Serial Port 初始化失敗的例外狀況
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"初始化 Serial Port 失敗: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 Serial Port 失敗: {ex.Message}");
                 throw; // 將例外狀況拋出以便上層方法處理
             }
         }
@@ -181,19 +177,19 @@ namespace ASI.Wanda.DMD.TaskOCS
             catch (FormatException ex)
             {
                 // 捕捉並處理字串轉數字的格式錯誤
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"TCP 客戶端 Port 格式錯誤: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"TCP 客戶端 Port 格式錯誤: {ex.Message}");
                 throw;
             }
             catch (SocketException ex)
             {
                 // 捕捉並處理 TCP 連線的 Socket 錯誤
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"初始化 TCP 客戶端失敗: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 TCP 客戶端失敗: {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
                 // 捕捉其他所有潛在的例外狀況
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
                 throw;
             }
         }
@@ -210,17 +206,16 @@ namespace ASI.Wanda.DMD.TaskOCS
             var sUserID = "postgres";
             var sPassword = "postgres";
             var sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
-
             try
             {
                 return ASI.Wanda.DMD.DB.Manager.Initializer(sDBIP, sDBPort, sDBName, sUserID, sPassword, sCurrentUserID);
             }
-            catch (Exception ex)
+            catch (Exception ex) 
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"資料庫連線失敗! {sDBIP}:{sDBPort}; userid={sUserID}; ex={ex}");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"資料庫連線失敗! {sDBIP}:{sDBPort}; userid={sUserID}; ex={ex}");
                 return false;
             }
-        }
+        } 
 
         #endregion
         #region Method
@@ -229,7 +224,7 @@ namespace ASI.Wanda.DMD.TaskOCS
         /// </summary>
         /// <param name="index">當前索引</param>
         /// <returns>若為特殊索引則返回 true，否則返回 false</returns>
-        bool IsSpecialIndex(int index) // 定義特殊索引集合
+        bool IsSpecialIndex(int index) // 定義特殊索引集合 
         {
             HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
             return specialIndices.Contains(index);
@@ -281,11 +276,11 @@ namespace ASI.Wanda.DMD.TaskOCS
         /// <param name="ID"></param>
         private void SerialPort_ReceivedEvent(byte[] dataBytes, string ID)
         {
-            OCSData oCS_Data = new OCSData();
+            OCSData OCS_Data = new OCSData();
             try
             {
                 // 初始化 Modbus 連線
-                InitializeModbus(oCS_Data);
+                InitializeModbus(OCS_Data);  
 
                 ushort startAddress = 30001;
                 int numIterations = 18; // 要讀取的迴圈次數 (以要抓取月台數量為準)
@@ -293,7 +288,7 @@ namespace ASI.Wanda.DMD.TaskOCS
                 for (int iteration = 0; iteration < numIterations; iteration++)
                 {
                     // 讀取 Modbus 資料
-                    var registerBuffer = ReadModbusRegisters(oCS_Data, startAddress, 38);
+                    var registerBuffer = ReadModbusRegisters(OCS_Data, startAddress, 38);
                     if (registerBuffer == null) continue; // 若讀取失敗則跳過本次迴圈
 
                     // 將原始資料記錄到日誌中
@@ -320,27 +315,27 @@ namespace ASI.Wanda.DMD.TaskOCS
         /// <summary>
         /// 初始化 Modbus 連線
         /// </summary>
-        private void InitializeModbus(OCSData oCS_Data)
+        private void InitializeModbus(OCSData OCS_Data)
         {
-            oCS_Data.ModbusFactory = new ModbusFactory();
-            oCS_Data.Master = oCS_Data.ModbusFactory.CreateMaster(new TcpClient("10.107.26.99", 502));
-            oCS_Data.Master.Transport.ReadTimeout = oCS_Data.TransactionTimeout;
-            oCS_Data.Master.Transport.Retries = oCS_Data.ConnectionTries;
-            oCS_Data.Master.Transport.WaitToRetryMilliseconds = oCS_Data.WaitToRetryMilliseconds;
+            OCS_Data.ModbusFactory = new ModbusFactory();
+            OCS_Data.Master = OCS_Data.ModbusFactory.CreateMaster(new TcpClient("10.107.26.99", 502));
+            OCS_Data.Master.Transport.ReadTimeout = OCS_Data.TransactionTimeout;
+            OCS_Data.Master.Transport.Retries = OCS_Data.ConnectionTries;
+            OCS_Data.Master.Transport.WaitToRetryMilliseconds = OCS_Data.WaitToRetryMilliseconds;
         }
 
         /// <summary>
         /// 讀取 Modbus 的輸入寄存器
         /// </summary>
-        /// <param name="oCS_Data">OCSData 物件</param>
+        /// <param name="OCS_Data">OCSData 物件</param>
         /// <param name="startAddress">開始讀取的寄存器位址</param>
         /// <param name="numRegisters">要讀取的寄存器數量</param>
         /// <returns>讀取到的輸入寄存器陣列</returns>
-        private ushort[] ReadModbusRegisters(OCSData oCS_Data, ushort startAddress, ushort numRegisters)
+        private ushort[] ReadModbusRegisters(OCSData OCS_Data, ushort startAddress, ushort numRegisters)
         {
             try
             {
-                return oCS_Data.Master.ReadInputRegisters(0, startAddress, numRegisters);
+                return OCS_Data.Master.ReadInputRegisters(0, startAddress, numRegisters);
             }
             catch (Exception ex)
             {
@@ -404,11 +399,10 @@ namespace ASI.Wanda.DMD.TaskOCS
                 serial = new ASI.Lib.Comm.SerialPort.SerialPortLib();
                 serial.ReceivedEvent += new ASI.Lib.Comm.ReceivedEvents.ReceivedEventHandler(SerialPort_ReceivedEvent);
                 serial.DisconnectedEvent += new ASI.Lib.Comm.ReceivedEvents.DisconnectedEventHandler(SerialPort_DisconnectedEvent);
-              
             }
             catch (Exception)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, "斷線處理錯誤");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, "斷線處理錯誤");
             }
         }
         #endregion

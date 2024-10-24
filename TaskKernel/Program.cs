@@ -6,27 +6,22 @@ using ASI.Lib.Config;
 
 namespace ASI.Wanda.DMD.TaskKernel
 {
-	 class  Program
-	{
-		static void Main(string[] args)
-		{
-			//if (Environment.UserInteractive)
-			//{
+    class Program
+    {
+        static void Main(string[] args)
+        {
 
-				string qname = "TaskKernel";
-				if (args.Length == 1) qname = args[0];
 
-				IProcess TheProc = new ProcKernel();
-				//if (TheProc.StartTask(System.Environment.MachineName, qname) >= 0)
-				if (TheProc.StartTask(ConfigApp.Instance.HostName, qname) >= 0)
-				{
-                    Console.WriteLine("Service on");
-                    Console.ReadLine();
-                    TheProc.Run();
-				}
+            string qname = "TaskKernel";
+            if (args.Length == 1) qname = args[0];
 
-				TheProc.StopTask();
-           // }
+            IProcess TheProc = new ProcKernel();
+
+            if (TheProc.StartTask(ConfigApp.Instance.HostName, qname) >= 0)
+            {
+                TheProc.Run();
+            }
+            TheProc.StopTask();
         }
-	}
+    }
 }

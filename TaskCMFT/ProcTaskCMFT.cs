@@ -88,7 +88,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 }
                 catch (System.Exception ex)
                 {
-                    ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
                 }
             }
 
@@ -108,11 +108,12 @@ namespace ASI.Wanda.DMD.TaskCMFT
         public override int StartTask(string pComputer, string pProcName)
         {
             mTimerTick = 30;
-            mProcName = "TaskCMFT";
+            _mProcName = "TaskCMFT";
             // DMD Database Configuration
             string sDMD_DBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
             string sDMD_DBPort = ConfigApp.Instance.GetConfigSetting("DMD_DB_Port");
             string sDMD_DBName = ConfigApp.Instance.GetConfigSetting("DMD_DB_Name");
+
 
             // CMFT Database Configuration
             string sCMFT_DBIP = ConfigApp.Instance.GetConfigSetting("CMFT_DB_IP");
@@ -128,22 +129,21 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 // 嘗試初始化 DMD 資料庫連線
                 if (!ASI.Wanda.DMD.DB.Manager.Initializer(sDMD_DBIP, sDMD_DBPort, sDMD_DBName, sUserID, sPassword, sCurrentUserID))
                 {
-                    ASI.Lib.Log.ErrorLog.Log(mProcName, $"DMD資料庫連線失敗!{sDMD_DBIP}:{sDMD_DBPort};userid={sUserID}");
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"DMD資料庫連線失敗!{sDMD_DBIP}:{sDMD_DBPort};userid={sUserID}");
                     return -1; // 返回錯誤代碼
                 }
                 // 嘗試初始化 CMFT 資料庫連線
                 if (!ASI.Wanda.CMFT.DB.Manager.Initializer(sCMFT_DBIP, sCMFT_DBPort, sCMFT_DBName, sUserID, sPassword, sCurrentUserID))
                 {
-                    ASI.Lib.Log.ErrorLog.Log(mProcName, $"CMFT資料庫連線失敗!{sCMFT_DBIP}:{sCMFT_DBPort};userid={sUserID}");
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"CMFT資料庫連線失敗!{sCMFT_DBIP}:{sCMFT_DBPort};userid={sUserID}");
                     return -1; // 返回錯誤代碼
                 }
             }
             catch (System.Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, $"資料庫連線失敗! Exception: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"資料庫連線失敗! Exception: {ex.Message}");
                 return -1; // 返回錯誤代碼
             }
-
             ConnToCMFTServer();
 
             return base.StartTask(pComputer, pProcName);
@@ -156,7 +156,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         }
 
         /// <summary>
-        /// 從CMFT 接收訊息   
+        /// 從CMFT 接收訊息
         /// </summary>
         /// <param name="DMDServerMessage"></param> 
         private void CMFT_API_ReceivedEvent(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
@@ -173,7 +173,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 switch (CMFTServerMessage.MessageType)
                 {
                     case CMFT.Message.Message.eMessageType.Heartbeat:
-                        ASI.Lib.Log.DebugLog.Log(mProcName, "與CMFT_Server的heartBeat連線" + LastHeartbeatTime.ToString());
+                        ASI.Lib.Log.DebugLog.Log(_mProcName, "與CMFT_Server的heartBeat連線" + LastHeartbeatTime.ToString());
                         break;
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Ack:
                         var MSG = HandleAckMessage(CMFTServerMessage);
@@ -183,11 +183,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         HandleCommandMessage(CMFTServerMessage, sByteArray, sJsonObjectName, iMsgID, sJsonData, CMFTHelper);
                         break;
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Response:
-                        ASI.Lib.Log.ErrorLog.Log(mProcName, $"從CMFT來的訊息不應有Response，MessageType:{CMFTServerMessage.MessageType}");
+                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從CMFT來的訊息不應有Response，MessageType:{CMFTServerMessage.MessageType}");
                         break;
 
                     default:
-                        ASI.Lib.Log.ErrorLog.Log(mProcName, $"無此種訊息類別:[{CMFTServerMessage.MessageType}]");
+                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"無此種訊息類別:[{CMFTServerMessage.MessageType}]");
                         break;
                 }
             }
@@ -303,21 +303,21 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     {
                         //DMD內部通訊定義:Ack  
                         //從TaskDCU過來不應該有Ack 
-                        ASI.Lib.Log.ErrorLog.Log(mProcName, $"從TaskDCU來的訊息不應有DMD內部通訊定義:Ack，MessageType:{mSGFromTaskDCU.MessageType}"); ;
+                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從TaskDCU來的訊息不應有DMD內部通訊定義:Ack，MessageType:{mSGFromTaskDCU.MessageType}"); ;
                     }
                     else if (mSGFromTaskDCU.MessageType == 2)
                     {
                         //DMD內部通訊定義:Change/Command    
                         string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskDCU.JsonData, "JsonObjectName");
                         sLog = $"sJsonObjectName = {sJsonObjectName}";
-                        ASI.Lib.Log.DebugLog.Log(mProcName, sLog);
+                        ASI.Lib.Log.DebugLog.Log(_mProcName, sLog);
                     }
                     else if (mSGFromTaskDCU.MessageType == 3)
                     {
                         //DMD內部通訊定義:Response 
                         string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskDCU.JsonData, "JsonObjectName");
                         sLog = $"sJsonObjectName = {sJsonObjectName}";
-                        ASI.Lib.Log.DebugLog.Log(mProcName, sLog);
+                        ASI.Lib.Log.DebugLog.Log(_mProcName, sLog);
                         //將訊息傳給CMFT 
                         var oJsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage)ASI.Wanda.DMD.Message.Helper.GetJsonObject(mSGFromTaskDCU.JsonData);
                         //組封包  
@@ -334,13 +334,13 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     else
                     {
                         //無此種訊息類別  
-                        ASI.Lib.Log.ErrorLog.Log(mProcName, $"無此種訊息類別，MessageType:{mSGFromTaskDCU.MessageType}");
+                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"無此種訊息類別，MessageType:{mSGFromTaskDCU.MessageType}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
             }
             finally
             {
@@ -363,11 +363,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     mCMFT_API.ReceivedEvent -= CMFT_API_ReceivedEvent;
                     mCMFT_API.DisconnectedEvent -= CMFT_API_DisconnectedEvent;
                     mCMFT_API.Dispose();
-                    ASI.Lib.Log.DebugLog.Log(mProcName, "Existing CMFT_API disconnected and disposed.");
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, "Existing CMFT_API disconnected and disposed.");
                 }
 
                 mCMFT_API = new ASI.Wanda.CMFT.CMFT_API();
-                mCMFT_API.ConnectedEvent += MCMFT_API_ConnectedEvent;
+                //mCMFT_API.ConnectedEvent += MCMFT_API_ConnectedEvent;
                 mCMFT_API.ReceivedEvent += CMFT_API_ReceivedEvent;
                 mCMFT_API.DisconnectedEvent += CMFT_API_DisconnectedEvent;
                 mCMFTServerConnStr = ConfigApp.Instance.GetConfigSetting("CMFT_Server");
@@ -375,27 +375,27 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 if (iResult == 0)
                 {
                     mIsConnectedToCMFT = true;
-                    ASI.Lib.Log.DebugLog.Log(mProcName, $"與CMFT Server連線成功");
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, $"與CMFT Server連線成功");
                     //連線成功時，重新計算最後一次收到DMD的時間   
                     LastHeartbeatTime = System.DateTime.Now;
                 }
                 else
                 {
                     mIsConnectedToCMFT = false;
-                    ASI.Lib.Log.DebugLog.Log(mProcName, $"與CMFT Server連線失敗，DMD_Server:{mCMFTServerConnStr}");
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, $"與CMFT Server連線失敗，DMD_Server:{mCMFTServerConnStr}");
                 }
             }
             catch (System.Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
             }
         }
 
-        private void MCMFT_API_ConnectedEvent(string source)
-        {
-            ASI.Lib.Log.DebugLog.Log(mProcName, $"與CMFT連線，DMD_Server: {source}");
-            throw new NotImplementedException();
-        }
+        //private void MCMFT_API_ConnectedEvent(string source)
+        //{
+        //    ASI.Lib.Log.DebugLog.Log(mProcName, $"與CMFT連線，DMD_Server: {source}");
+        //    throw new NotImplementedException();
+        //}
 
     }
 }

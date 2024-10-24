@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using ASI.Wanda.CMFT.DB.Models.DMD;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace ASI.Wanda.CMFT.DB.Tables.DMD
 {
@@ -85,46 +84,21 @@ namespace ASI.Wanda.CMFT.DB.Tables.DMD
         {
             return Select(palylistID);
         }
-
-        static public void InsertPlayingItem(Guid playlistID, string stationID, string areaID, string deviceID, Guid messageID, int messageType, string sendTime)
+        static public void InsertPlayingItem(string stationID, string deviceID, Guid messageID)
         {
             Insert(
-                   playlistID
-                 , stationID
-                 , areaID
+                   stationID
                  , deviceID
                  , messageID
-                 , messageType
-                 , sendTime );
+                 , new DateTime());
         }
-        static public void UpdatePlayingItem(Guid playlistID, string stationID, string areaID, string deviceID, Guid messageID, int messageType, string sendTime)
+        static public void UpdatePlayingItem()
         {
-            Update(
-                  playlistID
-                , stationID
-                , areaID
-                , deviceID
-                , messageID
-                , messageType
-                , sendTime);
-        }
 
- 
-        /// <summary>
-        /// 刪除目前播放列表中指定設備的所有資料
-        /// </summary>
-        /// <param name="stationID">看板所在車站ID</param>
-        /// <param name="areaID">看板所區域ID</param>
-        /// <param name="deviceID">看板ID</param>
-        static public void DeletePlayingItemsByDevice(string stationID, string areaID, string deviceID)
-        {
-            string whereString = string.Format("where station_id = '{0}' and area_id = '{1}' and device_id = '{2}'", stationID, areaID, deviceID);
-            DeleteWhere(whereString); 
         }
-
-        static public void DeletePlayingItem(Guid palylistID)
+        static public void DeletePlayingItem()
         {
-            Delete(palylistID);
+
         }
         #endregion
     }
@@ -208,13 +182,6 @@ namespace ASI.Wanda.CMFT.DB.Tables.DMD
     public class dmdSchedulePlayList : ASI.Wanda.CMFT.DB.Tables.Table<dmd_schedule_playlist>
     {
         #region Methods
-        /// <summary>
-        /// 新增一條撥放內容
-        /// </summary>
-        /// <param name="scheduleID">排程編號</param>
-        /// <param name="messageID">訊息編號</param>
-        /// <param name="stationID">看板所在車站編號</param>
-        /// <param name="deviceID">看板設備編號</param>
         static public void InsertSchedulePlayListItem(Guid scheduleID, Guid messageID, string stationID, string deviceID)
         {
             Insert(
@@ -225,48 +192,10 @@ namespace ASI.Wanda.CMFT.DB.Tables.DMD
                     , new DateTime()
                     );
         }
-        /// <summary>
-        /// 刪除指定排程所有內容
-        /// </summary>
-        /// <param name="scheduleID">排程編號</param>
         static public void DeleteSchedulePlayListItems(Guid scheduleID)
         {
             string whereString = string.Format("where schedule_id = '{0}'", scheduleID);
             DeleteWhere(whereString);
-        }
-        /// <summary>
-        /// 取得指定排程的所有預錄訊息
-        /// </summary>
-        /// <param name="scheduleID">排程編號</param>
-        static public List<dmd_pre_record_message> GetSchedulePlayListMessages(Guid scheduleID)
-        {
-            string whereString = string.Format("where schedule_id = '{0}'", scheduleID);
-            var preMsgIDs = SelectWhere(whereString)
-                   .Select(y => y.message_id)
-                   .Distinct()
-                   .ToList();
-            var messageList = new List<dmd_pre_record_message>();
-
-            foreach (var preMsgID in preMsgIDs)
-            {
-               var message = dmdPreRecordMessage.SelectMessage(preMsgID);
-                messageList.Add(message);
-            }
-            return messageList;
-        }
-        static public List<dmd_target> GetSchedulePlayListTargets(Guid scheduleID)
-        {
-            string whereString = string.Format("where schedule_id = '{0}'", scheduleID);
-            var schedules = SelectWhere(whereString);
-
-            var dbAllTarget = ASI.Wanda.CMFT.DB.Tables.DMD.dmdTarget.SelectAll();
-            List<dmd_target> targets = new List<dmd_target>();
-            foreach (var schedule in schedules)
-            {
-                var target = dbAllTarget.FirstOrDefault(x => x.station_id == schedule.station_id && x.device_id == schedule.device_id);
-                targets.Add(target);
-            }
-            return targets;
         }
         #endregion
     }

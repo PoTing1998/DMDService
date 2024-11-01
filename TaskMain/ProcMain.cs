@@ -172,7 +172,7 @@ namespace ASI.Wanda.DMD.TaskMain
             {
                 LogFile.Log(mComputerName, _mProcName, "Start Process " + pInfo.Name + " Success");
                 System.Threading.Thread.Sleep(1000);
-                return 1;
+                return 1;  
             }
 
             LogFile.Log(mComputerName, _mProcName, "Start Process " + pInfo.Name + " Fail");
@@ -181,15 +181,15 @@ namespace ASI.Wanda.DMD.TaskMain
         }
 
         /// <summary>
-        /// stop a process by unload his application domain
+        /// stop a process by unload his application domain   
         /// </summary>
         /// <param name="pInfo"></param>
         /// <returns></returns>
-		private int StopProcess(ProcInfo pInfo)
+		private int StopProcess(ProcInfo pInfo) 
         {
             if (ProcessLib.StopProcess(pInfo) > 0)
             {
-                LogFile.Log(mComputerName, _mProcName, "Stop Process Success " + pInfo.Name);
+                LogFile.Log(mComputerName, _mProcName, "Stop Process Success " + pInfo.Name); 
                 return 1;
             }
 
@@ -198,7 +198,7 @@ namespace ASI.Wanda.DMD.TaskMain
         }
 
         /// <summary>
-        /// 檢查process的狀態
+        /// 檢查process的狀態   
         /// </summary>
         /// <returns></returns>
 		private int CheckProcInfo()

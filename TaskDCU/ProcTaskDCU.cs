@@ -88,7 +88,6 @@ namespace ASI.Wanda.DMD.TaskDCU
             string sUserID = "postgres";
             string sPassword = "postgres";
             string sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
-
             try
             {
                 //"Server='localhost'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";
@@ -104,7 +103,6 @@ namespace ASI.Wanda.DMD.TaskDCU
                     ASI.Lib.Log.ErrorLog.Log(_mProcName, $"CMFT資料庫連線失敗!{sCMFT_DBIP}:{sCMFT_DBPort};userid={sUserID}");
                     return -1; // 返回錯誤代碼
                 }
-
             }
             catch (System.Exception ex)
             {
@@ -119,7 +117,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// </summary>
         public override void StopTask()
         {
-            ASI.Lib.Log.DebugLog.Log(_mProcName, "正在嘗試停止 TaskDCU...");
+            ASI.Lib.Log.DebugLog.Log(_mProcName, "正在嘗試停止 TaskDCU..."); 
             if (mDMD_API != null)
             {
                 try
@@ -264,7 +262,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// </summary>
         private int ProMsgFromCMFT(string pMessage)
         {
-            try
+            try 
             {
                 ASI.Wanda.DMD.ProcMsg.MSGFromTaskCMFT mSGFromTaskCMFT = new ProcMsg.MSGFromTaskCMFT(new MSGFrameBase(""));
 
@@ -273,7 +271,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                     string sJsonData        = mSGFromTaskCMFT.JsonData;
                     string sJsonObjectName  = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "JsonObjectName"); 
                     string sStationID       = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "StationID");
-                    string sSeatID          = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "SeatID");
+                    string sSeatID          = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "SeatID"); 
                     int iMsgID  = mSGFromTaskCMFT.MessageID;
                     ASI.Lib.Log.DebugLog.Log(_mProcName + " fromTaskCMFT", $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
                     var Helper  = new DCUHelper();
@@ -282,34 +280,33 @@ namespace ASI.Wanda.DMD.TaskDCU
                     //回應Ack給CMFT
                     switch (sJsonObjectName)
                     {
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息  
                             message = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
                              result  =  mDMD_API.Send((Message.Message)message);
-                            ASI.Lib.Log.DebugLog.Log("傳送結果" ,result.ToString());
+                            ASI.Lib.Log.DebugLog.Log("預錄訊息 傳送結果" ,result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息 
                             message = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
                              result =  mDMD_API.Send((Message.Message)message);
-                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString() );
+                            ASI.Lib.Log.DebugLog.Log("即時訊息 傳送結果", result.ToString() );
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定
-
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定  
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendGroupSetting:      //群組設定
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排程設定
                             message = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
                             result= mDMD_API.Send((Message.Message)message);
-                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
+                            ASI.Lib.Log.DebugLog.Log("排成設定 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPowerTimeSetting:  //電力設定
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPowerTimeSetting:  //電力設定   
                             message = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
                             result =  mDMD_API.Send((Message.Message)message);
-                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
+                            ASI.Lib.Log.DebugLog.Log("電力設定 傳送結果", result.ToString());
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:  //群組設定
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:  //群組設定 
                             break;
                         default:
                             break;

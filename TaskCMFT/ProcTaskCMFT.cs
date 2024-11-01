@@ -219,10 +219,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
             switch (sJsonObjectName)
             {
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendPreRecordMsg:
-                case ASI.Wanda.DMD.TaskCMFT.Constants.SendInstantMsg:
-                    HandlePreRecordOrInstantMsg(CMFTServerMessage, CMFTHelper);
+                    HandlePreRecord(CMFTServerMessage, CMFTHelper);
                     break;
-
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendInstantMsg:
+                    HandleInstantMsg(CMFTServerMessage, CMFTHelper);
+                    break;
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendScheduleSetting:
                     HandleSchedule(CMFTServerMessage, CMFTHelper);
                     break;
@@ -242,14 +243,26 @@ namespace ASI.Wanda.DMD.TaskCMFT
         }
 
         /// <summary>
-        /// 處理預錄或即時訊息
+        /// 處理預錄訊息
         /// </summary>
-        private void HandlePreRecordOrInstantMsg(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
+        private void HandlePreRecord(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
         {
             CMFTHelper.UpdateDMDPlayList();
             CMFTHelper.UpdataDMDPreRecordMessage();
             CMFTHelper.UpdataConfig();
             CMFTHelper.SendPreRecordMSGToDCU(CMFTServerMessage);
+        }
+
+
+        /// <summary>
+        /// 處理即時訊息
+        /// </summary>
+        private void HandleInstantMsg(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
+        {
+            CMFTHelper.UpdateDMDPlayList();
+            CMFTHelper.UpdataDMDInstantMessage();
+            CMFTHelper.UpdataConfig();
+            CMFTHelper.SendInstantMSGToDCU(CMFTServerMessage);
         }
         /// <summary>
         /// 處理電源設定

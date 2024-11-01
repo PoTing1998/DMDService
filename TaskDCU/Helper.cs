@@ -55,9 +55,9 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 將 oJOFromCMFT 中的 seatID, msg_id, target_du 等屬性賦值給新預錄訊息物件
             sendPreRecordMessage.seatID = oJOFromCMFT.seatID;
             sendPreRecordMessage.msg_id = oJOFromCMFT.msg_id;
-            sendPreRecordMessage.target_du = oJOFromCMFT.target_du;
+            sendPreRecordMessage.target_du = oJOFromCMFT.target_du;  
 
-            // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容
+            // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容 
             var Message = new ASI.Wanda.DMD.Message.Message(
                               ASI.Wanda.DMD.Message.Message.eMessageType.Command,
                               DMDServerMessage.MessageID,

@@ -25,7 +25,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
     public class CMFTHelper<T> where T : class
     {
         private Action<T, ASI.Wanda.CMFT.Message.Message> sendAction;
-
+        
         private T API;
 
         public CMFTHelper(T api, Action<T, ASI.Wanda.CMFT.Message.Message> sendAction)
@@ -163,7 +163,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
 
         #region 資料庫的操作
         /// <summary>
-        /// 更新dmd_playlist的資料庫 
+        /// 更新dmd_playlist的資料庫  
         /// </summary>  
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList> UpdateDMDPlayList()
         {
@@ -229,7 +229,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             try
             {
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdPreRecordMessage.SelectAll();
-                ///轉換過程  
+                ///轉換過程   
                 var convertedList = tempList
                     .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_pre_record_message
                     {
@@ -294,9 +294,9 @@ namespace ASI.Wanda.DMD.TaskCMFT
         }
 
         /// <summary>
-        /// 更新DMDPreRecordMessage資料表  
+        /// 更新DMDPreRecordMessage資料表   
         /// </summary>
-        /// <returns></returns>    
+        /// <returns></returns> 
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage> UpdataDMDInstantMessage()
         {
             try
@@ -307,9 +307,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_instant_message
                     {
                         message_id = item.message_id,
-
                         message_type = item.message_type,
-                        message_priority = item.message_priority,
+                        message_priority = item.message_priority, 
                         move_mode = item.move_mode,
                         move_speed = item.move_speed,
                         Interval = item.Interval,
@@ -366,7 +365,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         }
 
         /// <summary>
-        /// 從CMFT更新Config的表 拿到相對色碼顏色 
+        /// 從CMFT更新Config的表 拿到相對色碼顏色  
         /// </summary>
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.System.sysConfig> UpdataConfig()
         {
@@ -388,7 +387,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time, 
                     })   
                     .ToList();
-                ///遍歷轉換後的列表，進行更新操作  
+                ///遍歷轉換後的列表，進行更新操作   
                 foreach (var item in convertedList)
                 {   
                     DB.Tables.System.sysConfig.UpdataSystemConfig(  
@@ -404,7 +403,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             }
             catch (Exception updateException) 
             {
-                ///記錄例外狀況 
+                ///記錄例外狀況   
                 ASI.Lib.Log.ErrorLog.Log("Error updating sysConfig", updateException);
                 return Enumerable.Empty<DB.Tables.System.sysConfig>();
             }
@@ -418,10 +417,10 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             try
             {
-                var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdSchedule.SelectAll();
+                var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdSchedule.SelectAll(); 
                 ///轉換過程  
                 var convertedList = tempList
-                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_schedule
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_schedule   
                     {
                         schedule_id= item.schedule_id,
                         schedule_name= item.schedule_name,
@@ -457,7 +456,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況 
+                ///記錄例外狀況  
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdSchedule", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule>();
             }
@@ -468,7 +467,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             try
             {
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdSchedulePlayList.SelectAll();
-                ///轉換過程  
+                ///轉換過程   
                 var convertedList = tempList
                     .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_schedule_playlist
                     {
@@ -489,10 +488,10 @@ namespace ASI.Wanda.DMD.TaskCMFT
                        item.schedule_id
                     );
                 });
-                ///遍歷轉換後的列表，進行更新操作
+                ///遍歷轉換後的列表，進行更新操作 
                 foreach (var item in convertedList)
                 {
-                    ///MSGtype  0 =預錄  1= 及時 
+                    ///MSGtype  0 =預錄  1= 及時  
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.InsertSchedulePlayListItem(
                        item.schedule_id,
                        item.message_id,
@@ -500,7 +499,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                        item.device_id
                     );
                 }
-
+          
                 return convertedList.Cast<DMD.DB.Tables.DMD.dmdSchedulePlayList>();
             }
             catch (Exception updateException)
@@ -531,9 +530,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time,
                     })
                     .ToList();
-               
                 ///遍歷轉換後的列表，進行更新操作
-                foreach (var item in convertedList)
+                foreach (var item in convertedList) 
                 {
                     ///MSGtype  0 =預錄  1= 及時 
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting.UpdatePowerSetting(
@@ -555,9 +553,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting>();
             }
         }
-
-
-
         #endregion
     }
 }

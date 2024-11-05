@@ -237,7 +237,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     CMFTHelper.HandleAckMessage(CMFTServerMessage);
                     break;
                 default:
-                    ASI.Lib.Log.DebugLog.Log("UnknownJsonObject", $"無法處理的 jsonObjectName: {sJsonObjectName}");
+                    ASI.Lib.Log.DebugLog.Log("收到未知 UnknownJsonObject", $"無法處理的 jsonObjectName: {sJsonObjectName}");
                     break;
             }
         }
@@ -253,7 +253,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
             CMFTHelper.SendPreRecordMSGToDCU(CMFTServerMessage);
         }
 
-
         /// <summary>
         /// 處理即時訊息
         /// </summary>
@@ -261,6 +260,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             CMFTHelper.UpdateDMDPlayList();
             CMFTHelper.UpdataDMDInstantMessage();
+          
             CMFTHelper.UpdataConfig();
             CMFTHelper.SendInstantMSGToDCU(CMFTServerMessage);
         }

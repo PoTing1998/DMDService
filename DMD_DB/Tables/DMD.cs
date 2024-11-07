@@ -177,7 +177,7 @@ namespace ASI.Wanda.DMD.DB.Tables.DMD
         #region Methods
         static public dmd_schedule SelectSchedule(Guid scheduleID)
         {
-            return Select(scheduleID);
+            return Select(scheduleID); 
         }
         static public void InsertSchedule(Guid scheduleID, string scheduleName, bool isEnable, DateTime startDate, DateTime endDate)
         {
@@ -201,7 +201,7 @@ namespace ASI.Wanda.DMD.DB.Tables.DMD
         }
         static public void DeleteSchedule(Guid scheduleID) 
         {
-            Delete(scheduleID);
+            Delete(scheduleID); 
         }
         #endregion
     }

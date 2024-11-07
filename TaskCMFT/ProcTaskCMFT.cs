@@ -59,12 +59,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return -1;
             }
 
-            //ping CMFT Server
+            //ping CMFT Server 
             if (this.mCMFTServerConnStr != "")
             {
                 try
                 {
-
                     if (mIsConnectedToCMFT)
                     {
                         //若原本為連線，則檢查目前連線狀態
@@ -151,8 +150,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
 
         private void CMFT_API_DisconnectedEvent(string source)
         {
-            //string sStatusType = "default"; 
-            //string sStatusValue = false.ToString();
+
         }
 
         /// <summary>
@@ -193,7 +191,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             }
             catch (System.Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log("TaskCMFT", ex);
+                ASI.Lib.Log.ErrorLog.Log("TaskCMFT", ex); 
             }
         }
 
@@ -214,9 +212,9 @@ namespace ASI.Wanda.DMD.TaskCMFT
             string sLog = $"從CMFT Server收到:{sByteArray}；訊息類別碼:{CMFTServerMessage.MessageType}；識別碼:{iMsgID}；長度:{CMFTServerMessage.MessageLength}；內容:{sJsonData}；JsonObjectName:{sJsonObjectName}";
             ASI.Lib.Log.DebugLog.Log("FromCMFTDate", $"{sLog}\r\n");
             // 處理不同的 JSON 物件類型
-            if (string.IsNullOrEmpty(sJsonObjectName)) return; // 基本檢查
+            if (string.IsNullOrEmpty(sJsonObjectName)) return; // 基本檢查 
 
-            switch (sJsonObjectName)
+            switch (sJsonObjectName) 
             {
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendPreRecordMsg:
                     HandlePreRecord(CMFTServerMessage, CMFTHelper);
@@ -231,9 +229,9 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendTrainMessageSetting:
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendPowerTimeSetting:
                     HandlePowerSetting(CMFTServerMessage, CMFTHelper);
-                    break;
+                    break; 
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendGroupSetting:
-                case ASI.Wanda.DMD.TaskCMFT.Constants.SendParameterSetting:
+                case ASI.Wanda.DMD.TaskCMFT.Constants.SendParameterSetting: 
                     CMFTHelper.HandleAckMessage(CMFTServerMessage);
                     break;
                 default:
@@ -260,7 +258,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             CMFTHelper.UpdateDMDPlayList();
             CMFTHelper.UpdataDMDInstantMessage();
-          
             CMFTHelper.UpdataConfig();
             CMFTHelper.SendInstantMSGToDCU(CMFTServerMessage);
         }
@@ -272,7 +269,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         private void HandlePowerSetting(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
         {
             CMFTHelper.UpDateDMDPowerSetting();
-            //新增 傳送到DCU 
+            //傳送到DCU 
             CMFTHelper.SendPowerSettingToDCU(CMFTServerMessage);
         }
         /// <summary>
@@ -284,7 +281,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             CMFTHelper.UpSchedule();
             CMFTHelper.UpDMDSchedulePlaylist();
-            //新增 傳送到DCU
+            //新增 傳送到DCU 
             CMFTHelper.SendScheduleSettingToDCU(CMFTServerMessage);
         }
 
@@ -305,7 +302,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
         /// </summary> 
         private int ProMsgFromDCU(string pMessage)
         {
-            DataBase oDB = null;
             string sLog = "";
             try
             {
@@ -315,38 +311,38 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     if (mSGFromTaskDCU.MessageType == 1)
                     {
                         //DMD內部通訊定義:Ack  
-                        //從TaskDCU過來不應該有Ack 
+                        //從TaskDCU過來不應該有Ack  
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從TaskDCU來的訊息不應有DMD內部通訊定義:Ack，MessageType:{mSGFromTaskDCU.MessageType}"); ;
                     }
                     else if (mSGFromTaskDCU.MessageType == 2)
                     {
-                        //DMD內部通訊定義:Change/Command    
+                        //DMD內部通訊定義:Change/Command  
                         string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskDCU.JsonData, "JsonObjectName");
                         sLog = $"sJsonObjectName = {sJsonObjectName}";
                         ASI.Lib.Log.DebugLog.Log(_mProcName, sLog);
                     }
                     else if (mSGFromTaskDCU.MessageType == 3)
                     {
-                        //DMD內部通訊定義:Response 
+                        //DMD內部通訊定義:Response  
                         string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskDCU.JsonData, "JsonObjectName");
                         sLog = $"sJsonObjectName = {sJsonObjectName}";
                         ASI.Lib.Log.DebugLog.Log(_mProcName, sLog);
-                        //將訊息傳給CMFT 
+                        //將訊息傳給CMFT   
                         var oJsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage)ASI.Wanda.DMD.Message.Helper.GetJsonObject(mSGFromTaskDCU.JsonData);
-                        //組封包  
+                        //組封包   
                         var Res_SendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
                         Res_SendPreRecordMessage.seatID = oJsonObject.seatID;
                         Res_SendPreRecordMessage.msg_id = oJsonObject.msg_id;
                         Res_SendPreRecordMessage.failed_target = oJsonObject.failed_target;
 
-                        //組成給DCU的封包  
+                        //組成給DCU的封包   
                         var MSG = new CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Response, mSGFromTaskDCU.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(Res_SendPreRecordMessage));
-                        mCMFT_API.Send(MSG);
+                        mCMFT_API.Send(MSG); 
                         ASI.Lib.Log.DebugLog.Log("RES_SendPreRecordMSGToDCU", MSG.JsonContent);
                     }
                     else
                     {
-                        //無此種訊息類別  
+                        //無此種訊息類別   
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"無此種訊息類別，MessageType:{mSGFromTaskDCU.MessageType}");
                     }
                 }
@@ -355,17 +351,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
             {
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
             }
-            finally
-            {
-                if (oDB != null)
-                {
-                    oDB.Close();
-                }
-            }
+          
             return -1;
         }
         /// <summary>
-        /// 與CMFT Server連線
+        /// 與CMFT Server連線 
         /// </summary>
         private void ConnToCMFTServer()
         {
@@ -373,14 +363,13 @@ namespace ASI.Wanda.DMD.TaskCMFT
             {
                 if (mCMFT_API != null)
                 {
-                    mCMFT_API.ReceivedEvent -= CMFT_API_ReceivedEvent;
+                    mCMFT_API.ReceivedEvent -= CMFT_API_ReceivedEvent; 
                     mCMFT_API.DisconnectedEvent -= CMFT_API_DisconnectedEvent;
                     mCMFT_API.Dispose();
                     ASI.Lib.Log.DebugLog.Log(_mProcName, "Existing CMFT_API disconnected and disposed.");
                 }
 
                 mCMFT_API = new ASI.Wanda.CMFT.CMFT_API();
-                //mCMFT_API.ConnectedEvent += MCMFT_API_ConnectedEvent;
                 mCMFT_API.ReceivedEvent += CMFT_API_ReceivedEvent;
                 mCMFT_API.DisconnectedEvent += CMFT_API_DisconnectedEvent;
                 mCMFTServerConnStr = ConfigApp.Instance.GetConfigSetting("CMFT_Server");
@@ -403,12 +392,5 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
             }
         }
-
-        //private void MCMFT_API_ConnectedEvent(string source)
-        //{
-        //    ASI.Lib.Log.DebugLog.Log(mProcName, $"與CMFT連線，DMD_Server: {source}");
-        //    throw new NotImplementedException();
-        //}
-
     }
 }

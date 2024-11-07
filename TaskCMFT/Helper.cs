@@ -366,7 +366,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
 
         /// <summary>
         /// 從CMFT更新Config的表 拿到相對色碼顏色  
-        /// </summary>
+        /// </summary> 
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.System.sysConfig> UpdataConfig()
         {
             try
@@ -387,7 +387,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time, 
                     })   
                     .ToList();
-                ///遍歷轉換後的列表，進行更新操作   
+                ///遍歷轉換後的列表，進行更新操作  
                 foreach (var item in convertedList)
                 {   
                     DB.Tables.System.sysConfig.UpdataSystemConfig(  
@@ -410,7 +410,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         }
 
         /// <summary>
-        /// 更新dmd_schedule資料表  
+        /// 更新dmd_schedule資料表   
         /// </summary>
         /// <returns></returns>    
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule> UpSchedule()
@@ -418,7 +418,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             try
             {
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdSchedule.SelectAll(); 
-                ///轉換過程  
+                ///轉換過程   
                 var convertedList = tempList
                     .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_schedule   
                     {
@@ -428,7 +428,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         start_date= item.start_date,
                         end_date= item.end_date,
                         ins_user = item.ins_user,
-                        ins_time = item.ins_time,
+                        ins_time = item.ins_time, 
                         upd_user = item.upd_user,
                         upd_time = item.upd_time,
                     })
@@ -439,7 +439,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                        item.schedule_id
                     );
                 });
-                ///遍歷轉換後的列表，進行更新操作
+                ///遍歷轉換後的列表，進行更新操作 
                 foreach (var item in convertedList)
                 {
                     ///MSGtype  0 =預錄  1= 及時 
@@ -456,18 +456,18 @@ namespace ASI.Wanda.DMD.TaskCMFT
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況  
+                ///記錄例外狀況 
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdSchedule", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule>();
             }
         }
-
+      
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList> UpDMDSchedulePlaylist()
         {
-            try
+            try 
             {
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdSchedulePlayList.SelectAll();
-                ///轉換過程   
+                ///轉換過程  
                 var convertedList = tempList
                     .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_schedule_playlist
                     {
@@ -481,7 +481,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_user = item.upd_user,
                         upd_time = item.upd_time,
                     })
-                    .ToList();
+                    .ToList();  
                 convertedList.ForEach(item =>
                 {
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.DeleteSchedulePlayListItems(
@@ -533,7 +533,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 ///遍歷轉換後的列表，進行更新操作
                 foreach (var item in convertedList) 
                 {
-                    ///MSGtype  0 =預錄  1= 及時 
+                    ///MSGtype  0 =預錄  1= 及時  
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting.UpdatePowerSetting(
                        item.station_id,
                        item.eco_mode,
@@ -544,11 +544,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
-                return convertedList.Cast<DMD.DB.Tables.DMD.dmdPowerSetting>();
+                return convertedList.Cast<DMD.DB.Tables.DMD.dmdPowerSetting>(); 
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況 
+                ///記錄例外狀況  
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdPowerSetting", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting>();
             }

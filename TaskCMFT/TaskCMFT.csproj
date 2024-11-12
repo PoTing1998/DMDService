@@ -54,10 +54,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\DMD開發中\CMFT_DB\CMFT_DB.csproj">
-      <Project>{76ca49bf-c3a1-43d9-b996-3272ce9ab1ad}</Project>
-      <Name>CMFT_DB</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ASILib\ASILib.csproj">
       <Project>{5b6fc193-a36d-409e-8e9b-2c45fe574189}</Project>
       <Name>ASILib</Name>

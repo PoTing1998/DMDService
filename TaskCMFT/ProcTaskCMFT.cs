@@ -193,7 +193,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             }
             catch (System.Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log("TaskDMD", ex);
+                ASI.Lib.Log.ErrorLog.Log("TaskCMFT", ex);
             }
         }
 
@@ -243,7 +243,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             CMFTHelper.UpdateDMDPlayList();
             CMFTHelper.UpdataDMDPreRecordMessage();
-            CMFTHelper.UpdataConfig();
+          // CMFTHelper.UpdataConfig();
             CMFTHelper.SendPreRecordMSGToDCU(CMFTServerMessage);
         }
         /// <summary>

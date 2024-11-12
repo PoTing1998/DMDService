@@ -103,7 +103,7 @@ namespace OCS.Modbus
         }
         #endregion
 
-        #region Methods
+        #region Methods 
         private byte[] Process(ushort[] registerBuffer)
         {
             byte[] newByteArray = new byte[registerBuffer.Length * 2];
@@ -118,11 +118,11 @@ namespace OCS.Modbus
                     newByteArray[byteListIndex + 2] = bytes[2];
                     newByteArray[byteListIndex + 3] = bytes[3];
                     byteListIndex += 4;
-                    i++; // Skip next index
+                    i++; // Skip next index 
                 }
                 else
                 {
-                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]);
+                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]); 
                     newByteArray[byteListIndex] = ushortBytes[0];
                     newByteArray[byteListIndex + 1] = ushortBytes[1];
                     byteListIndex += 2;
@@ -131,6 +131,7 @@ namespace OCS.Modbus
             AssignFromByteArray(newByteArray);
             return newByteArray;
         }
+        
 
         private void AssignFromByteArray(byte[] byteArray)
         {
@@ -187,7 +188,7 @@ namespace OCS.Modbus
                 LineOperationMode2 = reader.ReadInt16();
                 TestTrain2 = reader.ReadInt16();
                 TrainDirection2 = reader.ReadInt16();
-                Spare4 = reader.ReadInt16();
+                Spare4 = reader.ReadInt16(); 
             }
         }
 
@@ -207,7 +208,7 @@ namespace OCS.Modbus
         {
             byte[] bytes = new byte[4];
             bytes[3] = (byte)(byte2 >> 8);
-            bytes[2] = (byte)byte2;
+            bytes[2] = (byte)byte2; 
             bytes[1] = (byte)(byte1 >> 8);
             bytes[0] = (byte)byte1;
             return BitConverter.ToInt32(bytes, 0);

@@ -265,12 +265,10 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time,
                     })  
                     .ToList();
-                ///刪除原本的資料  
-              
                 ///遍歷轉換後的列表，進行更新操作 
                 foreach (var item in convertedList)
                 {   
-                    DB.Tables.System.sysConfig.InsertSystemConfig(  
+                    DB.Tables.System.sysConfig.UpdataSystemConfig(  
                        item.config_name, 
                        item.config_value, 
                        item.config_description ,

@@ -34,6 +34,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             ASI.Lib.Log.DebugLog.Log("FromDMDService", sLog);
             return MSG;
         }
+        #region 傳給DCU 的Method
 
         /// <summary>
         /// 將預錄訊息傳送給 DCU 伺服器
@@ -69,7 +70,6 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 傳回已建立的訊息物件
             return Message;
         }
-        
         /// <summary>
         /// 將即時訊息傳送給 DCU 伺服器
         /// </summary>
@@ -308,6 +308,8 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 傳回已建立的訊息物件
             return MSG;
         }
+        #endregion
+
         ///傳送到內部的Server   
         public void SendToTaskCMFT(int msgType, int msgID, string jsonData)
         {

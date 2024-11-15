@@ -42,6 +42,12 @@ namespace ASI.Wanda.DMD.TaskCMFT
             //利用委派的方式傳送 
             sendAction?.Invoke(API, MSG);
         }
+
+        #region 依狀態傳給TaskDCU的Method
+        /// <summary>
+        /// 傳送預錄訊息
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
         public void SendPreRecordMSGToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
         {
             //收到封包
@@ -224,6 +230,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             sendAction?.Invoke(API, MSG);
             ASI.Lib.Log.DebugLog.Log("ResponInstant", MSG.JsonContent);
         }
+        #endregion
 
         #region 資料庫的操作
         /// <summary>

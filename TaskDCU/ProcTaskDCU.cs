@@ -17,7 +17,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         #region construct
         private ASI.Wanda.DMD.DMD_API mDMD_API = null;
 
-      
+
 
         public string mDMDServerConnStr = "";
 
@@ -26,7 +26,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// 儲存已連接的客戶端
         /// </summary>
         private List<string> connectedClients = new List<string>();
-        public class DeviceInfo 
+        public class DeviceInfo
         {
             public string StationID { get; set; }
             public string AreaID { get; set; }
@@ -45,14 +45,14 @@ namespace ASI.Wanda.DMD.TaskDCU
         public override int ProcEvent(string pLabel, string pBody)
         {
             LogFile.Display(pBody);
-           
+
             if (pLabel == MSGFinish.Label)
             {
                 return 0;
             }
             else if (pLabel == MSGFromTaskCMFT.Label)
             {
-               
+
                 return ProMsgFromCMFT(pBody);
             }
             return base.ProcEvent(pLabel, pBody);
@@ -117,7 +117,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// </summary>
         public override void StopTask()
         {
-            ASI.Lib.Log.DebugLog.Log(_mProcName, "正在嘗試停止 TaskDCU..."); 
+            ASI.Lib.Log.DebugLog.Log(_mProcName, "正在嘗試停止 TaskDCU...");
             if (mDMD_API != null)
             {
                 try
@@ -195,7 +195,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             .Where(Targetdu => Targetdu.Split('_').Length >= 3)
                             .Select(Targetdu =>
                             {
-                                var parts = Targetdu.Split('_'); 
+                                var parts = Targetdu.Split('_');
                                 return new DeviceInfo
                                 {
                                     StationID = parts[0],
@@ -210,7 +210,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(deviceInfo.StationID, deviceInfo.AreaID, deviceInfo.DeviceID);
                         }
                         //接下來回傳給Task CMFT 
-                        
+
                     }
                     else if (sJsonObjectName == "ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendInstantMessage")
                     {
@@ -262,51 +262,60 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// </summary>
         private int ProMsgFromCMFT(string pMessage)
         {
-            try 
+            try
             {
                 ASI.Wanda.DMD.ProcMsg.MSGFromTaskCMFT mSGFromTaskCMFT = new ProcMsg.MSGFromTaskCMFT(new MSGFrameBase(""));
 
-                if (mSGFromTaskCMFT.UnPack(pMessage) > 0) 
+                if (mSGFromTaskCMFT.UnPack(pMessage) > 0)
                 {
-                    string sJsonData        = mSGFromTaskCMFT.JsonData;
-                    string sJsonObjectName  = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "JsonObjectName"); 
-                    string sStationID       = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "StationID");
-                    string sSeatID          = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "SeatID"); 
-                    int iMsgID  = mSGFromTaskCMFT.MessageID;
+                    string sJsonData = mSGFromTaskCMFT.JsonData;
+                    string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "JsonObjectName");
+                    string sStationID = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "StationID");
+                    string sSeatID = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "SeatID");
+                    int iMsgID = mSGFromTaskCMFT.MessageID;
                     ASI.Lib.Log.DebugLog.Log(_mProcName + " fromTaskCMFT", $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
-                    var Helper  = new DCUHelper();
-                    var message     = new object();
+                    var Helper = new DCUHelper();
+                    var message = new object();
                     int result;
                     //回應Ack給CMFT
                     switch (sJsonObjectName)
                     {
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息  
-                            message = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
-                             result  =  mDMD_API.Send((Message.Message)message);
-                            ASI.Lib.Log.DebugLog.Log("預錄訊息 傳送結果" ,result.ToString());
+                            message = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);
+                            result = mDMD_API.Send((Message.Message)message);
+                            ASI.Lib.Log.DebugLog.Log("預錄訊息 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息 
                             message = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
-                             result =  mDMD_API.Send((Message.Message)message);
-                            ASI.Lib.Log.DebugLog.Log("即時訊息 傳送結果", result.ToString() );
+                            result = mDMD_API.Send((Message.Message)message);
+                            ASI.Lib.Log.DebugLog.Log("即時訊息 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定  
+                            message = Helper.SendPreRecordMessageSetting(mSGFromTaskCMFT);
+                            result = mDMD_API.Send((Message.Message)message);
+                            ASI.Lib.Log.DebugLog.Log("預錄訊息設定 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendGroupSetting:      //群組設定
+                            message = Helper.SendGroupSettingToDCU(mSGFromTaskCMFT);
+                            result = mDMD_API.Send((Message.Message)message);
+                            ASI.Lib.Log.DebugLog.Log("群組設定 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排程設定
-                            message = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
-                            result= mDMD_API.Send((Message.Message)message);
+                            message = Helper.SendScheduleSettingToDCU(mSGFromTaskCMFT);
+                            result = mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("排成設定 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定
+                            message = Helper.SendTrainMessageSetting(mSGFromTaskCMFT);
+                            result = mDMD_API.Send((Message.Message)message);
+                            ASI.Lib.Log.DebugLog.Log("列車訊息設定 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPowerTimeSetting:  //電力設定   
                             message = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
-                            result =  mDMD_API.Send((Message.Message)message);
+                            result = mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("電力設定 傳送結果", result.ToString());
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:  //群組設定 
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:  //參數設定 
                             break;
                         default:
                             break;
@@ -318,7 +327,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             {
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
             }
-          
+
             return -1;
         }
 
@@ -347,7 +356,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                 {
                     mIsConnectedToDCU = false;
                     ASI.Lib.Log.DebugLog.Log(_mProcName, $"與DCU Server的Socket開啟失敗，DMD_Server: {mDMDServerConnStr}");
-                } 
+                }
             }
             catch (Exception ex)
             {

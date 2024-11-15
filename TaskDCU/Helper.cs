@@ -236,9 +236,6 @@ namespace ASI.Wanda.DMD.TaskDCU
             return MSG;
         }
 
-      
-
-
         /// <summary>
         /// 將群組設定傳送給 DCU 伺服器
         /// </summary>

@@ -226,11 +226,17 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     HandleSchedule(CMFTServerMessage, CMFTHelper);
                     break;
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendPreRecordMessageSetting:
+                    HandlePreRecordMessageSetting(CMFTServerMessage, CMFTHelper);
+                    break;
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendTrainMessageSetting:
+                    HandleTrainMessageSetting(CMFTServerMessage, CMFTHelper);
+                    break;
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendPowerTimeSetting:
                     HandlePowerSetting(CMFTServerMessage, CMFTHelper);
                     break; 
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendGroupSetting:
+                    HandleGroupSetting(CMFTServerMessage, CMFTHelper);
+                    break;
                 case ASI.Wanda.DMD.TaskCMFT.Constants.SendParameterSetting: 
                     CMFTHelper.HandleAckMessage(CMFTServerMessage);
                     break;
@@ -268,10 +274,20 @@ namespace ASI.Wanda.DMD.TaskCMFT
         /// <param name="CMFTHelper"></param>
         private void HandlePowerSetting(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
         {
-            CMFTHelper.UpDateDMDPowerSetting();
-            //傳送到DCU 
+            CMFTHelper.UpdataDMDPreRecordMessage();
             CMFTHelper.SendPowerSettingToDCU(CMFTServerMessage);
         }
+        /// <summary>
+        /// 處理預錄訊息設定
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
+        /// <param name="CMFTHelper"></param>
+        private void HandlePreRecordMessageSetting(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
+        {
+            CMFTHelper.UpDateDMDPowerSetting();
+            CMFTHelper.SendPreRecordMessageSettingToDCU(CMFTServerMessage);
+        }
+
         /// <summary>
         /// 處理預錄訊息的排成
         /// </summary>
@@ -281,8 +297,24 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             CMFTHelper.UpSchedule();
             CMFTHelper.UpDMDSchedulePlaylist();
-            //新增 傳送到DCU 
             CMFTHelper.SendScheduleSettingToDCU(CMFTServerMessage);
+        }
+
+        /// <summary>
+        /// 處理列車訊息
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
+        /// <param name="CMFTHelper"></param>
+        private void HandleTrainMessageSetting(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
+        {
+            CMFTHelper.UpDateDMDTrainMessage();
+            CMFTHelper.SendTrainMessageToDCU(CMFTServerMessage);
+        }
+
+        private void HandleGroupSetting(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
+        {
+            CMFTHelper.UpDateDMDGroupTarget();
+            CMFTHelper.SendGroupSettingToDCU(CMFTServerMessage);
         }
 
         /// <summary>

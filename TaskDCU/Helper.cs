@@ -53,9 +53,9 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 組合要傳送給 DCU 的新預錄訊息物件
             var sendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
 
-            // 將 oJOFromCMFT 中的 seatID, msg_id, target_du 等屬性賦值給新預錄訊息物件
-            sendPreRecordMessage.seatID = oJOFromCMFT.seatID;
-            sendPreRecordMessage.msg_id = oJOFromCMFT.msg_id;
+            // 將 oJOFromCMFT 中的 seatID, msg_id, target_du 等屬性賦值給新預錄訊息物件 
+            sendPreRecordMessage.seatID = oJOFromCMFT.seatID; 
+            sendPreRecordMessage.msg_id = oJOFromCMFT.msg_id; 
             sendPreRecordMessage.target_du = oJOFromCMFT.target_du;  
 
             // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容 
@@ -69,6 +69,7 @@ namespace ASI.Wanda.DMD.TaskDCU
 
             // 傳回已建立的訊息物件
             return Message;
+
         }
         /// <summary>
         /// 將即時訊息傳送給 DCU 伺服器
@@ -152,7 +153,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PreRecordMessageSetting)
                               ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
 
-            // 組合要傳送給 DCU 的新訊息物件
+            // 組合要傳送給 DCU 的新訊息物件 
             var SendRecordMessageSetting = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PreRecordMessageSetting(ASI.Wanda.DMD.Enum.Station.OCC);
             SendRecordMessageSetting.seatID = oJOFromCMFT.seatID;
             SendRecordMessageSetting.msg_id= oJOFromCMFT.msg_id;
@@ -211,7 +212,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 取得 CMFTServerMessage 中的 JSON 資料
             string sJsonData = CMFTServerMessage.JsonData;
 
-            // 將 JSON 資料反序列化成節能模式設定物件
+            // 將 JSON 資料反序列化成節能模式設定物件 
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PowerTimeSetting)
                               ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
 
@@ -229,10 +230,10 @@ namespace ASI.Wanda.DMD.TaskDCU
                           CMFTServerMessage.MessageID,
                           ASI.Lib.Text.Parsing.Json.SerializeObject(sendPowerTimeSetting));
 
-            // 紀錄將傳送的節能模式設定內容到日誌中
+            // 紀錄將傳送的節能模式設定內容到日誌中 
             ASI.Lib.Log.DebugLog.Log("SendPowerTimeSettingToDCU", MSG.JsonContent);
 
-            // 傳回已建立的訊息物件
+            // 傳回已建立的訊息物件   
             return MSG;
         }
 
@@ -243,7 +244,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// <returns>傳送給 DCU 伺服器的訊息物件</returns>
         public object SendGroupSettingToDCU(MSGFromTaskCMFT CMFTServerMessage)
         {
-            // 取得 CMFTServerMessage 中的 JSON 資料
+            // 取得 CMFTServerMessage 中的 JSON 資料 
             string sJsonData = CMFTServerMessage.JsonData;
 
             // 將 JSON 資料反序列化成排程設定物件
@@ -266,7 +267,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                           CMFTServerMessage.MessageID,
                           ASI.Lib.Text.Parsing.Json.SerializeObject(SendGroupSetting));
 
-            // 紀錄將傳送的排程設定內容到日誌中
+            // 紀錄將傳送的排程設定內容到日誌中 
             ASI.Lib.Log.DebugLog.Log("SendGroupSettingToDCU", MSG.JsonContent);
 
             // 傳回已建立的訊息物件
@@ -274,38 +275,37 @@ namespace ASI.Wanda.DMD.TaskDCU
         }
 
         /// <summary>
-        /// 將群組設定傳送給 DCU 伺服器
+        /// 將群組設定傳送給 DCU 伺服器 
         /// </summary>
         /// <param name="CMFTServerMessage">來自 DMD 伺服器的訊息物件</param>
         /// <returns>傳送給 DCU 伺服器的訊息物件</returns>
         public object SendParameterSetting(MSGFromTaskCMFT CMFTServerMessage)
         {
-            // 取得 CMFTServerMessage 中的 JSON 資料
+            // 取得 CMFTServerMessage 中的 JSON 資料  
             string sJsonData = CMFTServerMessage.JsonData;
 
             // 將 JSON 資料反序列化成排程設定物件
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.ParameterSetting)
                               ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
 
-            // 組合要傳送給 DCU 的新排程設定物件
+            // 組合要傳送給 DCU 的新排程設定物件  
             var SendParameterSetting = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.ParameterSetting(ASI.Wanda.DMD.Enum.Station.OCC);
 
-            // 將 oJOFromCMFT 中的 seatID, SqlCommand, dbName1, dbName2 等屬性賦值給新的排程設定物件
+            // 將 oJOFromCMFT 中的 seatID, SqlCommand, dbName1, dbName2 等屬性賦值給新的排程設定物件   
             SendParameterSetting.seatID = oJOFromCMFT.seatID;
             SendParameterSetting.SqlCommand = oJOFromCMFT.SqlCommand;
             SendParameterSetting.dbName1 = oJOFromCMFT.dbName1;
 
-
-            // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容
+            // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容  
             var MSG = new ASI.Wanda.DMD.Message.Message(
                           ASI.Wanda.DMD.Message.Message.eMessageType.Command,
                           CMFTServerMessage.MessageID,
                           ASI.Lib.Text.Parsing.Json.SerializeObject(SendParameterSetting));
 
-            // 紀錄將傳送的排程設定內容到日誌中
+            // 紀錄將傳送的排程設定內容到日誌中  
             ASI.Lib.Log.DebugLog.Log("SendParameterSettingToDCU", MSG.JsonContent);
 
-            // 傳回已建立的訊息物件
+            // 傳回已建立的訊息物件 
             return MSG;
         }
         #endregion
@@ -315,9 +315,9 @@ namespace ASI.Wanda.DMD.TaskDCU
         {
             try 
             {
-                ASI.Wanda.DMD.ProcMsg.MSGFromTaskDCU MSGFromTaskDCU = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskDCU(new MSGFrameBase("TaskDCU", "TaskCMFT"));
+                ASI.Wanda.DMD.ProcMsg.MSGFromTaskDCU MSGFromTaskDCU = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskDCU(new MSGFrameBase("Taskdcu", "Taskcmft"));
 
-                MSGFromTaskDCU.MessageType = msgType;
+                MSGFromTaskDCU.MessageType = msgType; 
                 MSGFromTaskDCU.MessageID = msgID;
                 MSGFromTaskDCU.JsonData = jsonData;
 

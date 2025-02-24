@@ -186,7 +186,7 @@ namespace ASI.Wanda.DMD.TaskMain
             foreach (ProcInfo ainfo in mProcInfo)
             {
                 if (ainfo.State == ProcInfo.StateType.Healthy ||
-                    ainfo.State == ProcInfo.StateType.Initial)  // healthy process
+                    ainfo.State == ProcInfo.StateType.Initial)  // healthy process 
                 {
                     if (ainfo.InUse < 1)
                         ainfo.State = ProcInfo.StateType.NonHealthy;

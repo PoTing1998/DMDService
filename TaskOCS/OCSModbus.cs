@@ -13,10 +13,10 @@ namespace OCS.Modbus
         public Configuration Config { get; set; }
         public ModbusFactory ModbusFactory { get; set; }
         public IModbusMaster Master { get; set; }
-        public ushort[] RegisterBuffer { get; set; }
+        public ushort[] RegisterBuffer { get; set; } = new ushort[38];
         public byte SlaveAddress { get; set; } = 0;
         public ushort NumberOfPoints { get; set; } = 38;
-        public int Port { get; set; } = 502;
+        public  int Port { get; set; } = 502;
         public string ClientIP { get; set; }
         public int TransactionTimeout { get; set; } = 10;
         public int ConnectionTries { get; set; }
@@ -28,6 +28,15 @@ namespace OCS.Modbus
         {
             ClientIP = clientIP;
             SlaveAddress = slaveAddress;
+        }
+        public OCSData(string clientIP, byte slaveAddress, int connectionTries = 3, int timeout = 10, int retryMilliseconds = 1000)
+        {
+            ClientIP = clientIP;
+            SlaveAddress = slaveAddress;
+            ConnectionTries = connectionTries;
+            TransactionTimeout = timeout;
+            WaitToRetryMilliseconds = retryMilliseconds;
+            RegisterBuffer = new ushort[NumberOfPoints];
         }
     }
 
@@ -107,30 +116,37 @@ namespace OCS.Modbus
         #region Methods
         private byte[] Process(ushort[] registerBuffer)
         {
-            byte[] newByteArray = new byte[registerBuffer.Length * 2];
-            int byteListIndex = 0;
-            for (int i = 0; i < registerBuffer.Length; i++)
+            var memoryStream = new MemoryStream();
+            try
             {
-                if (IsSpecialIndex(i))
+                var binaryWriter = new BinaryWriter(memoryStream);
+                try
                 {
-                    byte[] bytes = CombineByte(registerBuffer[i], registerBuffer[i + 1]);
-                    newByteArray[byteListIndex] = bytes[0];
-                    newByteArray[byteListIndex + 1] = bytes[1];
-                    newByteArray[byteListIndex + 2] = bytes[2];
-                    newByteArray[byteListIndex + 3] = bytes[3];
-                    byteListIndex += 4;
-                    i++; // Skip next index
+                    for (int i = 0; i < registerBuffer.Length; i++)
+                    {
+                        if (IsSpecialIndex(i))
+                        {
+                            var combinedBytes = CombineByte(registerBuffer[i], registerBuffer[i + 1]);
+                            binaryWriter.Write(combinedBytes);
+                            i++; // Skip next index
+                        }
+                        else
+                        {
+                            binaryWriter.Write(BitConverter.GetBytes(registerBuffer[i]));
+                        }
+                    }
                 }
-                else
+                finally
                 {
-                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]);
-                    newByteArray[byteListIndex] = ushortBytes[0];
-                    newByteArray[byteListIndex + 1] = ushortBytes[1];
-                    byteListIndex += 2;
+                    binaryWriter.Dispose(); // Dispose BinaryWriter
                 }
             }
-            AssignFromByteArray(newByteArray);
-            return newByteArray;
+            finally
+            {
+                memoryStream.Dispose(); // Dispose MemoryStream
+            }
+            return memoryStream.ToArray();
+
         }
 
         private void AssignFromByteArray(byte[] byteArray)
@@ -204,7 +220,7 @@ namespace OCS.Modbus
             ASI.Lib.Log.DebugLog.Log("To_OCS_Data", logMessage);
         }
         /// <summary>
-        /// 位元轉移 
+        /// 位元轉移  
         /// </summary>
         /// <param name="byte1"></param>
         /// <param name="byte2"></param>
@@ -234,11 +250,11 @@ namespace OCS.Modbus
             return bytes;
         }
         /// <summary>
-        ///特定 index 的判斷
+        ///特定 index 的判斷  
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        private bool IsSpecialIndex(int index)
+        private bool IsSpecialIndex(int index) 
         {
             HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
             return specialIndices.Contains(index);

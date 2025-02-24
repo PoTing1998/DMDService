@@ -29,6 +29,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
 
         private T API;
 
+        /// <summary>
+        /// 初始化 <see cref="CMFTHelper{T}"/> 類的新實例。  
+        /// </summary>
+        /// <param name="api">要進行交互的 API 物件。</param>
+        /// <param name="sendAction">用於發送消息的委派。</param>
         public CMFTHelper(T api, Action<T, ASI.Wanda.CMFT.Message.Message> sendAction)
         {
             API = api;
@@ -191,7 +196,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 MSGFromTaskCMFT.MessageID = msgID;
                 MSGFromTaskCMFT.JsonData = jsonData;
                 ASI.Lib.Process.ProcMsg.SendMessage(MSGFromTaskCMFT);
-                ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData);
+                ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData); 
             }
             catch (System.Exception ex)
             {
@@ -244,7 +249,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 var tempList = CMFT.DB.Tables.DMD.dmdPlayList.SelectAll();
                 ///轉換過程 
                 var convertedList = tempList
-                    .Select(item => new DB.Models.dmd_playlist
+                    .Select(item => new DB.Models.dmd_playlist 
                     {
                         playlist_id = item.playlist_id,
                         station_id = item.station_id,
@@ -375,7 +380,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdInstantMessage.SelectAll();
                 ///轉換過程  
                 var convertedList = tempList
-                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_instant_message
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_instant_message 
                     {
                         message_id = item.message_id,
                         message_type = item.message_type,
@@ -594,9 +599,9 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdPowerSetting.SelectAll();
                 ///轉換過程  
                 var convertedList = tempList
-                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_power_setting
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_power_setting  
                     {
-                        station_id = item.station_id,
+                        station_id = item.station_id,  
                         eco_mode = item.eco_mode,
                         eco_time = item.eco_time,
                         not_eco_day = item.not_eco_day,
@@ -626,7 +631,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況  
+                ///記錄例外狀況 
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdPowerSetting", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting>();
             }

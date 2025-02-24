@@ -18,11 +18,11 @@ namespace ASI.Wanda.DMD
 
         private System.Threading.Thread mThread = null;
 
-        private bool mThreadRun = false;
+        private bool mThreadRun = false; 
 
         public delegate void ReceivedEventHandler(ASI.Wanda.DMD.Message.Message DMDmessage);
         /// <summary>
-        /// 接收資料的事件
+        /// 接收資料的事件  
         /// </summary>
         public event ReceivedEventHandler ReceivedEvent;
 

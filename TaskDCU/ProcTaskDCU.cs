@@ -183,7 +183,7 @@ namespace ASI.Wanda.DMD.TaskDCU
 
                         foreach (var Targetdu in oJsonObject.failed_target)
                         {
-                            var station = Targetdu.Split('_')[0];
+                            var station = Targetdu.Split('_')[0]; 
                             if (!stationsDuDictionary.ContainsKey(station))
                             {
                                 stationsDuDictionary[station] = new List<string>();
@@ -210,13 +210,15 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(deviceInfo.StationID, deviceInfo.AreaID, deviceInfo.DeviceID);
                         }
                         //接下來回傳給Task CMFT 
+                    
+
 
                     }
                     else if (sJsonObjectName == "ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendInstantMessage")
                     {
                         var oJsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendInstantMessage)ASI.Wanda.DMD.Message.Helper.GetJsonObject(DCUServerMessage.JsonContent);
                         //失敗看板
-                        var stationDudictionary = new Dictionary<string, List<string>>();
+                        var stationDudictionary = new Dictionary<string, List<string>>(); 
 
                         foreach (var Targetdu in oJsonObject.failed_target)
                         {
@@ -258,9 +260,9 @@ namespace ASI.Wanda.DMD.TaskDCU
         }
 
         /// <summary>
-        /// 處理TaskCMFT的訊息 
+        /// 處理TaskCMFT的訊息  
         /// </summary>
-        private int ProMsgFromCMFT(string pMessage)
+        private int ProMsgFromCMFT(string pMessage) 
         {
             try
             {
@@ -280,7 +282,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                     //回應Ack給CMFT
                     switch (sJsonObjectName)
                     {
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息  
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
                             message = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);
                             result = mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("預錄訊息 傳送結果", result.ToString());
@@ -300,13 +302,13 @@ namespace ASI.Wanda.DMD.TaskDCU
                             result = mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("群組設定 傳送結果", result.ToString());
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排程設定
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排程設定 
                             message = Helper.SendScheduleSettingToDCU(mSGFromTaskCMFT);
                             result = mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("排成設定 傳送結果", result.ToString());
                             break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定
-                            message = Helper.SendTrainMessageSetting(mSGFromTaskCMFT);
+                        case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定  
+                            message = Helper.SendTrainMessageSetting(mSGFromTaskCMFT); 
                             result = mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("列車訊息設定 傳送結果", result.ToString());
                             break;
@@ -376,7 +378,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             ASI.Lib.Log.DebugLog.Log(_mProcName, $"客戶端連接成功: {clientInfo}");
         }
 
-        private void DisconnectExistingDMDAPI()
+        private void DisconnectExistingDMDAPI()  //斷線   
         {
             if (mDMD_API != null)
             {
@@ -386,7 +388,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                 try
                 {
                     mDMD_API.Dispose();
-                    ASI.Lib.Log.DebugLog.Log(_mProcName, "Existing DMD_API disconnected and disposed.");
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, "Existing DMD_API disconnected and disposed."); 
                 }
                 catch (Exception ex)
                 {
@@ -398,58 +400,5 @@ namespace ASI.Wanda.DMD.TaskDCU
                 }
             }
         }
-        #region   判斷方式
-        //判別要傳送的目的碼  
-        //private void DetermineSendDestination(ASI.Wanda.DMD.Message.Message message)
-        //{
-        //    try
-        //    {
-        //        if (message.JsonContent == null)
-        //        {
-        //            ASI.Lib.Log.ErrorLog.Log(_mProcName, "JsonContent is null. Unable to determine send destination.");
-        //            return;
-        //        }
-        //        // 解析 JsonContent   
-        //        var jsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage)ASI.Lib.Text.Parsing.Json.DeserializeObject(message.JsonContent, typeof(ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage));
-        //        // 提取 target_du  
-        //        var targetDuList = jsonObject.target_du; 
-        //        //讀取現有連線的clinet
-        //        var Client = mDMD_API.ClientIDList;
-
-        //        foreach (var clientEntry in Client)
-        //        {
-        //            string clientIPPort = clientEntry.Value;
-        //            //  clientIPPort 的格式為 "IP:Port"  
-        //            string[] clientParts = clientIPPort.Split(':');
-
-        //            if (clientParts.Length == 2)
-        //            {
-        //                string clientIP = clientParts[0];
-
-        //                // 在這裡進行相應的處理，例如取得 stationID  
-        //                foreach (var targetDu in targetDuList)
-        //                {
-        //                    // 在這裡進行字串操作，提取 stationID    
-        //                    string[] parts = targetDu.Split('_');
-        //                    if (parts.Length >= 1)
-        //                    {
-        //                        // parts[0] 就是 stationID   
-        //                        string stationID = parts[0];
-
-        //                        mDMD_API.Send(message, clientIPPort);
-        //                        ASI.Lib.Log.DebugLog.Log("DetermineSendDestination", $"Connected client to the target IP: {clientIP}");
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ASI.Lib.Log.ErrorLog.Log("DetermineSendDestination", ex);
-        //        ASI.Lib.Log.DebugLog.Log("DetermineSendDestination", $"Failed to determine send destination. Message: {message.JsonContent}");
-        //    }
-
-        //}
-        #endregion
     }
 }

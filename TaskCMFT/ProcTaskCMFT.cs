@@ -55,10 +55,10 @@ namespace ASI.Wanda.DMD.TaskCMFT
         /// <returns></returns>
         public override int ProcTimerEvent(string pMessage) // handle timer message
         {
-            //定時回報TaskMain
+            //定時回報TaskMain 
             if (base.ProcTimerEvent(pMessage) <= 0)
             {
-                return -1;
+                return -1; 
             }
 
             //ping CMFT Server 
@@ -70,7 +70,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     {
                         //若原本為連線，則檢查目前連線狀態
                         //超過60秒未收到DMD傳送的訊息則判定為離線
-                        //   string sStatusType = "default";
                         string sStatusValue = true.ToString();
                         if (System.DateTime.Now.Subtract(LastHeartbeatTime).TotalSeconds > 60)
                         {
@@ -80,12 +79,9 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     else
                     {
                         //嘗試重新連線 
-                        //   ConnToCMFTServer();
+                         ConnToCMFTServer();
                     }
-                    //string sCMFTServerIP = ASI.Lib.Config.ConfigApp.Instance.GetIPFromConnStr(this.mCMFTServerConnStr);
-
-                    //bool bStatus = ASI.Lib.Comm.Network.NetworkLib.TryPing(sCMFTServerIP, 300, 4);
-                    //ASI.Lib.Log.DebugLog.Log(mProcName, $"嘗試ping CMFT Server IP = {sCMFTServerIP}，連線狀態:{bStatus}");
+                    
                 }
                 catch (System.Exception ex)
                 {
@@ -95,8 +91,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
 
             //檢查排程設定是否需進行排程訊息播放 todo
             //讀取資料庫
-            //送出訊息播放命令給CMFT Server
-
             return 1;
         }
 
@@ -114,8 +108,6 @@ namespace ASI.Wanda.DMD.TaskCMFT
             string sDMD_DBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
             string sDMD_DBPort = ConfigApp.Instance.GetConfigSetting("DMD_DB_Port");
             string sDMD_DBName = ConfigApp.Instance.GetConfigSetting("DMD_DB_Name");
-
-
             // CMFT Database Configuration
             string sCMFT_DBIP = ConfigApp.Instance.GetConfigSetting("CMFT_DB_IP");
             string sCMFT_DBPort = ConfigApp.Instance.GetConfigSetting("CMFT_DB_Port");
@@ -149,10 +141,14 @@ namespace ASI.Wanda.DMD.TaskCMFT
 
             return base.StartTask(pComputer, pProcName);
         }
-
+        /// <summary>
+        /// 斷線處理
+        /// </summary>
+        /// <param name="source"></param>
         private void CMFT_API_DisconnectedEvent(string source)
         {
-
+            System.DateTime  time = DateTime.Now;
+            ASI.Lib.Log.ErrorLog.Log("CMFT_API","斷線" + time.ToString());
         }
 
         /// <summary>
@@ -176,20 +172,22 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         ASI.Lib.Log.DebugLog.Log(_mProcName, "與CMFT_Server的heartBeat連線" + LastHeartbeatTime.ToString());
                         break;
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Ack:
-                        var MSG = HandleAckMessage(CMFTServerMessage);
+                        var MSG = HandleAckMessage(CMFTServerMessage);//回復ACK
                         mCMFT_API.Send(MSG);
                         break;
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Command:
-                        HandleCommandMessage(CMFTServerMessage, sByteArray, sJsonObjectName, iMsgID, sJsonData, CMFTHelper);
+                        HandleCommandMessage(CMFTServerMessage, sByteArray, sJsonObjectName, iMsgID, sJsonData, CMFTHelper); //處理 訊息
+                        var Rs_Ack = HandleAckMessage(CMFTServerMessage); // 回復ACK
+                        mCMFT_API.Send(Rs_Ack);
                         break;
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Response:
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從CMFT來的訊息不應有Response，MessageType:{CMFTServerMessage.MessageType}");
                         break;
 
-                    default:
+                    default: 
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"無此種訊息類別:[{CMFTServerMessage.MessageType}]");
                         break;
-                }
+                } 
             }
             catch (System.Exception ex)
             {
@@ -344,7 +342,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 {
                     mIsConnectedToCMFT = true;
                     ASI.Lib.Log.DebugLog.Log(_mProcName, $"與CMFT Server連線成功");
-                    //連線成功時，重新計算最後一次收到DMD的時間   
+                    //連線成功時，重新計算最後一次收到DMD的時間  
                     LastHeartbeatTime = System.DateTime.Now;
                 }
                 else
@@ -387,7 +385,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         /// 處理電源設定
         /// </summary>
         /// <param name="CMFTServerMessage"></param>
-        /// <param name="CMFTHelper"></param>
+        /// <param name="CMFTHelper"></param> 
         private void HandlePowerSetting(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, CMFTHelper<ASI.Wanda.CMFT.CMFT_API> CMFTHelper)
         {
             CMFTHelper.UpDateDMDPowerSetting();

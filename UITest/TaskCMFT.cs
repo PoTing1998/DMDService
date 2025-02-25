@@ -31,9 +31,7 @@ namespace UITest
             InitializeTimers();
             LoadDateGridViewPanel();
             LoadDataGridViewData();
-            ASI.Wanda.DMD.DB.Manager.Initializer("10.107.26.99", "5432", "DMDDB", "postgres", "postgres", "DMDServer");
-            ASI.Wanda.CMFT.DB.Manager.Initializer("10.107.26.99", "5432", "CMFTDB", "postgres", "postgres", "admin");
-
+            
             // 載入 DataGridView 資料
 
             LoadDateGridViewPanel();
@@ -61,8 +59,8 @@ namespace UITest
         #region Methods
         private void InitializeDatabaseConnections()
         {
-            ASI.Wanda.DMD.DB.Manager.Initializer("10.107.26.99", "5432", "DMDDB", "postgres", "postgres", "DMDServer");
-            ASI.Wanda.CMFT.DB.Manager.Initializer("10.107.26.99", "5432", "CMFTDB", "postgres", "postgres", "admin");
+            ASI.Wanda.DMD.DB.Manager.Initializer("127.0.0.1", "5432", "DMDDB", "postgres", "postgres", "DMDServer");
+            ASI.Wanda.CMFT.DB.Manager.Initializer("127.0.0.1", "5432", "CMFTDB", "postgres", "postgres", "admin");
         }
         private void InitializeTimers()
         {
@@ -784,7 +782,7 @@ namespace UITest
 
         private void button6_Click(object sender, EventArgs e)
         {
-            ASI.Wanda.CMFT.DB.Manager.Initializer("10.107.26.99", "5432", "CMFTDB", "postgres", "postgres", "admin");
+            ASI.Wanda.CMFT.DB.Manager.Initializer("127.0.0.1", "5432", "CMFTDB", "postgres", "postgres", "admin");
             UpdateDMDPlayList();
             UpdataDMDPreRecordMessage();
 

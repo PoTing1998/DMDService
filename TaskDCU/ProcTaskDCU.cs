@@ -16,9 +16,6 @@ namespace ASI.Wanda.DMD.TaskDCU
     {
         #region construct
         private ASI.Wanda.DMD.DMD_API mDMD_API = null;
-
-
-
         public string mDMDServerConnStr = "";
 
         public bool mIsConnectedToDCU = false;

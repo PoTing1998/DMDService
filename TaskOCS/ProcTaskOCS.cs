@@ -16,7 +16,6 @@ using System.Threading.Tasks;
 namespace ASI.Wanda.DMD.TaskOCS
 {
 
-    #region construct
     /// <summary>
     /// 處理OCS模組執行程序
     /// </summary>
@@ -34,7 +33,6 @@ namespace ASI.Wanda.DMD.TaskOCS
                 "DelayAtDeparture","NextTrainWillnotStop","Train End of service","Last Train of Operating Day & Train Not in service " ,
                 "Time table mode &  Normal Train","Train Direction"};
         public string mOCSServerConnStr = "";
-        #endregion
         #region  Task開啟處理
 
         /// <summary>

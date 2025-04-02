@@ -107,7 +107,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         }
 
        /// <summary>
-       /// 從DCU 接收訊號
+       /// 從DCU 接收訊號 
        /// </summary>
        /// <param name="DCUServerMessage"></param>
         private void DMD_API_ReceivedEvent(ASI.Wanda.DMD.Message.Message DCUServerMessage)
@@ -173,8 +173,6 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(deviceInfo.StationID, deviceInfo.AreaID, deviceInfo.DeviceID);
                         }
                         //接下來回傳給Task CMFT 
-
-
                     }
                     else if (sJsonObjectName == "ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendInstantMessage")
                     {
@@ -210,7 +208,6 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(deviceInfo.StationID, deviceInfo.AreaID, deviceInfo.DeviceID);
                         }
                         //接下來回傳給Task CMFT
-
                     }
                 }
 
@@ -227,69 +224,67 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// </summary>
         private int ProMsgFromCMFT(string pMessage)
         {
-          
             try
             {
-                ASI.Wanda.DMD.ProcMsg.MSGFromTaskCMFT mSGFromTaskCMFT = new ProcMsg.MSGFromTaskCMFT(new MSGFrameBase(""));
+                var mSGFromTaskCMFT = new ProcMsg.MSGFromTaskCMFT(new MSGFrameBase(""));
+                if (mSGFromTaskCMFT.UnPack(pMessage) <= 0) return -1;
 
-                if (mSGFromTaskCMFT.UnPack(pMessage) > 0) 
+                string sJsonData = mSGFromTaskCMFT.JsonData;
+                string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "JsonObjectName");
+                string sSeatID = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "SeatID");
+                int iMsgID = mSGFromTaskCMFT.MessageID;
+
+                ASI.Lib.Log.DebugLog.Log(mProcName + " fromTaskCMFT",
+                    $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
+
+                var helper = new DCUHelper();
+                object msg = null;
+                int result = -1;
+
+                switch (sJsonObjectName)
                 {
-                    string sJsonData        = mSGFromTaskCMFT.JsonData;
-                    string sJsonObjectName  = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "JsonObjectName"); 
-                    string sStationID       = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskCMFT.JsonData, "StationID");
-                    string sSeatID          = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "SeatID");
-                    int iMsgID  = mSGFromTaskCMFT.MessageID;
-                    ASI.Lib.Log.DebugLog.Log(mProcName + " fromTaskCMFT", $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
-                    var Helper  = new DCUHelper();
-                    var MSG     = new object();
-                    int result;
-                    //回應Ack給CMFT
-                    switch (sJsonObjectName)
-                    {
-
-                         
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
-                            MSG = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);   
-                             result  =  mDMD_API.Send((Message.Message)MSG);
-                            ASI.Lib.Log.DebugLog.Log("傳送結果" ,result.ToString());
-                            //DetermineSendDestination((Message.Message)MSG);  全部都送
-                            break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息 
-                            MSG = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
-                             result =  mDMD_API.Send((Message.Message)MSG);
-                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString() );
-                            break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定
-                            break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendGroupSetting:      //群組設定
-                            break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:   //排程設定
-                            MSG = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
-                            result= mDMD_API.Send((Message.Message)MSG);
-                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
-                            break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定
-                            break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendPowerTimeSetting:  //電力設定
-                            MSG = Helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
-                            result =  mDMD_API.Send((Message.Message)MSG);
-                            ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
-                            break;
-                        case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:  //群組設定
-                            break;
-                        default:
-                            break;
-                    }
+                    case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg:
+                        msg = helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);
+                        break;
+                    case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:
+                        msg = helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
+                        break;
+                    case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting:
+                        msg = helper.SendPreRecordMessageSetting(mSGFromTaskCMFT);
+                        break;
+                    case ASI.Wanda.DMD.TaskDCU.Constants.SendGroupSetting:
+                        msg = helper.SendGroupSettingToDCU(mSGFromTaskCMFT);
+                        break;
+                    case ASI.Wanda.DMD.TaskDCU.Constants.SendScheduleSetting:
+                        msg = helper.SendScheduleSettingToDCU(mSGFromTaskCMFT);
+                        break;
+                    case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting:
+                        msg = helper.SendTrainMessageSetting(mSGFromTaskCMFT);
+                        break;
+                    case ASI.Wanda.DMD.TaskDCU.Constants.SendPowerTimeSetting:
+                        msg = helper.SendPowerSettingToDCU(mSGFromTaskCMFT);
+                        break;
+                    case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:
+                        msg = helper.SendParameterSetting(mSGFromTaskCMFT);
+                        break;
+                    default:
+                        break;
                 }
 
+                if (msg != null)
+                {
+                    result = mDMD_API.Send((Message.Message)msg);
+                    ASI.Lib.Log.DebugLog.Log("傳送結果", result.ToString());
+                }
             }
             catch (Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
+                ASI.Lib.Log.DebugLog.Log("ProMsgFromCMFT Error", ex.ToString());
+                return -1;
             }
-          
-            return -1;
+            return 0;
         }
+
         //判別要傳送的目的碼  
         //private void DetermineSendDestination(ASI.Wanda.DMD.Message.Message message)
         //{

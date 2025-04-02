@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace ASI.Wanda.DMD.TaskOCS
 {
+    /// 上一站的 離站 > 軌 > 進站 > 停靠 > 離站  要考慮 降級模式   
     /// <summary>
     /// 處理 OCS 模組執行的連續資料獲取過程。
     /// </summary>
@@ -19,10 +20,10 @@ namespace ASI.Wanda.DMD.TaskOCS
     {
         private CancellationTokenSource _cancellationTokenSource;
         private OCSData _ocsData;
-        private string _ocsServerConnStr;
+        private string _ocsServerConnStr; 
         private int _fetchInterval; // 資料獲取間隔（毫秒）
 
-        public ProcTaskOCS(int fetchInterval = 5000) // 預設間隔為5秒
+        public ProcTaskOCS(int fetchInterval = 100) // 預設間隔為0.1秒
         {
             _fetchInterval = fetchInterval;
             _cancellationTokenSource = new CancellationTokenSource();
@@ -71,7 +72,7 @@ namespace ASI.Wanda.DMD.TaskOCS
         }
 
         /// <summary>
-        /// 從 Modbus 伺服端獲取資料並處理。
+        /// 從 Modbus 伺服端獲取資料並處理  
         /// </summary>
         private async Task FetchAndProcessDataAsync()
         {
@@ -86,10 +87,10 @@ namespace ASI.Wanda.DMD.TaskOCS
                     _ocsData.RegisterBuffer = await _ocsData.Master.ReadInputRegistersAsync(_ocsData.SlaveAddress, startAddress, _ocsData.NumberOfPoints);
 
                     LogRawData(_ocsData.RegisterBuffer);
-                    ProcessData(_ocsData.RegisterBuffer, processedBytes);
+                    ProcessData(_ocsData.RegisterBuffer, processedBytes); 
 
                     startAddress += 100;
-                    LogProcessedData(processedBytes, startAddress);
+                    LogProcessedData(processedBytes, startAddress); 
                 }
                 catch (Exception ex)
                 {
@@ -97,10 +98,10 @@ namespace ASI.Wanda.DMD.TaskOCS
                 }
             }
         }
-
+        
         /// <summary>
         /// 初始化 OCSData 與 Modbus 設定。
-        /// </summary>
+        /// </summary>   
         private OCSData InitializeOcsData(string clientIP = null, int port = 0)
         {
             var ocsData = new OCSData(clientIP, (byte)port)
@@ -111,7 +112,7 @@ namespace ASI.Wanda.DMD.TaskOCS
 
             ocsData.Master.Transport.ReadTimeout = ocsData.TransactionTimeout;
             ocsData.Master.Transport.Retries = ocsData.ConnectionTries;
-            ocsData.Master.Transport.WaitToRetryMilliseconds = ocsData.WaitToRetryMilliseconds;
+            ocsData.Master.Transport.WaitToRetryMilliseconds = ocsData.WaitToRetryMilliseconds; 
 
             return ocsData;
         }
@@ -123,20 +124,20 @@ namespace ASI.Wanda.DMD.TaskOCS
         {
             for (int i = 0; i < registerBuffer.Length; i++)
             {
-                if (IsSpecialIndex(i))
+                if (IsSpecialIndex(i)) 
                 {
-                    i++; // 跳過下一個索引 
+                    i++; // 跳過下一個索引  
                 }
                 else
                 {
-                    byte[] bytes = BitConverter.GetBytes(registerBuffer[i]);
+                    byte[] bytes = BitConverter.GetBytes(registerBuffer[i]);    
                     outputBytes.AddRange(bytes);
                 }
             }
         }
 
         /// <summary>
-        /// 記錄原始資料。
+        /// 記錄原始資料。 
         /// </summary>
         private void LogRawData(ushort[] registerBuffer)
         {
@@ -144,7 +145,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             DebugLog.Log("Raw_OCS_Data", logMessage);  
         }
 
-        /// <summary>
+        /// <summary> 
         /// 記錄處理後的資料。
         /// </summary>
         private void LogProcessedData(List<byte> dataList, ushort address)
@@ -162,5 +163,8 @@ namespace ASI.Wanda.DMD.TaskOCS
             HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
             return specialIndices.Contains(index);
         }
+
+
+       
     }
 }

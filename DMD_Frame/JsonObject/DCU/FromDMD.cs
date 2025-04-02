@@ -10,8 +10,8 @@ namespace ASI.Wanda.DMD.JsonObject.DCU.FromDMD
 {
     #region  DMD Server to DCU 
   
-        ///4.2.2. DMD Server to DCU 
-        ///(1)	列車營運模式(需數張圖作為動態圖) 
+        //4.2.2. DMD Server to DCU 
+        //(1)	列車營運模式(需數張圖作為動態圖) 
         public class OperationMode : ASI.Wanda.DMD.JsonObject.Base
         {
             public OperationMode(ASI.Wanda.DMD.Enum.Station station):base(station) { }

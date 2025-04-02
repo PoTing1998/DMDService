@@ -37,7 +37,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         public object SendPreRecordMSGToDCU(MSGFromTaskCMFT DMDServerMessage)
         {
             //收到DMD SERVER內部的訊息 
-            string sJsonData = DMDServerMessage.JsonData;
+            var sJsonData = DMDServerMessage.JsonData;
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage)ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
             //組成要傳給DCU的message
             var sendPreRecordMessage = new JsonObject.DCU.FromDMD.SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
@@ -54,7 +54,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// <param name="DMDServerMessage"></param>
         public object SendInstantMSGToDCU(MSGFromTaskCMFT DMDServerMessage)
         {  //收到DMD SERVER內部的訊息 
-            string sJsonData = DMDServerMessage.JsonData;
+            var sJsonData = DMDServerMessage.JsonData;
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendInstantMessage)ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
             //組成要傳給DCU的message
             var SendInstantMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendInstantMessage(ASI.Wanda.DMD.Enum.Station.OCC);
@@ -75,7 +75,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         public object SendPowerSettingToDCU(MSGFromTaskCMFT CMFTServerMessage)
         {
             //收到封包
-            string sJsonData = CMFTServerMessage.JsonData;
+            var sJsonData = CMFTServerMessage.JsonData;
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PowerTimeSetting)ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
             //組封包 
             var sendPowerTimeSetting = new JsonObject.DCU.FromDMD.PowerTimeSetting(Enum.Station.OCC);
@@ -92,7 +92,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         public object SendScheduleSettingToDCU(MSGFromTaskCMFT CMFTServerMessage)
         {
             //收到封包
-            string sJsonData = CMFTServerMessage.JsonData;
+            var sJsonData = CMFTServerMessage.JsonData;
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendScheduleSetting)ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
             //組封包 
             var SendScheduleSetting = new JsonObject.DCU.FromDMD.SendScheduleSetting(Enum.Station.OCC);
@@ -104,6 +104,77 @@ namespace ASI.Wanda.DMD.TaskDCU
             //組成給DCU的封包
             var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(SendScheduleSetting));
             ASI.Lib.Log.DebugLog.Log("SendPowerTimeSettingToDCU", MSG.JsonContent);
+            return MSG;
+        }
+
+        public object SendGroupSettingToDCU(MSGFromTaskCMFT CMFTServerMessage)
+        {
+            //收到封包
+            var sJsonData = CMFTServerMessage.JsonData;
+            var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.GroupSetting)ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
+
+            //組封包
+            var SendGroupSetting = new JsonObject.DCU.FromDMD.GroupSetting(Enum.Station.OCC);
+             SendGroupSetting.seatID= oJOFromCMFT.seatID;
+            SendGroupSetting.group_id = oJOFromCMFT.group_id;
+            SendGroupSetting.SqlCommand = oJOFromCMFT.SqlCommand;
+            SendGroupSetting.dbName1 = oJOFromCMFT.dbName1;
+            SendGroupSetting.dbName2 = oJOFromCMFT.dbName2;
+
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(SendGroupSetting));
+            ASI.Lib.Log.DebugLog.Log("SendGroupSettingToDCU", MSG.JsonContent);
+            return MSG; 
+        }
+
+
+        public object SendPreRecordMessageSetting(MSGFromTaskCMFT CMFTServerMessage)
+        {
+            //收到封包
+            var sJsonData = CMFTServerMessage.JsonData;
+            var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PreRecordMessageSetting)ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
+
+            //組封包
+            var SendPreRecordMessageSetting = new JsonObject.DCU.FromDMD.PreRecordMessageSetting(Enum.Station.OCC);
+            SendPreRecordMessageSetting.seatID = oJOFromCMFT.seatID;
+            SendPreRecordMessageSetting.msg_id = oJOFromCMFT.msg_id;
+            SendPreRecordMessageSetting.SqlCommand = oJOFromCMFT.SqlCommand;
+            SendPreRecordMessageSetting.dbName1 = oJOFromCMFT.dbName1;
+
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(SendPreRecordMessageSetting));
+            ASI.Lib.Log.DebugLog.Log("SendPreRecordMessageSetting", MSG.JsonContent);
+            return MSG;
+        }
+        public object SendTrainMessageSetting(MSGFromTaskCMFT CMFTServerMessage)
+        {
+            //收到封包
+            var sJsonData = CMFTServerMessage.JsonData;
+            var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.TrainMessageSetting)ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
+
+            //組封包
+            var SendTrainMessageSetting = new JsonObject.DCU.FromDMD.PreRecordMessageSetting(Enum.Station.OCC);
+            SendTrainMessageSetting.seatID = oJOFromCMFT.seatID;
+            SendTrainMessageSetting.msg_id = oJOFromCMFT.msg_id;
+            SendTrainMessageSetting.SqlCommand = oJOFromCMFT.SqlCommand;
+            SendTrainMessageSetting.dbName1 = oJOFromCMFT.dbName1;
+
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(SendTrainMessageSetting));
+            ASI.Lib.Log.DebugLog.Log("SendPreRecordMessageSetting", MSG.JsonContent);
+            return MSG;
+        }
+        public object SendParameterSetting(MSGFromTaskCMFT CMFTServerMessage)
+        {
+            //收到封包
+            var sJsonData = CMFTServerMessage.JsonData;
+            var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.ParameterSetting)ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
+
+            //組封包
+            var SendParameterSetting = new JsonObject.DCU.FromDMD.PreRecordMessageSetting(Enum.Station.OCC);
+            SendParameterSetting.seatID = oJOFromCMFT.seatID;
+            SendParameterSetting.SqlCommand = oJOFromCMFT.SqlCommand;
+            SendParameterSetting.dbName1 = oJOFromCMFT.dbName1;
+
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(SendParameterSetting));
+            ASI.Lib.Log.DebugLog.Log("SendPreRecordMessageSetting", MSG.JsonContent);
             return MSG;
         }
 

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
+using System.Net.Sockets;
 
 namespace OCS.Modbus
 {
@@ -12,10 +13,10 @@ namespace OCS.Modbus
         public Configuration Config { get; set; }
         public ModbusFactory ModbusFactory { get; set; }
         public IModbusMaster Master { get; set; }
-        public ushort[] RegisterBuffer { get; set; }
+        public ushort[] RegisterBuffer { get; set; } = new ushort[38];
         public byte SlaveAddress { get; set; } = 0;
         public ushort NumberOfPoints { get; set; } = 38;
-        public int Port { get; set; } = 502;
+        public  int Port { get; set; } = 502;
         public string ClientIP { get; set; }
         public int TransactionTimeout { get; set; } = 10;
         public int ConnectionTries { get; set; }
@@ -27,6 +28,15 @@ namespace OCS.Modbus
         {
             ClientIP = clientIP;
             SlaveAddress = slaveAddress;
+        }
+        public OCSData(string clientIP, byte slaveAddress, int connectionTries = 3, int timeout = 10, int retryMilliseconds = 1000)
+        {
+            ClientIP = clientIP;
+            SlaveAddress = slaveAddress;
+            ConnectionTries = connectionTries;
+            TransactionTimeout = timeout;
+            WaitToRetryMilliseconds = retryMilliseconds;
+            RegisterBuffer = new ushort[NumberOfPoints];
         }
     }
 
@@ -103,35 +113,41 @@ namespace OCS.Modbus
         }
         #endregion
 
-        #region Methods 
+        #region Methods
         private byte[] Process(ushort[] registerBuffer)
         {
-            byte[] newByteArray = new byte[registerBuffer.Length * 2];
-            int byteListIndex = 0;
-            for (int i = 0; i < registerBuffer.Length; i++)
+            var memoryStream = new MemoryStream();
+            try
             {
-                if (IsSpecialIndex(i))
+                var binaryWriter = new BinaryWriter(memoryStream);
+                try
                 {
-                    byte[] bytes = CombineByte(registerBuffer[i], registerBuffer[i + 1]);
-                    newByteArray[byteListIndex] = bytes[0];
-                    newByteArray[byteListIndex + 1] = bytes[1];
-                    newByteArray[byteListIndex + 2] = bytes[2];
-                    newByteArray[byteListIndex + 3] = bytes[3];
-                    byteListIndex += 4;
-                    i++; // Skip next index 
+                    for (int i = 0; i < registerBuffer.Length; i++)
+                    {
+                        if (IsSpecialIndex(i))
+                        {
+                            var combinedBytes = CombineByte(registerBuffer[i], registerBuffer[i + 1]);
+                            binaryWriter.Write(combinedBytes);
+                            i++; // Skip next index
+                        }
+                        else
+                        {
+                            binaryWriter.Write(BitConverter.GetBytes(registerBuffer[i]));
+                        }
+                    }
                 }
-                else
+                finally
                 {
-                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]); 
-                    newByteArray[byteListIndex] = ushortBytes[0];
-                    newByteArray[byteListIndex + 1] = ushortBytes[1];
-                    byteListIndex += 2;
+                    binaryWriter.Dispose(); // Dispose BinaryWriter
                 }
             }
-            AssignFromByteArray(newByteArray);
-            return newByteArray;
+            finally
+            {
+                memoryStream.Dispose(); // Dispose MemoryStream
+            }
+            return memoryStream.ToArray();
+
         }
-        
 
         private void AssignFromByteArray(byte[] byteArray)
         {
@@ -188,7 +204,7 @@ namespace OCS.Modbus
                 LineOperationMode2 = reader.ReadInt16();
                 TestTrain2 = reader.ReadInt16();
                 TrainDirection2 = reader.ReadInt16();
-                Spare4 = reader.ReadInt16(); 
+                Spare4 = reader.ReadInt16();
             }
         }
 
@@ -203,17 +219,27 @@ namespace OCS.Modbus
             }
             ASI.Lib.Log.DebugLog.Log("To_OCS_Data", logMessage);
         }
-
+        /// <summary>
+        /// 位元轉移  
+        /// </summary>
+        /// <param name="byte1"></param>
+        /// <param name="byte2"></param>
+        /// <returns></returns>
         private int CombineBytesToInt(ushort byte1, ushort byte2)
         {
             byte[] bytes = new byte[4];
             bytes[3] = (byte)(byte2 >> 8);
-            bytes[2] = (byte)byte2; 
+            bytes[2] = (byte)byte2;
             bytes[1] = (byte)(byte1 >> 8);
             bytes[0] = (byte)byte1;
             return BitConverter.ToInt32(bytes, 0);
         }
-
+        /// <summary>
+        /// 位移轉移 
+        /// </summary>
+        /// <param name="byte1"></param>
+        /// <param name="byte2"></param>
+        /// <returns></returns>
         private byte[] CombineByte(ushort byte1, ushort byte2)
         {
             byte[] bytes = new byte[4];
@@ -223,13 +249,22 @@ namespace OCS.Modbus
             bytes[0] = (byte)byte1;
             return bytes;
         }
-
-        private bool IsSpecialIndex(int index)
+        /// <summary>
+        ///特定 index 的判斷  
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        private bool IsSpecialIndex(int index) 
         {
             HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
             return specialIndices.Contains(index);
         }
-
+        /// <summary>
+        /// xor 的判斷
+        /// </summary>
+        /// <param name="hex1"></param>
+        /// <param name="hex2"></param>
+        /// <returns></returns>
         public static ushort[] XOR(ushort[] hex1, ushort[] hex2)
         {
             ushort[] hexOut = new ushort[hex1.Length];

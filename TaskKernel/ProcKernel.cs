@@ -26,171 +26,171 @@ namespace ASI.Wanda.DMD.TaskKernel
 
             protected override int LogProcStatus(StateType pNow)
             {
-			    return 0;
-		    }
+                return 0;
+            }
         }
-       
+
         private ProcInfo taskmain_info;
-		
-		public override int ProcEvent(string pLabel, string pBody)
-		{
-			MSGSimple aevent = new MSGSimple(new MSGFrameBase(""));
-			if (aevent.UnPack(pBody) > 0)
-			{
-				string astr = "Rcving from " + aevent.Frame.Source + " : " + pLabel;
-				LogFile.Log(mComputerName, mProcName, astr);
-				LogFile.Display(astr);
 
-				return base.ProcEvent(pLabel, pBody);
-			}
-			else
-			{
-				string astr = "Rcving error : " + pBody;
-				LogFile.Log(mComputerName, mProcName, "Rcving error : " + pBody);
-				LogFile.Display(astr);
+        public override int ProcEvent(string pLabel, string pBody)
+        {
+            MSGSimple aevent = new MSGSimple(new MSGFrameBase(""));
+            if (aevent.UnPack(pBody) > 0)
+            {
+                string astr = "Rcving from " + aevent.Frame.Source + " : " + pLabel;
+                LogFile.Log(mComputerName, _mProcName, astr);
+                LogFile.Display(astr);
 
-				return -1;
-			}
-		}
-		
+                return base.ProcEvent(pLabel, pBody);
+            }
+            else
+            {
+                string astr = "Rcving error : " + pBody;
+                LogFile.Log(mComputerName, _mProcName, "Rcving error : " + pBody);
+                LogFile.Display(astr);
+
+                return -1;
+            }
+        }
+
         /// <summary>
         /// handle healthy message from other process
         /// </summary>
         /// <param name="pMessage"></param>
         /// <returns></returns>
-		protected override int ProcHealthEvent(string pMessage) 
-		{
-			MSGHealth aevent = new MSGHealth(new MSGFrameBase(""));
-			
-			if (aevent.UnPack(pMessage) > 0)
-			{
-				if (taskmain_info.Name == aevent.Frame.Source)
-				{
-					if (aevent.HealthFlag == true &&
-						(taskmain_info.State == ProcInfo.StateType.Healthy ||
-						taskmain_info.State == ProcInfo.StateType.Initial))
-					{
-						taskmain_info.LastTime = DateTime.Now;  // log the latest time receving the heart-beat
-						taskmain_info.State = ProcInfo.StateType.Healthy;
-					}
-					return 1;
-				}
-			}
+        protected override int ProcHealthEvent(string pMessage)
+        {
+            MSGHealth aevent = new MSGHealth(new MSGFrameBase(""));
 
-			return -1;
-		}
+            if (aevent.UnPack(pMessage) > 0)
+            {
+                if (taskmain_info.Name == aevent.Frame.Source)
+                {
+                    if (aevent.HealthFlag == true &&
+                        (taskmain_info.State == ProcInfo.StateType.Healthy ||
+                        taskmain_info.State == ProcInfo.StateType.Initial))
+                    {
+                        taskmain_info.LastTime = DateTime.Now;  // log the latest time receving the heart-beat
+                        taskmain_info.State = ProcInfo.StateType.Healthy;
+                    }
+                    return 1;
+                }
+            }
+
+            return -1;
+        }
 
         /// <summary>
         /// handle timer message
         /// </summary>
         /// <param name="pMessage"></param>
         /// <returns></returns>
-		public override int ProcTimerEvent(string pMessage) 
-		{
-			DateTime atime = DateTime.Now;
+		public override int ProcTimerEvent(string pMessage)
+        {
+            DateTime atime = DateTime.Now;
 
-			MSGTimer aevent = new MSGTimer(new MSGFrameBase(""));
-			if (aevent.UnPack(pMessage) > 0)
-			{
-				if (new TimeSpan(atime.Ticks - aevent.TimeNow.Ticks).TotalSeconds > mTimerTick)
-					return 0;
-				
-				mLastHealth = DateTime.Now;  // don't cancel, otherwise timer will stop
-				
-				if (taskmain_info.Domain != null)
-				{
-					MSGHealth ahealth = new MSGHealth(new MSGFrameBase(mProcName, "TaskMain"));
-					ahealth.HealthFlag = true;
-					MSQueue.SendMessage(ahealth);
-				}
-				
-				PeriodCheckHealth();
+            MSGTimer aevent = new MSGTimer(new MSGFrameBase(""));
+            if (aevent.UnPack(pMessage) > 0)
+            {
+                if (new TimeSpan(atime.Ticks - aevent.TimeNow.Ticks).TotalSeconds > mTimerTick)
+                    return 0;
 
-				return 1;
-			}
+                mLastHealth = DateTime.Now;  // don't cancel, otherwise timer will stop
 
-			return -1;
-		}
+                if (taskmain_info.Domain != null)
+                {
+                    MSGHealth ahealth = new MSGHealth(new MSGFrameBase(_mProcName, "TaskMain"));
+                    ahealth.HealthFlag = true;
+                    MSQueue.SendMessage(ahealth);
+                }
+
+                PeriodCheckHealth();
+
+                return 1;
+            }
+
+            return -1;
+        }
 
         /// <summary>
         /// periodically check whether process is healthy
         /// </summary>
-		private void PeriodCheckHealth() 
-		{
+		private void PeriodCheckHealth()
+        {
             if (mStopFlag) return;
 
             if (taskmain_info.State == ProcInfo.StateType.Stop)
-			{
-				StartProcess(taskmain_info);
-				return;
-			}
-			
-			if (taskmain_info.CheckHealthy() < 0)
-			{
-				taskmain_info.State = ProcInfo.StateType.Stop;
-				StopProcess(taskmain_info);
-				return;
-			}
-		}
+            {
+                StartProcess(taskmain_info);
+                return;
+            }
+
+            if (taskmain_info.CheckHealthy() < 0)
+            {
+                taskmain_info.State = ProcInfo.StateType.Stop;
+                StopProcess(taskmain_info);
+                return;
+            }
+        }
 
         /// <summary>
         /// use a new thread to start a process
         /// </summary>
         /// <param name="pInfo"></param>
         /// <returns></returns>
-		private int StartProcess(ProcInfo pInfo) 
-		{
-			if (ProcessLib.StartProcess(pInfo) > 0)
-			{
-				LogFile.Log(mComputerName, mProcName, "Start Process " + pInfo.Name + " Success");
-				return 1;
-			}
-			
-			LogFile.Log(mComputerName, mProcName, "Start Process " + pInfo.Name + " Fail");
-			return -1;
-		}
- 
+		private int StartProcess(ProcInfo pInfo)
+        {
+            if (ProcessLib.StartProcess(pInfo) > 0)
+            {
+                LogFile.Log(mComputerName, _mProcName, "Start Process " + pInfo.Name + " Success");
+                return 1;
+            }
+
+            LogFile.Log(mComputerName, _mProcName, "Start Process " + pInfo.Name + " Fail");
+            return -1;
+        }
+
         /// <summary>
         /// stop a process by unload his application domain
         /// </summary>
         /// <param name="pInfo"></param>
         /// <returns></returns>
-		private int StopProcess(ProcInfo pInfo) 
-		{
-			MSGStopProc astop = new MSGStopProc(new MSGFrameBase("TaskKernel", "TaskMain"));
-			astop.StopFlag = true;
-			SendMessage(astop);
+        private int StopProcess(ProcInfo pInfo)
+        {
+            MSGStopProc astop = new MSGStopProc(new MSGFrameBase("TaskKernel", "TaskMain"));
+            astop.StopFlag = true;
+            SendMessage(astop);
 
-			Thread.Sleep(10000);
+            Thread.Sleep(10000);
 
-			if (ProcessLib.StopProcess(pInfo) > 0)
-			{
-				LogFile.Log(mComputerName, mProcName, "Stop Process Success " + pInfo.Name);
-				return 1;
-			}
+            if (ProcessLib.StopProcess(pInfo) > 0)
+            {
+                LogFile.Log(mComputerName, _mProcName, "Stop Process Success " + pInfo.Name);
+                return 1;
+            }
 
-			LogFile.Log(mComputerName, mProcName, "Stop Process Fail " + pInfo.Name);
-			return -1;
-		}
+            LogFile.Log(mComputerName, _mProcName, "Stop Process Fail " + pInfo.Name);
+            return -1;
+        }
 
-		public override int StartTask(string pComputer, string pProcName)
-		{
-			if (base.StartTask(pComputer, pProcName) < 0)
-				return -1;
+        public override int StartTask(string pComputer, string pProcName)
+        {
+            if (base.StartTask(pComputer, pProcName) < 0)
+                return -1;
 
-			// start all process in-use
+            // start all process in-use
             taskmain_info = new ProcInfo(mComputerName, "TaskMain", "TaskMain");
-			taskmain_info.ExeName = "TaskMain.exe";
-			taskmain_info.InUse = 1;
-			taskmain_info.AutoFlag = 1;
+            taskmain_info.ExeName = "TaskMain.exe";
+            taskmain_info.InUse = 1;
+            taskmain_info.AutoFlag = 1;
             //Thread.Sleep(15000);
-			return StartProcess(taskmain_info);
-		}
+            return StartProcess(taskmain_info);
+        }
 
-		public override void StopTask()
-		{
-			base.StopTask();
-			StopProcess(taskmain_info);
-		}
-	}
+        public override void StopTask()
+        {
+            base.StopTask();
+            StopProcess(taskmain_info);
+        }
+    }
 }

@@ -1,15 +1,8 @@
 using System;
 using System.Threading;
 using System.Collections.Generic;
-using System.Security.Policy;
-using System.Configuration;
-using System.Text;
-using System.Net.NetworkInformation;
-using ASI.Lib.DB;
 using ASI.Lib.Log;
 using ASI.Lib.Process;
-using ASI.Lib.Queue;
-using ASI.Lib.Utility;
 using ASI.Lib.Config;
 
 namespace ASI.Wanda.DMD.TaskMain
@@ -22,7 +15,7 @@ namespace ASI.Wanda.DMD.TaskMain
             if (aevent.UnPack(pBody) > 0)
             {
                 string astr = "Rcving from " + aevent.Frame.Source + " : " + pLabel;
-                LogFile.Log(mComputerName, mProcName, astr);
+                LogFile.Log(mComputerName, _mProcName, astr);
                 LogFile.Display(astr);
 
                 return base.ProcEvent(pLabel, pBody);
@@ -30,7 +23,7 @@ namespace ASI.Wanda.DMD.TaskMain
             else
             {
                 string astr = "Rcving error : " + pBody;
-                LogFile.Log(mComputerName, mProcName, "Rcving error : " + pBody);
+                LogFile.Log(mComputerName, _mProcName, "Rcving error : " + pBody);
                 LogFile.Display(astr);
 
                 return -1;
@@ -68,7 +61,6 @@ namespace ASI.Wanda.DMD.TaskMain
                     }
                 }
             }
-
             return -1;
         }
 
@@ -122,28 +114,6 @@ namespace ASI.Wanda.DMD.TaskMain
         /// collection of process's state
         /// </summary>
 		private List<ProcInfo> mProcInfo = new List<ProcInfo>();
-        //private List<ProcInfo> ReadProcInfo()
-        //{
-        //    List<ProcInfo> proc_infos = new List<ProcInfo>();
-        //    DataBase adb = new DataBase(null);
-        //    try
-        //    {
-        //        adb = ProjectDB.Connect(ConfigApp.Instance.ServerDB);
-        //        tbProcConf atable = new tbProcConf(adb.Conn);
-        //        atable.SelectAll();
-        //        foreach (tbProcConf.Row arow in atable.records)
-        //        {
-        //            ProcInfo ainfo = new ProcInfo(mComputerName, mProcName, arow.ProcID);
-        //            ainfo.InUse = arow.InUse;
-        //            ainfo.AutoFlag = arow.AutoAlive;
-        //            ainfo.ExeName = arow.ExeName;
-        //            proc_infos.Add(ainfo);
-        //        }
-        //    }
-        //    finally { adb.Close(); }
-
-        //    return proc_infos;
-        //}
 
         /// <summary>
         /// 讀取config.xml裡各個process資訊並存放在ProcInfo物件
@@ -155,11 +125,11 @@ namespace ASI.Wanda.DMD.TaskMain
             List<string> procs = ConfigApp.Instance.GetConfigSettings("Process");
             foreach (string strproc in procs)
             {
-                LogFile.Log(mComputerName, mProcName, "Get Process in config = " + strproc);
+                LogFile.Log(mComputerName, _mProcName, "Get Process in config = " + strproc);
                 //string[] args = strproc.Split(new char[] { ';' });
                 //if (args.Length != 2) continue;
 
-                ProcInfo ainfo = new ProcInfo(mComputerName, mProcName, strproc);
+                ProcInfo ainfo = new ProcInfo(mComputerName, _mProcName, strproc);
                 ainfo.InUse = 1;
                 ainfo.AutoFlag = 1;
                 ainfo.ExeName = strproc;
@@ -178,35 +148,35 @@ namespace ASI.Wanda.DMD.TaskMain
         {
             if (ProcessLib.StartProcess(pInfo) > 0)
             {
-                LogFile.Log(mComputerName, mProcName, "Start Process " + pInfo.Name + " Success");
+                LogFile.Log(mComputerName, _mProcName, "Start Process " + pInfo.Name + " Success");
                 System.Threading.Thread.Sleep(1000);
-                return 1;
+                return 1;  
             }
 
-            LogFile.Log(mComputerName, mProcName, "Start Process " + pInfo.Name + " Fail");
+            LogFile.Log(mComputerName, _mProcName, "Start Process " + pInfo.Name + " Fail");
 
             return -1;
         }
 
         /// <summary>
-        /// stop a process by unload his application domain
+        /// stop a process by unload his application domain   
         /// </summary>
         /// <param name="pInfo"></param>
         /// <returns></returns>
-		private int StopProcess(ProcInfo pInfo)
+		private int StopProcess(ProcInfo pInfo) 
         {
             if (ProcessLib.StopProcess(pInfo) > 0)
             {
-                LogFile.Log(mComputerName, mProcName, "Stop Process Success " + pInfo.Name);
+                LogFile.Log(mComputerName, _mProcName, "Stop Process Success " + pInfo.Name); 
                 return 1;
             }
 
-            LogFile.Log(mComputerName, mProcName, "Stop Process Fail " + pInfo.Name);
+            LogFile.Log(mComputerName, _mProcName, "Stop Process Fail " + pInfo.Name);
             return -1;
         }
 
         /// <summary>
-        /// 檢查process的狀態
+        /// 檢查process的狀態   
         /// </summary>
         /// <returns></returns>
 		private int CheckProcInfo()
@@ -216,7 +186,7 @@ namespace ASI.Wanda.DMD.TaskMain
             foreach (ProcInfo ainfo in mProcInfo)
             {
                 if (ainfo.State == ProcInfo.StateType.Healthy ||
-                    ainfo.State == ProcInfo.StateType.Initial)  // healthy process
+                    ainfo.State == ProcInfo.StateType.Initial)  // healthy process 
                 {
                     if (ainfo.InUse < 1)
                         ainfo.State = ProcInfo.StateType.NonHealthy;
@@ -262,7 +232,7 @@ namespace ASI.Wanda.DMD.TaskMain
 
             foreach (ProcInfo ainfo in mProcInfo)   // stop all process
             {
-                MSGStopProc astop = new MSGStopProc(new MSGFrameBase(mProcName, ainfo.Name));
+                MSGStopProc astop = new MSGStopProc(new MSGFrameBase(_mProcName, ainfo.Name));
                 astop.StopFlag = true;
                 MSQueue.SendMessage(astop);
             }

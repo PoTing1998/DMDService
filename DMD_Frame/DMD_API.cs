@@ -18,11 +18,11 @@ namespace ASI.Wanda.DMD
 
         private System.Threading.Thread mThread = null;
 
-        private bool mThreadRun = false;
+        private bool mThreadRun = false; 
 
         public delegate void ReceivedEventHandler(ASI.Wanda.DMD.Message.Message DMDmessage);
         /// <summary>
-        /// 接收資料的事件
+        /// 接收資料的事件  
         /// </summary>
         public event ReceivedEventHandler ReceivedEvent;
 
@@ -49,6 +49,13 @@ namespace ASI.Wanda.DMD
         /// Socket Server專用，Socket Client斷線的事件
         /// </summary>
         public event DisconnectedEventHandler DisconnectedEvent;
+
+
+        public delegate void ErrorEventHandler (Exception source);
+        /// <summary>
+        /// Socket Server 專用 Socket Server 錯誤資訊
+        /// </summary>
+        public event ErrorEventHandler ErrorEvent;
 
         /// <summary>
         /// API初始化
@@ -79,17 +86,31 @@ namespace ASI.Wanda.DMD
                 return -1;
             }
         }
-        private void StopExistingThread()
+
+        /// <summary>
+        /// 停止現有的執行緒
+        /// </summary>
+        public void StopExistingThread()
         {
             if (mThread != null)
             {
+                // 設定執行緒的運行標誌為 false，通知執行緒應該停止運行
                 mThreadRun = false;
-                System.Threading.Thread.Sleep(100);
-                mThread.Abort();
+
+                // 等待執行緒結束
+                if (mThread.Join(2000)) // 等待最多 2 秒
+                {
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "Existing thread stopped gracefully.");
+                }
+                else
+                {
+                    ASI.Lib.Log.DebugLog.Log(mProcName, "Existing thread did not stop in time, forcing abort.");
+                    mThread.Abort(); // 最後手段，不推薦，僅在無法停止時使用
+                }
                 mThread = null;
-                ASI.Lib.Log.DebugLog.Log(mProcName, "Existing thread stopped.");
             }
         }
+
         private void LogResult(int result)
         {
             switch (result)
@@ -221,6 +242,7 @@ namespace ASI.Wanda.DMD
             }
         }
 
+
         private void MsgParsingThread()
         {
             Queue<byte[]> oRcvQueue = null;
@@ -284,8 +306,7 @@ namespace ASI.Wanda.DMD
 
                     ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Server嘗試開啟，ConnectionString = " + mSocket.ConnectionString);
                     iOpenResult = mSocket.Open();
-                    if (iOpenResult == 0 &&
-                        mSocket.IsConnect)
+                    if (iOpenResult == 0 && mSocket.IsConnect)
                     {
                         ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Server開啟成功! ConnectionString = " + mSocket.ConnectionString);
                     }
@@ -301,8 +322,7 @@ namespace ASI.Wanda.DMD
 
                     ASI.Lib.Log.DebugLog.Log(mProcName, "Socket Client嘗試連線，ConnectionString = " + mSocket.ConnectionString);
                     iOpenResult = mSocket.Open();
-                    if (iOpenResult == 0 &&
-                        mSocket.IsConnect)
+                    if (iOpenResult == 0 &&  mSocket.IsConnect)
                     {
                         ASI.Lib.Log.DebugLog.Log(mProcName, "Socket 連線成功! ConnectionString = " + mSocket.ConnectionString);
                     }
@@ -378,7 +398,7 @@ namespace ASI.Wanda.DMD
 
         private void Socket_ErrorEvent(Exception exception)
         {
-
+            ErrorEvent?.Invoke(exception);
         }
         private void Socket_CloseEvent(string source)
         {

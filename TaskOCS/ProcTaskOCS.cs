@@ -1,170 +1,254 @@
 ﻿using ASI.Lib.Config;
 using ASI.Lib.Log;
 using ASI.Lib.Process;
+
 using NModbus;
+
 using OCS.Modbus;
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
+
 namespace ASI.Wanda.DMD.TaskOCS
 {
-    /// 上一站的 離站 > 軌 > 進站 > 停靠 > 離站  要考慮 降級模式   
+
     /// <summary>
-    /// 處理 OCS 模組執行的連續資料獲取過程。
+    /// 處理OCS模組執行程序
     /// </summary>
     public class ProcTaskOCS : ProcBase
     {
-        private CancellationTokenSource _cancellationTokenSource;
-        private OCSData _ocsData;
-        private string _ocsServerConnStr; 
-        private int _fetchInterval; // 資料獲取間隔（毫秒）
+        private System.DateTime LastHeartbeatTime = System.DateTime.Now;
 
-        public ProcTaskOCS(int fetchInterval = 100) // 預設間隔為0.1秒
+        private List<string> Description = new List<string>() {
+                "No Of Platforms" , "Platform ID", "Arrival", "Departure",
+                "Hold", "NbJourneyData","Validity = 1,NbCars = 2","Train ID","Service","Trip","Destination_ID",
+                "ArrivalTime","ArrivalTime","DepartureTime","DepartureTime","DelayAtArrival","DelayAtDeparture",
+                "CancelledTrain & NextTrainWillnotSto","TrainEnd Of Service & TrainWillNotOpenDoor" ,"Train Not in service",
+                "Time table mode & Normal Train" ,"Train Direction"," Validity = 1 & NbCars = 2" ,"Train ID","Service ",
+                "Trip","Destination_ID", "ArrivalTime","ArrivalTime","DepartureTime","DepartureTime","DelayAtArrival",
+                "DelayAtDeparture","NextTrainWillnotStop","Train End of service","Last Train of Operating Day & Train Not in service " ,
+                "Time table mode &  Normal Train","Train Direction"};
+        public string mOCSServerConnStr = "";
+        #region  Task開啟處理
+
+        /// <summary>
+        /// 處理OCS模組執行程序所收到之訊息 
+        /// </summary>
+        /// <param name="pLabel"></param>
+        /// <param name="pBody"></param>
+        /// <returns></returns>
+        public override int ProcEvent(string pLabel, string pBody)
         {
-            _fetchInterval = fetchInterval;
-            _cancellationTokenSource = new CancellationTokenSource();
-            _ocsData = InitializeOcsData();
+            LogFile.Display(pBody);
+
+            if (pLabel == MSGFinish.Label)
+            {
+                return 0;
+            }
+            return base.ProcEvent(pLabel, pBody);
         }
 
         /// <summary>
-        /// 開始連續的資料獲取過程。
+        /// 處理OCS模組執行程序所收到之定時訊息 
         /// </summary>
-        public async Task StartContinuousDataFetchAsync()
+        /// <param name="pMessage"></param>
+        /// <returns></returns>
+        public override int ProcTimerEvent(string pMessage) // handle timer message
         {
-            await Task.Run(() => ContinuousDataFetch(_cancellationTokenSource.Token));
-        }
-
-        /// <summary>
-        /// 停止連續的資料獲取過程。
-        /// </summary>
-        public void StopContinuousDataFetch()
-        {
-            _cancellationTokenSource.Cancel();
-        }
-
-        /// <summary>
-        /// 連續性地以指定間隔獲取資料。
-        /// </summary>
-        private async void ContinuousDataFetch(CancellationToken cancellationToken)
-        {
-            while (!cancellationToken.IsCancellationRequested)
+            //定時回報TaskMain
+            if (base.ProcTimerEvent(pMessage) <= 0)
+            {
+                return -1;
+            }
+            //ping OCS Server
+            if (this.mOCSServerConnStr != "")
             {
                 try
                 {
-                    await FetchAndProcessDataAsync();
-                    await Task.Delay(_fetchInterval, cancellationToken); // 等待指定的間隔
+                    string sOCSServerIP = ASI.Lib.Config.ConfigApp.Instance.GetIPFromConnStr(this.mOCSServerConnStr);
+
+                    bool bStatus = ASI.Lib.Comm.Network.NetworkLib.TryPing(sOCSServerIP, 300, 4);
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, $"嘗試ping OCS Server IP = {sOCSServerIP}，連線狀態:{bStatus}");
                 }
-                catch (TaskCanceledException)
+                catch (System.Exception ex)
                 {
-                    // 處理取消任務
-                    DebugLog.Log("Info", "資料獲取過程已被停止。");
-                }
-                catch (Exception ex)
-                {
-                    ErrorLog.Log("Error", $"資料獲取過程中出現錯誤: {ex.Message}");
-                    // 可選：此處可加入重試邏輯
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
                 }
             }
-        }
-
-        /// <summary>
-        /// 從 Modbus 伺服端獲取資料並處理  
-        /// </summary>
-        private async Task FetchAndProcessDataAsync()
-        {
-            ushort startAddress = 30001;
-            const int numIterations = 18;
-
-            for (int i = 0; i < numIterations; i++)
-            {
-                try
-                {
-                    var processedBytes = new List<byte>();
-                    _ocsData.RegisterBuffer = await _ocsData.Master.ReadInputRegistersAsync(_ocsData.SlaveAddress, startAddress, _ocsData.NumberOfPoints);
-
-                    LogRawData(_ocsData.RegisterBuffer);
-                    ProcessData(_ocsData.RegisterBuffer, processedBytes); 
-
-                    startAddress += 100;
-                    LogProcessedData(processedBytes, startAddress); 
-                }
-                catch (Exception ex)
-                {
-                    ErrorLog.Log("Error", $"在 FetchAndProcessDataAsync 中出現異常: {ex.Message}");
-                }
-            }
-        }
-        
-        /// <summary>
-        /// 初始化 OCSData 與 Modbus 設定。
-        /// </summary>   
-        private OCSData InitializeOcsData(string clientIP = null, int port = 0)
-        {
-            var ocsData = new OCSData(clientIP, (byte)port)
-            {
-                ModbusFactory = new ModbusFactory(),
-                Master = new ModbusFactory().CreateMaster(new TcpClient(clientIP ?? ConfigApp.Instance.GetConfigSetting("TcpClientIP"), int.Parse(ConfigApp.Instance.GetConfigSetting("TcpClientPort"))))
-            };
-
-            ocsData.Master.Transport.ReadTimeout = ocsData.TransactionTimeout;
-            ocsData.Master.Transport.Retries = ocsData.ConnectionTries;
-            ocsData.Master.Transport.WaitToRetryMilliseconds = ocsData.WaitToRetryMilliseconds; 
-
-            return ocsData;
-        }
-
-        /// <summary>
-        /// 處理原始的 Modbus 資料。
-        /// </summary>
-        private void ProcessData(ushort[] registerBuffer, List<byte> outputBytes)
-        {
-            for (int i = 0; i < registerBuffer.Length; i++)
-            {
-                if (IsSpecialIndex(i)) 
-                {
-                    i++; // 跳過下一個索引  
-                }
-                else
-                {
-                    byte[] bytes = BitConverter.GetBytes(registerBuffer[i]);    
-                    outputBytes.AddRange(bytes);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 記錄原始資料。 
-        /// </summary>
-        private void LogRawData(ushort[] registerBuffer)
-        {
-            string logMessage = string.Join("\n", registerBuffer.Select((data, idx) => $"原始資料 {idx + 1}: {data}"));
-            DebugLog.Log("Raw_OCS_Data", logMessage);  
+            //讀取資料庫
+            //送出訊息播放命令給DMD Server 
+            return 1;
         }
 
         /// <summary> 
-        /// 記錄處理後的資料。
+        /// 啟始處理OCS模組執行程序  
         /// </summary>
-        private void LogProcessedData(List<byte> dataList, ushort address)
+        /// <param name="pComputer"></param>
+        /// <param name="pProcName"></param>
+        /// <returns></returns>
+        public override int StartTask(string pComputer, string pProcName)
         {
-            string logMessage = $"目前的 Address {address}:\n" +
-                                string.Join("\n", dataList.Select((data, idx) => $"處理後資料 {idx + 1}: {data}"));
-            DebugLog.Log("Processed_OCS_Data", logMessage);
+            mTimerTick = 30;
+            _mProcName = "TaskOCS";
+
+            // 初始化 OCS 資料並處理可能的例外狀況  
+            try
+            {
+                var oCSData = InitializeOCSData();
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
+                return -1; // 異常狀態回傳 -1 
+            }
+
+            // 初始化資料庫連線
+            if (!InitializeDatabaseConnection())
+            {
+                ErrorLog.Log(_mProcName, $"資料庫連線失敗! {ConfigApp.Instance.GetConfigSetting("DMD_DB_IP")}:" +
+                                        $"{ConfigApp.Instance.GetConfigSetting("DMD_DB_Port")}; userid=postgres");
+                return -1; // 異常狀態回傳 -1
+            }
+
+            return base.StartTask(pComputer, pProcName);
+        }
+        /// <summary>
+        /// 初始化 OCS 資料及 Modbus 設定
+        /// </summary>
+        /// <returns>回傳初始化後的 OCSData 物件</returns>
+        private OCSData InitializeOCSData()
+        {
+            try
+            {
+                var oCSData = new OCSData();
+
+                // 從配置中獲取 TCP 客戶端 IP 地址 
+                var tcpClientIP = ConfigApp.Instance.GetConfigSetting("TcpClientIP");
+
+                // 從配置中獲取 TCP 客戶端埠號並將其解析為整數  
+                var tcpClientPort = int.Parse(ConfigApp.Instance.GetConfigSetting("TcpClientPort"));
+
+                // 初始化 ModbusFactory 以建立 Modbus 通訊物件 
+                oCSData.ModbusFactory = new NModbus.ModbusFactory();
+
+                // 使用指定的 IP 和埠號創建 Modbus 主站 
+                oCSData.Master = oCSData.ModbusFactory.CreateMaster(new TcpClient(tcpClientIP, tcpClientPort));
+
+                // 設定 Modbus 通訊的讀取逾時時間 
+                oCSData.Master.Transport.ReadTimeout = oCSData.TransactionTimeout;
+
+                // 設定通訊失敗時的重試次數  
+                oCSData.Master.Transport.Retries = oCSData.ConnectionTries;
+
+                // 設定重試之間的等待時間（以毫秒為單位） 
+                oCSData.Master.Transport.WaitToRetryMilliseconds = oCSData.WaitToRetryMilliseconds;
+
+                // 啟動背景執行緒持續讀取 Modbus 資料 
+                Task.Run(() => ContinuousDataRead(oCSData, 1000));
+
+                return oCSData;
+            }
+            catch (FormatException ex)
+            {
+                // 捕捉並處理字串轉數字的格式錯誤
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"TCP 客戶端 Port 格式錯誤: {ex.Message}");
+                throw;
+            }
+            catch (SocketException ex)
+            {
+                // 捕捉並處理 TCP 連線的 Socket 錯誤 
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 TCP 客戶端失敗: {ex.Message}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // 捕捉其他所有潛在的例外狀況
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
+                throw;
+            }
         }
 
         /// <summary>
-        /// 判斷該索引是否需要特殊處理。
+        /// 初始化資料庫連線
         /// </summary>
-        private bool IsSpecialIndex(int index)
+        /// <returns>若連線成功回傳 true，否則回傳 false</returns>
+        private bool InitializeDatabaseConnection()
         {
-            HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
-            return specialIndices.Contains(index);
+            var sDBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
+            var sDBPort = ConfigApp.Instance.GetConfigSetting("DMD_DB_Port");
+            var sDBName = ConfigApp.Instance.GetConfigSetting("DMD_DB_Name");
+            var sUserID = "postgres";
+            var sPassword = "postgres";
+            var sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
+            try
+            {
+                return ASI.Wanda.DMD.DB.Manager.Initializer(sDBIP, sDBPort, sDBName, sUserID, sPassword, sCurrentUserID);
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"資料庫連線失敗! {sDBIP}:{sDBPort}; userid={sUserID}; ex={ex}");
+                return false;
+            }
+        }
+        #endregion
+
+
+        #region Method
+
+        // 持續讀取資料的邏輯
+        private void ContinuousDataRead(OCSData oCSData, int intervalMilliseconds)
+        {
+            ushort[] previousData = null; // 用於存儲上一次的資料 
+            while (true)
+            {
+                try
+                {
+                    // 從 Modbus 主站讀取資料 (此處以讀取保持暫存器為例)
+                    var currentData = oCSData.Master.ReadHoldingRegisters(1, 0, 10);
+
+                    // 如果有上一次的資料，進行 XOR 比對 
+                    if (previousData != null)
+                    {
+                        if (!AreArraysEqualWithXOR(previousData, currentData))
+                        {
+                            ASI.Lib.Log.DebugLog.Log("ContinuousRead", $"資料變更: 新資料 = {string.Join(", ", currentData)}");
+                        }
+                    }
+                    else
+                    {
+                        ASI.Lib.Log.DebugLog.Log("ContinuousRead", $"首次讀取資料: {string.Join(", ", currentData)}");
+                    }
+
+                    // 更新暫存的資料
+                    previousData = currentData;
+
+                    // 避免過度讀取，設定每次讀取間隔
+                    Thread.Sleep(intervalMilliseconds);
+                }
+                catch (Exception ex)
+                {
+                    // 記錄讀取過程中的錯誤
+                    ASI.Lib.Log.ErrorLog.Log("ContinuousRead", $"讀取 Modbus 資料時發生錯誤: {ex.Message}");
+                }
+            }
         }
 
+        // 使用 XOR 比較兩個 ushort 陣列是否不同 
 
-       
+        private bool AreArraysEqualWithXOR(ushort[] array1, ushort[] array2)
+        {
+            if (array1.Length != array2.Length) return false;
+            for (int i = 0; i < array1.Length; i++)
+            {
+                if ((array1[i] ^ array2[i]) != 0) return false; // XOR 判斷是否有變化
+            }
+            return true;
+        }
+
+        #endregion
     }
 }

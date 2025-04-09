@@ -21,7 +21,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -62,20 +61,19 @@
     <Compile Include="Tables\Table.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="D:\Svn\TRTS_Wanda\00_Common\01_SourceCode\ASILib\ASILib.csproj">
+    <ProjectReference Include="..\ASILib\ASILib.csproj">
       <Project>{5b6fc193-a36d-409e-8e9b-2c45fe574189}</Project>
       <Name>ASILib</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers">
-      <Version>2.9.0</Version>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="Npgsql">
-      <Version>7.0.4</Version>
+      <Version>7.0.2</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
 </Project>

@@ -1,5 +1,6 @@
 ﻿using ASI.Lib.Process;
 using ASI.Wanda.CMFT;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,14 +14,14 @@ namespace ASI.Wanda.DMD.TaskCMFT
     /// </summary>
     public static class Constants
     {
-        public const string SendPreRecordMsg                = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage";
-        public const string SendInstantMsg                  = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendInstantMessage";
-        public const string SendScheduleSetting             = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.ScheduleSetting";
-        public const string SendPreRecordMessageSetting     = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PreRecordMessageSetting";
-        public const string SendTrainMessageSetting         = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.TrainMessageSetting";
-        public const string SendPowerTimeSetting            = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PowerTimeSetting";
-        public const string SendGroupSetting                = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.GroupSetting";
-        public const string SendParameterSetting            = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.ParameterSetting";
+        public const string SendPreRecordMsg = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage";
+        public const string SendInstantMsg = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendInstantMessage";
+        public const string SendScheduleSetting = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.ScheduleSetting";
+        public const string SendPreRecordMessageSetting = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PreRecordMessageSetting";
+        public const string SendTrainMessageSetting = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.TrainMessageSetting";
+        public const string SendPowerTimeSetting = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PowerTimeSetting";
+        public const string SendGroupSetting = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.GroupSetting";
+        public const string SendParameterSetting = "ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.ParameterSetting";
     }
     public class CMFTHelper<T> where T : class
     {
@@ -28,6 +29,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
 
         private T API;
 
+        /// <summary>
+        /// 初始化 <see cref="CMFTHelper{T}"/> 類的新實例。  
+        /// </summary>
+        /// <param name="api">要進行交互的 API 物件。</param>
+        /// <param name="sendAction">用於發送消息的委派。</param>
         public CMFTHelper(T api, Action<T, ASI.Wanda.CMFT.Message.Message> sendAction)
         {
             API = api;
@@ -38,46 +44,166 @@ namespace ASI.Wanda.DMD.TaskCMFT
             var sLog = $"Ack，訊息識別碼:[{CMFTServerMessage.MessageID}]";
             var MSG = new ASI.Wanda.CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Ack, CMFTServerMessage.MessageID, null);
             ASI.Lib.Log.DebugLog.Log("FromCMFTService", sLog);
-             //利用委派的方式傳送 
-             sendAction?.Invoke(API, MSG);
+            //利用委派的方式傳送 
+            sendAction?.Invoke(API, MSG);
         }
+
+        #region 依狀態傳給TaskDCU的Method
+        /// <summary>
+        /// 傳送預錄訊息
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
         public void SendPreRecordMSGToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
         {
             //收到封包
             var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
             //組封包 
-            var sendPreRecordMessage = new JsonObject.DCU.FromDMD.SendPreRecordMessage(Enum.Station.OCC);  
-            sendPreRecordMessage.seatID = oJsonObject.SeatID; 
+            var sendPreRecordMessage = new JsonObject.DCU.FromDMD.SendPreRecordMessage(Enum.Station.OCC);
+            sendPreRecordMessage.seatID = oJsonObject.SeatID;
             sendPreRecordMessage.msg_id = oJsonObject.msg_id;
             sendPreRecordMessage.target_du = oJsonObject.target_du;
             //組成給DCU的封包
             var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
             //傳送不同的格式
             SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
-            
             ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCU", MSG.JsonContent);
         }
-      
+        /// <summary>
+        /// 傳送即時訊息
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
+        public void SendInstantMSGToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
+        {
+            //收到封包
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendInstantMessage)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
+            //組封包 
+            var sendPreRecordMessage = new JsonObject.DCU.FromDMD.SendInstantMessage(Enum.Station.OCC);
+            sendPreRecordMessage.seatID = oJsonObject.SeatID;
+            sendPreRecordMessage.msg_id = oJsonObject.msg_id;
+            sendPreRecordMessage.target_du = oJsonObject.target_du;
+            //組成給DCU的封包
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
+            //傳送不同的格式
+            SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
+            ASI.Lib.Log.DebugLog.Log("SendInstantMSGToDCU", MSG.JsonContent);
+        }
+
+        /// <summary>
+        /// 傳送電力設定
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
+        public void SendPowerSettingToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
+        {
+            //收到封包  
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PowerTimeSetting)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
+            //組封包 
+            var sendPowerSetting = new JsonObject.DCU.FromDMD.PowerTimeSetting(Enum.Station.OCC);
+            sendPowerSetting.seatID = oJsonObject.SeatID;
+            sendPowerSetting.SqlCommand = (Enum.SqlCommand)oJsonObject.command;
+            //組成給DCU的封包
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPowerSetting));
+            //傳送不同的格式
+            SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPowerSetting));
+            ASI.Lib.Log.DebugLog.Log("SendPowerSettingToDCU", MSG.JsonContent);
+        }
+        /// <summary>
+        /// 傳送排程時間
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
+        public void SendScheduleSettingToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
+        {
+            //收到封包  
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.ScheduleSetting)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
+            //組封包  
+            var sendSchedule = new JsonObject.DCU.FromDMD.SendScheduleSetting(Enum.Station.OCC);
+            sendSchedule.seatID = oJsonObject.SeatID;
+            sendSchedule.SqlCommand = (Enum.SqlCommand)oJsonObject.command;
+            sendSchedule.sched_id = oJsonObject.sched_id;
+            //組成給DCU的封包 
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendSchedule));
+            //傳送不同的格式 
+            SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendSchedule));
+            ASI.Lib.Log.DebugLog.Log("SendScheduleSettingToDCU", MSG.JsonContent);
+        }
+        /// <summary>
+        /// 傳送預錄訊息設定
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
+        public void SendPreRecordMessageSettingToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
+        {
+            //收到封包  
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.PreRecordMessageSetting)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
+            //組封包  
+            var sendPreRecordMessageSetting = new JsonObject.DCU.FromDMD.PreRecordMessageSetting(Enum.Station.OCC);
+            sendPreRecordMessageSetting.seatID = oJsonObject.SeatID;
+            sendPreRecordMessageSetting.SqlCommand = (Enum.SqlCommand)oJsonObject.command;
+            sendPreRecordMessageSetting.msg_id = oJsonObject.msg_id;
+            //組成給DCU的封包 
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessageSetting));
+            //傳送不同的格式 
+            SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessageSetting));
+            ASI.Lib.Log.DebugLog.Log("SendPreRecordMessageSettingToDCU", MSG.JsonContent);
+        }
+
+        /// <summary>
+        /// 傳送列車訊息
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
+        public void SendTrainMessageToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
+        {
+            //收到封包  
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.TrainMessageSetting)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
+            //組封包  
+            var sendTrainMessageSetting = new JsonObject.DCU.FromDMD.TrainMessageSetting(Enum.Station.OCC);
+            sendTrainMessageSetting.seatID = oJsonObject.SeatID;
+            sendTrainMessageSetting.SqlCommand = (Enum.SqlCommand)oJsonObject.command;
+            sendTrainMessageSetting.msg_id = oJsonObject.msg_id;
+            //組成給DCU的封包 
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendTrainMessageSetting));
+            //傳送不同的格式 
+            SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendTrainMessageSetting));
+            ASI.Lib.Log.DebugLog.Log("SendTrainMessageSettingToDCU", MSG.JsonContent);
+        }
+
+        /// <summary>
+        /// 傳送列車訊息
+        /// </summary>
+        /// <param name="CMFTServerMessage"></param>
+        public void SendGroupSettingToDCU(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
+        {
+            //收到封包  
+            var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.GroupSetting)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
+            //組封包  
+            var sendGroupSetting = new JsonObject.DCU.FromDMD.GroupSetting(Enum.Station.OCC);
+            sendGroupSetting.group_id = oJsonObject.group_id;
+            sendGroupSetting.seatID = oJsonObject.SeatID;
+            sendGroupSetting.SqlCommand = (Enum.SqlCommand)oJsonObject.command;
+            //組成給DCU的封包 
+            var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendGroupSetting));
+            //傳送不同的格式 
+            SendToTaskDCU(2, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(sendGroupSetting));
+            ASI.Lib.Log.DebugLog.Log("SendGroupSettingToDCU", MSG.JsonContent);
+        }
+
         ///傳送到內部MSG   
         private void SendToTaskDCU(int msgType, int msgID, string jsonData)
         {
-            try 
+            try
             {
                 var MSGFromTaskCMFT = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskCMFT(new MSGFrameBase("TaskCMFT", "dmdserverTaskDCU"));
                 //組相對應的封包
-                
                 MSGFromTaskCMFT.MessageType = msgType;
-                MSGFromTaskCMFT.MessageID = msgID;  
+                MSGFromTaskCMFT.MessageID = msgID;
                 MSGFromTaskCMFT.JsonData = jsonData;
                 ASI.Lib.Process.ProcMsg.SendMessage(MSGFromTaskCMFT);
-                ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData);
+                ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData); 
             }
             catch (System.Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log("FromTaskCMFT", ex);
             }
         }
-        ///收到DCU回傳的資料後 傳給CMFT   
+        ///收到DCU回傳的資料後 傳給CMFT    
         public void SendResponsePreRecordMSGToCMFT(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, string stationId, bool isSuccess, List<string> failedTargets)
         {
             var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.SendPreRecordMessage)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
@@ -91,7 +217,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             ///組成 CMFT要的訊息內容
             var MSG = new ASI.Wanda.CMFT.Message.Message(CMFT.Message.Message.eMessageType.Response, CMFTServerMessage.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(res_SendPreRecordMessage));
             sendAction?.Invoke(API, MSG);
-            ASI.Lib.Log.DebugLog.Log("ResponPreRecord", MSG.JsonContent); 
+            ASI.Lib.Log.DebugLog.Log("ResponPreRecord", MSG.JsonContent);
         }
         ///收到DCU回傳的資料後 傳給CMFT  
         public void sendResponInstantMSGToCMFT(ASI.Wanda.CMFT.Message.Message CMFTServerMessage, string stationId, bool isSuccess, List<string> failedTargets)
@@ -99,21 +225,21 @@ namespace ASI.Wanda.DMD.TaskCMFT
             var oJsonObject = (ASI.Wanda.CMFT.JsonObject.DMD.FromCMFT.Res_SendInstantMessage)ASI.Wanda.CMFT.Message.Helper.GetJsonObject(CMFTServerMessage.JsonContent);
             var res_SendInstantMessage = new ASI.Wanda.CMFT.JsonObject.DMD.FromDMD.Res_SendInstantMessage(ASI.Wanda.CMFT.Enum.COMDevice.OCC_DMD_server);
             res_SendInstantMessage.SeatID = oJsonObject.SeatID;
-            res_SendInstantMessage.msg_id = oJsonObject.msg_id; 
-            ///失敗的看板內容 
+            res_SendInstantMessage.msg_id = oJsonObject.msg_id;
+            ///失敗的看板內容   
             res_SendInstantMessage.station_id = stationId;
-            res_SendInstantMessage.is_success = isSuccess; 
+            res_SendInstantMessage.is_success = isSuccess;
             res_SendInstantMessage.failed_target = isSuccess ? null : failedTargets;
             ///組成 CMFT要的訊息內容 並依造需求 發送出去   
             var MSG = new ASI.Wanda.CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Response, CMFTServerMessage.MessageID, Lib.Text.Parsing.Json.SerializeObject(res_SendInstantMessage));
-            
             sendAction?.Invoke(API, MSG);
             ASI.Lib.Log.DebugLog.Log("ResponInstant", MSG.JsonContent);
         }
+        #endregion
 
         #region 資料庫的操作
         /// <summary>
-        /// 更新dmd_playlist的資料庫 
+        /// 更新dmd_playlist的資料庫  
         /// </summary>  
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList> UpdateDMDPlayList()
         {
@@ -123,7 +249,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 var tempList = CMFT.DB.Tables.DMD.dmdPlayList.SelectAll();
                 ///轉換過程 
                 var convertedList = tempList
-                    .Select(item => new DB.Models.dmd_playlist
+                    .Select(item => new DB.Models.dmd_playlist 
                     {
                         playlist_id = item.playlist_id,
                         station_id = item.station_id,
@@ -134,15 +260,15 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         ins_time = item.ins_time,
                         ins_user = item.ins_user,
                         send_time = item.send_time,
-                        upd_time = item.upd_time, 
-                        upd_user = item.upd_user, 
+                        upd_time = item.upd_time,
+                        upd_user = item.upd_user,
                     })
                     .ToList();
                 ///刪除原本的資料
                 convertedList.ForEach(item =>
                 {
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(
-                        item.station_id,item.area_id,item.device_id);
+                        item.station_id, item.area_id, item.device_id);
                 });
 
                 ///遍歷轉換後的列表，進行更新操作
@@ -154,8 +280,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         item.station_id,
                         item.area_id,
                         item.device_id,
-                        item.message_id, 
-                        item.message_type, 
+                        item.message_id,
+                        item.message_type,
                         item.send_time
                     );
                 }
@@ -169,7 +295,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList>();
             }
 
-        }   
+        }
         /// <summary>
         /// 更新DMDPreRecordMessage資料表  
         /// </summary>
@@ -179,15 +305,15 @@ namespace ASI.Wanda.DMD.TaskCMFT
             try
             {
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdPreRecordMessage.SelectAll();
-                ///轉換過程  
+                ///轉換過程   
                 var convertedList = tempList
                     .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_pre_record_message
                     {
-                        message_id = item.message_id, 
+                        message_id = item.message_id,
                         message_name = item.message_name,
-                        message_type = item.message_type, 
+                        message_type = item.message_type,
                         message_priority = item.message_priority,
-                        move_mode = item.move_mode, 
+                        move_mode = item.move_mode,
                         move_speed = item.move_speed,
                         Interval = item.Interval,
                         message_content = item.message_content,
@@ -203,13 +329,13 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_user = item.upd_user,
                         upd_time = item.upd_time,
                     })
-                    .ToList(); 
+                    .ToList();
                 convertedList.ForEach(item =>
                 {
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage.DeletePreRecordMessage(
-                       item.message_id 
+                       item.message_id
                     );
-                }); 
+                });
                 ///遍歷轉換後的列表，進行更新操作
                 foreach (var item in convertedList)
                 {
@@ -233,18 +359,90 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
-                return convertedList.Cast<DMD.DB.Tables.DMD.dmdPreRecordMessage>(); 
+                return convertedList.Cast<DMD.DB.Tables.DMD.dmdPreRecordMessage>();
             }
-            catch (Exception updateException) 
+            catch (Exception updateException)
             {
                 ///記錄例外狀況 
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdPreRecordMessage", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage>();
-            }  
+            }
         }
+
         /// <summary>
-        /// 從CMFT更新Config的表 拿到相對色碼顏色 
+        /// 更新DMDPreRecordMessage資料表   
         /// </summary>
+        /// <returns></returns> 
+        public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage> UpdataDMDInstantMessage()
+        {
+            try
+            {
+                var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdInstantMessage.SelectAll();
+                ///轉換過程  
+                var convertedList = tempList
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_instant_message 
+                    {
+                        message_id = item.message_id,
+                        message_type = item.message_type,
+                        message_priority = item.message_priority,
+                        move_mode = item.move_mode,
+                        move_speed = item.move_speed,
+                        Interval = item.Interval,
+                        message_content = item.message_content,
+                        font_type = item.font_type,
+                        font_size = item.font_size,
+                        font_color = item.font_color,
+                        message_content_en = item.message_content_en,
+                        font_type_en = item.font_type_en,
+                        font_size_en = item.font_size_en,
+                        font_color_en = item.font_color_en,
+                        ins_user = item.ins_user,
+                        ins_time = item.ins_time,
+                        upd_user = item.upd_user,
+                        upd_time = item.upd_time,
+                    })
+                    .ToList();
+                convertedList.ForEach(item =>
+                {
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.DeleteInstantMessages(
+                       item.message_id
+                    );
+                });
+                ///遍歷轉換後的列表，進行更新操作
+                foreach (var item in convertedList)
+                {
+                    ///MSGtype  0 =預錄  1= 及時 
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.InsertInstantMessages(
+                        item.message_id,
+                        item.message_type,
+                        item.message_priority,
+                        item.move_mode,
+                        item.move_speed,
+                        item.Interval,
+                        item.message_content,
+                        item.font_type,
+                        item.font_size,
+                        item.font_color,
+                        item.message_content_en,
+                        item.font_type_en,
+                        item.font_size_en,
+                        item.font_color_en
+                    );
+                }
+
+                return convertedList.Cast<DMD.DB.Tables.DMD.dmdInstantMessage>();
+            }
+            catch (Exception updateException)
+            {
+                ///記錄例外狀況 
+                ASI.Lib.Log.ErrorLog.Log("Error updating dmdInstantMessage", updateException);
+                return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage>();
+            }
+        }
+
+        /// <summary>
+        /// 從CMFT更新Config的表 拿到相對色碼顏色  
+        /// </summary> 
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.System.sysConfig> UpdataConfig()
         {
             try
@@ -255,40 +453,40 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     .Select(item => new ASI.Wanda.DMD.DB.Models.System.sys_config
                     {
                         config_name = item.config_name,
-                        config_value = item.config_value, 
-                        config_description = item.config_description, 
+                        config_value = item.config_value,
+                        config_description = item.config_description,
                         remark = item.remark,
                         system_id = item.system_id,
-                        ins_user = item.ins_user,  
+                        ins_user = item.ins_user,
                         ins_time = item.ins_time,
                         upd_user = item.upd_user,
                         upd_time = item.upd_time,
-                    })  
+                    })
                     .ToList();
-                ///遍歷轉換後的列表，進行更新操作 
+                ///遍歷轉換後的列表，進行更新操作  
                 foreach (var item in convertedList)
-                {   
-                    DB.Tables.System.sysConfig.UpdataSystemConfig(  
-                       item.config_name, 
-                       item.config_value, 
-                       item.config_description ,
+                {
+                    DB.Tables.System.sysConfig.UpdataSystemConfig(
+                       item.config_name,
+                       item.config_value,
+                       item.config_description,
                        item.system_id,
-                       item.remark 
+                       item.remark
                     );
                 }
-                
-                return convertedList.Cast<DMD.DB.Tables.System.sysConfig>(); 
+
+                return convertedList.Cast<DMD.DB.Tables.System.sysConfig>();
             }
-            catch (Exception updateException) 
+            catch (Exception updateException)
             {
-                ///記錄例外狀況 
+                ///記錄例外狀況   
                 ASI.Lib.Log.ErrorLog.Log("Error updating sysConfig", updateException);
                 return Enumerable.Empty<DB.Tables.System.sysConfig>();
             }
         }
 
         /// <summary>
-        /// 更新dmd_schedule資料表  
+        /// 更新dmd_schedule資料表   
         /// </summary>
         /// <returns></returns>    
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule> UpSchedule()
@@ -296,15 +494,15 @@ namespace ASI.Wanda.DMD.TaskCMFT
             try
             {
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdSchedule.SelectAll();
-                ///轉換過程  
+                ///轉換過程   
                 var convertedList = tempList
                     .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_schedule
                     {
-                        schedule_id= item.schedule_id,
-                        schedule_name= item.schedule_name,
+                        schedule_id = item.schedule_id,
+                        schedule_name = item.schedule_name,
                         is_enable = item.is_enable,
-                        start_date= item.start_date,
-                        end_date= item.end_date,
+                        start_date = item.start_date,
+                        end_date = item.end_date,
                         ins_user = item.ins_user,
                         ins_time = item.ins_time,
                         upd_user = item.upd_user,
@@ -317,7 +515,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                        item.schedule_id
                     );
                 });
-                ///遍歷轉換後的列表，進行更新操作
+                ///遍歷轉換後的列表，進行更新操作 
                 foreach (var item in convertedList)
                 {
                     ///MSGtype  0 =預錄  1= 及時 
@@ -339,7 +537,10 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule>();
             }
         }
-
+        /// <summary>
+        /// 更新訊息排程表
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList> UpDMDSchedulePlaylist()
         {
             try
@@ -366,10 +567,10 @@ namespace ASI.Wanda.DMD.TaskCMFT
                        item.schedule_id
                     );
                 });
-                ///遍歷轉換後的列表，進行更新操作
+                ///遍歷轉換後的列表，進行更新操作 
                 foreach (var item in convertedList)
                 {
-                    ///MSGtype  0 =預錄  1= 及時 
+                    ///MSGtype  0 =預錄  1= 及時  
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.InsertSchedulePlayListItem(
                        item.schedule_id,
                        item.message_id,
@@ -387,6 +588,10 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList>();
             }
         }
+        /// <summary>
+        /// 更新節能設定表
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting> UpDateDMDPowerSetting()
         {
             try
@@ -394,25 +599,24 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdPowerSetting.SelectAll();
                 ///轉換過程  
                 var convertedList = tempList
-                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_power_setting
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_power_setting  
                     {
-                        station_id = item.station_id,
+                        station_id = item.station_id,  
                         eco_mode = item.eco_mode,
                         eco_time = item.eco_time,
                         not_eco_day = item.not_eco_day,
                         auto_play_time = item.auto_play_time,
-                        auto_eco_time= item.auto_eco_time,
+                        auto_eco_time = item.auto_eco_time,
                         ins_user = item.ins_user,
                         ins_time = item.ins_time,
                         upd_user = item.upd_user,
                         upd_time = item.upd_time,
                     })
                     .ToList();
-               
                 ///遍歷轉換後的列表，進行更新操作
                 foreach (var item in convertedList)
                 {
-                    ///MSGtype  0 =預錄  1= 及時 
+                    ///MSGtype  0 =預錄  1= 及時  
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting.UpdatePowerSetting(
                        item.station_id,
                        item.eco_mode,
@@ -432,9 +636,115 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting>();
             }
         }
+        /// <summary>
+        /// 更新列車訊息表
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdTrainMessage> UpDateDMDTrainMessage()
+        {
+            try
+            {
+                var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdTrainMessage.SelectAll();
+                ///轉換過程  
+                var convertedList = tempList
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_train_message
+                    {
+                        message_id = item.message_id,
+                        message_type = item.message_type,
+                        message_subtype = item.message_subtype,
+                        message_priority = item.message_priority,
+                        move_mode = item.move_mode,
+                        move_speed = item.move_speed,
+                        display_times = item.display_times,
+                        countdown_display_Interval = item.countdown_display_Interval,
+                        message_content = item.message_content,
+                        font_type = item.font_type,
+                        font_size = item.font_size,
+                        font_color = item.font_color,
+                        message_content_en = item.message_content_en,
+                        font_type_en = item.font_type_en,
+                        font_size_en = item.font_size_en,
+                        font_color_en = item.font_color_en,
+                        ins_user = item.ins_user,
+                        ins_time = item.ins_time,
+                        upd_user = item.upd_user,
+                        upd_time = item.upd_time,
+                    })
+                    .ToList();
+                ///遍歷轉換後的列表，進行更新操作
+                foreach (var item in convertedList)
+                {
+                    ///MSGtype  0 =預錄  1= 及時  
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdTrainMessage.UpdateTrainMessages(
+                       item.message_id,
+                       item.message_type,
+                       item.message_subtype,
+                       item.message_priority,
+                       item.move_mode,
+                       item.move_speed,
+                       item.display_times,
+                       item.countdown_display_Interval,
+                       item.message_content,
+                       item.font_type,
+                       item.font_size,
+                       item.font_color,
+                       item.message_content_en,
+                       item.font_type_en,
+                       item.font_size_en,
+                       item.font_color_en
+                    );
+                }
 
+                return convertedList.Cast<DMD.DB.Tables.DMD.dmdTrainMessage>();
+            }
+            catch (Exception updateException)
+            {
+                ///記錄例外狀況  
+                ASI.Lib.Log.ErrorLog.Log("Error updating DMDTrainMessage", updateException);
+                return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdTrainMessage>();
+            }
+        }
 
+        public IEnumerable<ASI.Wanda.DMD.DB.Tables.DMD.dmdGroupTarget> UpDateDMDGroupTarget()
+        {
+            try
+            {
+                var tempList = ASI.Wanda.CMFT.DB.Tables.DMD.dmdGroupTarget.SelectAll();
+                ///轉換過程  
+                var convertedList = tempList
+                    .Select(item => new ASI.Wanda.DMD.DB.Models.dmd_group_target
+                    {
+                        group_id = item.group_id,
+                        station_id = item.station_id,
+                        area_id = item.area_id,
+                        device_id = item.device_id,
+                        ins_user = item.ins_user,
+                        ins_time = item.ins_time,
+                        upd_user = item.upd_user,
+                        upd_time = item.upd_time,
+                    })
+                    .ToList();
+                ///遍歷轉換後的列表，進行更新操作
+                foreach (var item in convertedList)
+                {
+                    ///MSGtype  0 =預錄  1= 及時  
+                    ASI.Wanda.DMD.DB.Tables.DMD.dmdGroupTarget.InsertGroupTarget(
+                       item.group_id,
+                       item.station_id,
+                       item.area_id,
+                       item.device_id
+                    );
+                }
 
+                return convertedList.Cast<DMD.DB.Tables.DMD.dmdGroupTarget>();
+            }
+            catch (Exception updateException)
+            {
+                ///記錄例外狀況  
+                ASI.Lib.Log.ErrorLog.Log("Error updating dmdGroupTarget", updateException);
+                return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdGroupTarget>();
+            }
+        }
         #endregion
     }
 }

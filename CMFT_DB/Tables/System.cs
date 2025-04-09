@@ -21,77 +21,6 @@ namespace ASI.Wanda.CMFT.DB.Tables.System
             return SelectWhere($"where equip_id = '{equipID}' and alarm_list_id = '{alarmListID}'", Table<sys_alarm>.eSortWay.Desc).FirstOrDefault();
         }
 
-        /// <summary>
-        /// 出現異常 高(1) 未確認
-        /// 出現異常 中(2) 未確認
-        /// 出現異常 低(3) 未確認
-        /// 出現異常 高(1) 已確認
-        /// 出現異常 中(2) 已確認
-        /// 出現異常 低(3) 已確認
-        /// 異常回復 高(1) 未確認 select 
-        /// 異常回復 中(2) 未確認 select 
-        /// 異常回復 低(3) 未確認 select 
-        /// 異常回復 高(1) 已確認 select
-        /// 異常回復 中(2) 已確認 select
-        /// 異常回復 低(3) 已確認 select
-        /// </summary>
-        /// <returns></returns>
-        public static List<ASI.Wanda.CMFT.DB.Models.System.sys_alarm> SelectUnReleaseedAlarms()
-        {
-            var temp = SelectAll().Where(x => string.IsNullOrEmpty(x.release_time) == true).ToList();
-            return temp;
-        }
-        /// <summary>
-        /// 出現異常 高(1) 未確認 select
-        /// 出現異常 中(2) 未確認 select 
-        /// 出現異常 低(3) 未確認 select 
-        /// 出現異常 高(1) 已確認 select 
-        /// 出現異常 中(2) 已確認 select 
-        /// 出現異常 低(3) 已確認 select 
-        /// 異常回復 高(1) 未確認 select 
-        /// 異常回復 中(2) 未確認 select 
-        /// 異常回復 低(3) 未確認 select 
-        /// 異常回復 高(1) 已確認 
-        /// 異常回復 中(2) 已確認 
-        /// 異常回復 低(3) 已確認 
-        /// </summary>
-        /// <returns></returns>
-        public static List<ASI.Wanda.CMFT.DB.Models.System.sys_alarm> SelectDisplayAlarm()
-        {
-            string whereString = string.Format("where (release_time = '{0}' and check_time = '{1}') or (release_time = '{2}') or (check_time = '{3}')"
-                , string.Empty
-                , string.Empty
-                , string.Empty
-                , string.Empty);
-
-            var temp = SelectWhere(whereString);
-
-            return temp;
-        }
-
-        /// <summary>
-        /// 出現異常 高(1) 未確認
-        /// 出現異常 中(2) 未確認 
-        /// 出現異常 低(3) 未確認 
-        /// 出現異常 高(1) 已確認 
-        /// 出現異常 中(2) 已確認 
-        /// 出現異常 低(3) 已確認  
-        /// 異常回復 高(1) 未確認 
-        /// 異常回復 中(2) 未確認 
-        /// 異常回復 低(3) 未確認 
-        /// 異常回復 高(1) 已確認 select 
-        /// 異常回復 中(2) 已確認 select 
-        /// 異常回復 低(3) 已確認 select 
-        /// </summary>
-        /// <returns></returns>
-        public static List<ASI.Wanda.CMFT.DB.Models.System.sys_alarm> SelectHistoryAlarm()
-        {
-            var temp = SelectAll()
-                .Where(x => string.IsNullOrEmpty(x.release_time) == false && string.IsNullOrEmpty(x.check_account_id) == false)
-                .ToList();
-
-            return temp;
-        }
         public static int InsertSystemAlarm(string alarmTime, string releaseTime, string checkTime, string checkAccountID, string checkAccountName, string equipID, string alarmListID)
         {
             return Insert(Guid.NewGuid().ToString(), alarmTime, releaseTime, checkTime, checkAccountID, checkAccountName, equipID, alarmListID);
@@ -155,6 +84,7 @@ namespace ASI.Wanda.CMFT.DB.Tables.System
         {
             return DeleteWhere($"where equip_id = '{equipID}' and alarm_list_id = '{alarmListID}'");
         }
+
         #endregion
     }
 
@@ -174,12 +104,7 @@ namespace ASI.Wanda.CMFT.DB.Tables.System
 
             return oSysAlarmList;
         }
-        public static int UpdateEnable(string alarmListID, bool isEnable)
-        {
-            Dictionary<string, object> columnValues = new Dictionary<string, object>();
-            columnValues.Add("is_enable", isEnable);
-            return UpdateWhere(columnValues, $"where alarm_list_id = '{alarmListID}' ");
-        }
+
         #endregion
     }
 
@@ -190,7 +115,6 @@ namespace ASI.Wanda.CMFT.DB.Tables.System
         {
             Update(configName, configValue, configDescription);
         }
-     
         #endregion
     }
 
@@ -283,11 +207,15 @@ namespace ASI.Wanda.CMFT.DB.Tables.System
                 .ToList();
             return regionSubSystemList;
         }
+
+
+
         public static List<sys_equip_status> GetOverviewEquipErrorList(string regionID)
         {
             string whereString = string.Format("where region_id = '{0}' and equip_status = 'false' and is_overview ='true' ", regionID);
             return SelectWhere(whereString);
         }
+
         public static List<sys_equip_status> GetOverviewEquipErrorList()
         {
             string whereString = string.Format("where equip_status = 'false' and is_overview ='true' ");

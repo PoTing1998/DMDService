@@ -96,7 +96,7 @@ namespace ASI.Wanda.DMD.DB.Tables.DMD
                    stationID
                  , deviceID
                  , messageID
-                 , new DateTime());
+                 , new DateTime()); 
         }   
         static public void InsertPlayingItem(Guid playlist_id, string stationID,string area_id, string deviceID, Guid messageID,int message_type , string send_time )
         {
@@ -110,12 +110,16 @@ namespace ASI.Wanda.DMD.DB.Tables.DMD
                  , send_time
                  );
         }
-
-
-
-        static public void UpdatePlayingItem()
+        /// <summary>
+        /// 更新dmdPlayList的資料表
+        /// </summary>
+        /// <param name="stationID"></param>
+        /// <param name="area_id"></param>
+        /// <param name="deviceID"></param>
+        static public void UpdatePlayingItem(string stationID, string area_id, string deviceID)
         {
-
+            string whereString = string.Format("where station_id = '{0}' AND area_id = '{1}' AND  device_id = '{2}' ", stationID, area_id, deviceID);
+            Update(whereString);
         }
         static public void DeletePlayingItem(string stationID, string area_id, string deviceID)
         {
@@ -173,7 +177,7 @@ namespace ASI.Wanda.DMD.DB.Tables.DMD
         #region Methods
         static public dmd_schedule SelectSchedule(Guid scheduleID)
         {
-            return Select(scheduleID);
+            return Select(scheduleID); 
         }
         static public void InsertSchedule(Guid scheduleID, string scheduleName, bool isEnable, DateTime startDate, DateTime endDate)
         {
@@ -195,13 +199,13 @@ namespace ASI.Wanda.DMD.DB.Tables.DMD
                     , endDate
                     );
         }
-        static public void DeleteSchedule(Guid scheduleID)
+        static public void DeleteSchedule(Guid scheduleID) 
         {
-            Delete(scheduleID);
+            Delete(scheduleID); 
         }
         #endregion
     }
-    public class dmdSchedulePlayList : ASI.Wanda.DMD.DB.Tables.Table<dmd_schedule_playlist>
+    public class dmdSchedulePlayList : ASI.Wanda.DMD.DB.Tables.Table<dmd_schedule_playlist> 
     {
         #region Methods
         static public void InsertSchedulePlayListItem(Guid scheduleID, Guid messageID, string stationID, string deviceID)
@@ -237,14 +241,14 @@ namespace ASI.Wanda.DMD.DB.Tables.DMD
             
             Update(   
                 equip.station_id
-              , equip.area_id
+              , equip.area_id 
               , equip.device_id 
-              , equip.device_name 
+              , equip.device_name  
               , status
               , equip.remark
               );
         }
-        #endregion
+        #endregion  
     }
     public class dmdTrainMessage : ASI.Wanda.DMD.DB.Tables.Table<dmd_train_message>
     {

@@ -23,10 +23,6 @@ namespace ASI.Wanda.DMD
         {
             this.OnStart(args);
         }
-        public void Stop()
-        {
-            this.OnStop();
-        }
         protected override void OnStart(string[] args)
         {
             // TODO: 在此加入啟動服務的程式碼。

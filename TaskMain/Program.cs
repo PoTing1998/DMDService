@@ -10,8 +10,6 @@ namespace ASI.Wanda.DMD.TaskMain
 	{
 		static void Main(string[] args)
 		{
-			//if (Environment.UserInteractive)
-			//{
 				string qname = "TaskMain";
 				if (args.Length == 1) qname = args[0];
 
@@ -21,7 +19,7 @@ namespace ASI.Wanda.DMD.TaskMain
 					TheProc.Run();
 				}
 				TheProc.StopTask();
-			//}
+	
 		}
 	}
 }

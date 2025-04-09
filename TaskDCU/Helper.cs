@@ -229,7 +229,6 @@ namespace ASI.Wanda.DMD.TaskDCU
                           ASI.Wanda.DMD.Message.Message.eMessageType.Command,
                           CMFTServerMessage.MessageID,
                           ASI.Lib.Text.Parsing.Json.SerializeObject(sendPowerTimeSetting));
-
             // 紀錄將傳送的節能模式設定內容到日誌中 
             ASI.Lib.Log.DebugLog.Log("SendPowerTimeSettingToDCU", MSG.JsonContent);
 
@@ -273,7 +272,6 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 傳回已建立的訊息物件
             return MSG;
         }
-
         /// <summary>
         /// 將群組設定傳送給 DCU 伺服器 
         /// </summary>

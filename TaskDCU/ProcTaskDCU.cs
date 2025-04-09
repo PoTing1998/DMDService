@@ -315,6 +315,9 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Lib.Log.DebugLog.Log("電力設定 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendParameterSetting:  //參數設定 
+                            message = Helper.SendParameterSetting(mSGFromTaskCMFT);
+                            result = mDMD_API.Send((Message.Message)message);
+                            ASI.Lib.Log.DebugLog.Log("電力設定 傳送結果", result.ToString());
                             break;
                         default:
                             break;

@@ -176,14 +176,13 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         mCMFT_API.Send(MSG);
                         break;
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Command:
-                        HandleCommandMessage(CMFTServerMessage, sByteArray, sJsonObjectName, iMsgID, sJsonData, CMFTHelper); //處理 訊息
+                        HandleCommandMessage(CMFTServerMessage, sByteArray, sJsonObjectName, iMsgID, sJsonData, CMFTHelper); //處理訊息
                         var Rs_Ack = HandleAckMessage(CMFTServerMessage); // 回復ACK
                         mCMFT_API.Send(Rs_Ack);
                         break;
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Response:
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從CMFT來的訊息不應有Response，MessageType:{CMFTServerMessage.MessageType}");
                         break;
-
                     default: 
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"無此種訊息類別:[{CMFTServerMessage.MessageType}]");
                         break;

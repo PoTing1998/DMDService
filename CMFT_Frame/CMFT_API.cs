@@ -103,7 +103,7 @@ namespace ASI.Wanda.CMFT
 
                 if (mThread != null)
                 {
-                    //若為重新初始化，先停止原有執行緒
+                    //若為重新初始化，先停止原有執行緒   
                     mThreadRun = false;
                     System.Threading.Thread.Sleep(100);
                     mThread.Abort();

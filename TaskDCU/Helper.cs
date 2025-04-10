@@ -79,7 +79,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         public object SendInstantMSGToDCU(MSGFromTaskCMFT DMDServerMessage)
         {
             // 取得 DMDServerMessage 中的 JSON 資料
-            string sJsonData = DMDServerMessage.JsonData;
+            var sJsonData = DMDServerMessage.JsonData;
 
             // 將 JSON 資料反序列化成 DCU 訊息物件
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendInstantMessage)
@@ -149,7 +149,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         public object SendPreRecordMessageSetting(MSGFromTaskCMFT DMDServerMessage)
         {
             //收到DMD SERVER內部的訊息 
-            string sJsonData = DMDServerMessage.JsonData;
+            var sJsonData = DMDServerMessage.JsonData;
             var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PreRecordMessageSetting)
                               ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
 
@@ -236,7 +236,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 傳回已建立的訊息物件   
             return MSG;
         }
-
+        
         /// <summary>
         /// 將群組設定傳送給 DCU 伺服器
         /// </summary>
@@ -267,7 +267,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                           CMFTServerMessage.MessageID,
                           ASI.Lib.Text.Parsing.Json.SerializeObject(SendGroupSetting));
 
-            // 紀錄將傳送的排程設定內容到日誌中 
+            // 紀錄將傳送的排程設定內容到日誌中  
             ASI.Lib.Log.DebugLog.Log("SendGroupSettingToDCU", MSG.JsonContent);
 
             // 傳回已建立的訊息物件

@@ -114,9 +114,54 @@ namespace OCS.Modbus
         #endregion
 
         #region Methods
+
+
+        public bool TryConnectAndReadData(OCSData data)
+        {
+            int attempt = 0;
+
+            while (attempt < data.ConnectionTries)
+            {
+                try
+                {
+                    using (TcpClient client = new TcpClient())
+                    {
+                        var result = client.BeginConnect(data.ClientIP, data.Port, null, null);
+                        bool success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(data.TransactionTimeout));
+
+                        if (!success)
+                            throw new TimeoutException("Modbus connection timed out.");
+
+                        client.EndConnect(result); // complete connection 
+
+                        // 建立 Modbus master
+                        var factory = new ModbusFactory();
+                        var master = factory.CreateMaster(client);
+                        data.Master = master;
+
+                        // 讀取資料
+                        data.RegisterBuffer = master.ReadHoldingRegisters(data.SlaveAddress, 0, data.NumberOfPoints);
+
+                        ASI.Lib.Log.DebugLog.Log("OCS_Connection", $"Successfully connected and read data from {data.ClientIP} on attempt {attempt + 1}.");
+                        return true; // 成功
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ASI.Lib.Log.DebugLog.Log("OCS_Error", $"Connection attempt {attempt + 1} failed: {ex.Message}");
+                    System.Threading.Thread.Sleep(data.WaitToRetryMilliseconds); // 等待後重試
+                    attempt++;
+                }
+            }
+
+            ASI.Lib.Log.DebugLog.Log("OCS_Error", $"Failed to connect to {data.ClientIP} after {data.ConnectionTries} attempts.");
+            return false; // 全部嘗試失敗
+        }
+
+
         private byte[] Process(ushort[] registerBuffer)
         {
-            var memoryStream = new MemoryStream();
+            var memoryStream = new MemoryStream(); 
             try
             {
                 var binaryWriter = new BinaryWriter(memoryStream);
@@ -147,77 +192,6 @@ namespace OCS.Modbus
             }
             return memoryStream.ToArray();
 
-        }
-
-        private void AssignFromByteArray(byte[] byteArray)
-        {
-            using (MemoryStream stream = new MemoryStream(byteArray))
-            using (BinaryReader reader = new BinaryReader(stream))
-            {
-                NumberOfPlatforms = reader.ReadInt16();
-                Spare1 = reader.ReadInt16();
-                PlatformID = reader.ReadInt32();
-                PreArrival = reader.ReadInt16();
-                Arrival = reader.ReadInt16();
-                PreDeparture = reader.ReadInt16();
-                Departure = reader.ReadInt16();
-                Skip = reader.ReadInt16();
-                Hold = reader.ReadInt16();
-                NumberOfJourneyData = reader.ReadInt16();
-                Spare2 = reader.ReadInt16();
-                ValidityField1 = reader.ReadInt16();
-                NumberOfCars1 = reader.ReadInt16();
-                TrainUnitID1 = reader.ReadInt32();
-                ServiceNumber1 = reader.ReadInt32();
-                TripNumber1 = reader.ReadInt32();
-                DestinationNumber1 = reader.ReadInt32();
-                ArrivalTime1 = reader.ReadInt64();
-                DepartureTime1 = reader.ReadInt64();
-                DelayAtArrival1 = reader.ReadInt32();
-                DelayAtDeparture1 = reader.ReadInt32();
-                CancelledTrain1 = reader.ReadInt16();
-                NextTrainWillNotStop1 = reader.ReadInt16();
-                TrainEndOfService1 = reader.ReadInt16();
-                TrainWillNotOpenDoor1 = reader.ReadInt16();
-                LastTrainOfTheOperatingDay1 = reader.ReadInt16();
-                TrainNotInService1 = reader.ReadInt16();
-                LineOperationMode1 = reader.ReadInt16();
-                TestTrain1 = reader.ReadInt16();
-                TrainDirection1 = reader.ReadInt16();
-                Spare3 = reader.ReadInt16();
-                ValidityField2 = reader.ReadInt16();
-                NumberOfCars2 = reader.ReadInt16();
-                TrainUnitID2 = reader.ReadInt32();
-                ServiceNumber2 = reader.ReadInt32();
-                TripNumber2 = reader.ReadInt32();
-                DestinationNumber2 = reader.ReadInt32();
-                ArrivalTime2 = reader.ReadInt64();
-                DepartureTime2 = reader.ReadInt64();
-                DelayAtArrival2 = reader.ReadInt32();
-                DelayAtDeparture2 = reader.ReadInt32();
-                CancelledTrain2 = reader.ReadInt16();
-                NextTrainWillNotStop2 = reader.ReadInt16();
-                TrainEndOfService2 = reader.ReadInt16();
-                TrainWillNotOpenDoor2 = reader.ReadInt16();
-                LastTrainOfTheOperatingDay2 = reader.ReadInt16();
-                TrainNotInService2 = reader.ReadInt16();
-                LineOperationMode2 = reader.ReadInt16();
-                TestTrain2 = reader.ReadInt16();
-                TrainDirection2 = reader.ReadInt16();
-                Spare4 = reader.ReadInt16();
-            }
-        }
-
-        private void WriteLog(ushort startAddress, ushort[] ocsData)
-        {
-            string logMessage = $"Current Address {startAddress}:\n";
-            int i = 1;
-            foreach (var data in ocsData)
-            {
-                logMessage += $"Received data {i} (ushort): {data}\n";
-                i++;
-            }
-            ASI.Lib.Log.DebugLog.Log("To_OCS_Data", logMessage);
         }
         /// <summary>
         /// 位元轉移  

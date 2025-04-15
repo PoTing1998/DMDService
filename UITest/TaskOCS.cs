@@ -18,7 +18,6 @@ namespace UITest
     public partial class TaskOCS : UserControl
     {
         #region constructor
-        private static IConfiguration _config;
         private static ModbusFactory modbusFactory;
         private static IModbusMaster master;
         private static ushort[] registerBuffer;
@@ -29,13 +28,10 @@ namespace UITest
         private static int transactionTimeout;
         private static int connectionTries;
         private static int waitToRetryMilliseconds;
-
-
-
-
         private const int SpecialValueCheckInterval = 18;
         private const int RegisterAddressIncrement = 100;
         private const int SpecialIndexCheckInterval = 6; // 檢查特殊索引的間隔
+
         #endregion
         public TaskOCS()
         {
@@ -51,99 +47,9 @@ namespace UITest
             connectionTries = 20;
             waitToRetryMilliseconds = 500;
         }
-
-
-        private void clearBT_Click(object sender, EventArgs e)
-        {
-            ReceDataText.Text = String.Empty;
-            ReceDataText2.Text = String.Empty;
-            ReceDataText3.Text = String.Empty;
-        }
         private bool isReadingData = false;
 
-        private void stopButton_Click(object sender, EventArgs e)
-        {
-            if (isReadingData)
-            {
-                isReadingData = true; // 停止執行
-            }
-        }
-
-        /// <summary>
-        /// 初始化 Modbus 連接並依據指定的起始與結束地址進行資料讀取和處理。
-        /// </summary>
-        private void buttonInit_Click(object sender, EventArgs e)
-        {
-            // 設定 Modbus 連接的 IP 地址與端口號
-            client1IP = textBoxConnIP.Text;
-            port = int.Parse(textBoxConnPort.Text);
-
-            // 解析並設定從屬設備的地址
-            slaveAddress = BitConverter.GetBytes(int.Parse(slaveAddressText.Text))[0];
-
-            try
-            {
-                // 初始化 Modbus 工廠及其主站
-                modbusFactory = new ModbusFactory();
-                master = modbusFactory.CreateMaster(new TcpClient(client1IP, port));
-
-                // 設置傳輸層的超時、重試和等待時間
-                master.Transport.ReadTimeout = transactionTimeout;
-                master.Transport.Retries = connectionTries;
-                master.Transport.WaitToRetryMilliseconds = waitToRetryMilliseconds;
-
-                // 解析起始和結束地址
-                ushort startAddress = ushort.Parse(adressText.Text);
-                ushort endAddress = ushort.Parse(adressTextEND.Text);
-
-                const int numIterations = 18; // 設定要讀取的迴圈次數
-
-                // 開始資料讀取迴圈
-                for (int iteration = 0; iteration < numIterations; iteration++)
-                {
-                    List<byte> newByteList = new List<byte>();
-
-                    // 若起始地址超過結束地址，則終止迴圈
-                    if (startAddress > endAddress) break;
-
-                    // 讀取 Modbus 註冊的資料
-                    registerBuffer = master.ReadInputRegisters(slaveAddress, startAddress, (ushort)numberOfPoints);
-
-                    // 根據不同的起始地址範圍選擇不同的 TextBox 顯示資料
-                    switch (startAddress)
-                    {
-                        case ushort address when address > 30000 && address < 30600:
-                            ReceDataText.Text += $"=====目前的 address: {startAddress} ======\n";
-                            Process(registerBuffer, newByteList, ReceDataText);
-                            break;
-                        case ushort address when address > 30600 && address < 31200:
-                            ReceDataText2.Text += $"=====目前的 address: {startAddress} ======\n";
-                            Process(registerBuffer, newByteList, ReceDataText2);
-                            break;
-                        case ushort address when address > 31200 && address < 31800:
-                            ReceDataText3.Text += $"=====目前的 address: {startAddress} ======\n";
-                            Process(registerBuffer, newByteList, ReceDataText3);
-                            break;
-                        default:
-                            // 如果地址不在任何指定範圍內，執行預設處理邏輯
-                            ReceDataText.Text += $"=====目前的 address: {startAddress} (不在範圍內) ======\n";
-                            Process(registerBuffer, newByteList, ReceDataText);
-                            MessageBox.Show("Address 不在範圍內");
-                            break;
-                    }
-
-                    // 每次迴圈結束後將起始地址增加 100，進行下一次讀取
-                    startAddress += 100;
-
-                    // 紀錄接收資料至日誌中
-                    LogReceivedData(newByteList, startAddress);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("錯誤問題: " + ex.Message);
-            }
-        }
+    
 
         /// <summary>
         /// 將接收的資料記錄到日誌檔案中。
@@ -311,6 +217,92 @@ namespace UITest
             ASI.Lib.Log.DebugLog.Log("到達精準時間", $"Arrival Time (Human Readable): {arrivalTime:yyyy-MM-dd HH:mm:ss}");
         }
 
+        private void buttonInit_Click_1(object sender, EventArgs e)
+        {
+            // 設定 Modbus 連接的 IP 地址與端口號
+            client1IP = textBoxConnIP.Text;
+            port = int.Parse(textBoxConnPort.Text);
 
+            // 解析並設定從屬設備的地址
+            slaveAddress = BitConverter.GetBytes(int.Parse(slaveAddressText.Text))[0];
+
+            try
+            {
+                // 初始化 Modbus 工廠及其主站
+                modbusFactory = new ModbusFactory();
+                master = modbusFactory.CreateMaster(new TcpClient(client1IP, port));
+
+                // 設置傳輸層的超時、重試和等待時間
+                master.Transport.ReadTimeout = transactionTimeout;
+                master.Transport.Retries = connectionTries;
+                master.Transport.WaitToRetryMilliseconds = waitToRetryMilliseconds;
+
+                // 解析起始和結束地址
+                ushort startAddress = ushort.Parse(adressText.Text);
+                ushort endAddress = ushort.Parse(adressTextEND.Text);
+
+                const int numIterations = 18; // 設定要讀取的迴圈次數
+
+                // 開始資料讀取迴圈
+                for (int iteration = 0; iteration < numIterations; iteration++)
+                {
+                    List<byte> newByteList = new List<byte>();
+
+                    // 若起始地址超過結束地址，則終止迴圈
+                    if (startAddress > endAddress) break;
+
+                    // 讀取 Modbus 註冊的資料
+                    registerBuffer = master.ReadInputRegisters(slaveAddress, startAddress, (ushort)numberOfPoints);
+
+                    // 根據不同的起始地址範圍選擇不同的 TextBox 顯示資料
+                    switch (startAddress)
+                    {
+                        case ushort address when address > 30000 && address < 30600:
+                            ReceDataText.Text += $"=====目前的 address: {startAddress} ======\n";
+                            Process(registerBuffer, newByteList, ReceDataText);
+                            break;
+                        case ushort address when address > 30600 && address < 31200:
+                            ReceDataText2.Text += $"=====目前的 address: {startAddress} ======\n";
+                            Process(registerBuffer, newByteList, ReceDataText2);
+                            break;
+                        case ushort address when address > 31200 && address < 31800:
+                            ReceDataText3.Text += $"=====目前的 address: {startAddress} ======\n";
+                            Process(registerBuffer, newByteList, ReceDataText3);
+                            break;
+                        default:
+                            // 如果地址不在任何指定範圍內，執行預設處理邏輯
+                            ReceDataText.Text += $"=====目前的 address: {startAddress} (不在範圍內) ======\n";
+                            Process(registerBuffer, newByteList, ReceDataText);
+                            MessageBox.Show("Address 不在範圍內");
+                            break;
+                    }
+
+                    // 每次迴圈結束後將起始地址增加 100，進行下一次讀取
+                    startAddress += 100;
+
+                    // 紀錄接收資料至日誌中
+                    LogReceivedData(newByteList, startAddress);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("錯誤問題: " + ex.Message);
+            }
+        }
+
+        private void stopButton_Click_1(object sender, EventArgs e)
+        {
+            if (isReadingData)
+            {
+                isReadingData = true; // 停止執行
+            }
+        }
+
+        private void clearBT_Click_1(object sender, EventArgs e)
+        {
+            ReceDataText.Text = String.Empty;
+            ReceDataText2.Text = String.Empty;
+            ReceDataText3.Text = String.Empty;
+        }
     }
 }

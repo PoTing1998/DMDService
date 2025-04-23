@@ -8,6 +8,7 @@ using OCS.Modbus;
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -356,6 +357,7 @@ namespace ASI.Wanda.DMD.TaskOCS
         const ushort READ_LENGTH = 38;
         const int STEP = 100;
         const int POLLING_INTERVAL = 10000; // 毫秒
+        const string Name = "測試用的task";
         static void PollDevice()
         {
             while (true)
@@ -368,7 +370,7 @@ namespace ASI.Wanda.DMD.TaskOCS
                         var factory = new ModbusFactory();
                         IModbusMaster master = factory.CreateMaster(tcpClient);
 
-                        Console.WriteLine($"[{ip}] 成功連線，開始批次讀取..."); 
+                        ASI.Lib.Log.DebugLog.Log(Name, $"[{ip}] 成功連線，開始批次讀取...");
 
                         for (ushort baseAddress = START_BASE; baseAddress <= END_BASE; baseAddress += STEP)
                         {
@@ -378,7 +380,7 @@ namespace ASI.Wanda.DMD.TaskOCS
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[{ip}] 連線失敗: {ex.Message}，稍後重試"); 
+                    ASI.Lib.Log.ErrorLog.Log(Name,$"[{ip}] 連線失敗或中斷: {ex.Message}，將於 {POLLING_INTERVAL / 1000} 秒後重試");
                 }
 
                 Thread.Sleep(POLLING_INTERVAL);
@@ -391,14 +393,54 @@ namespace ASI.Wanda.DMD.TaskOCS
             {
                 // Input Registers 是 Function Code 04，對應 ReadInputRegisters
                 ushort[] registers = master.ReadInputRegisters(unitId, address, length);
-                Console.WriteLine($"[{unitId}] 讀取地址 {address}-{address + length - 1} => {string.Join(",", registers)}");
+                ASI.Lib.Log.DebugLog.Log(Name, $"[{unitId}] 讀取地址 {address}-{address + length - 1} => {string.Join(",", registers)}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[{unitId}] 地址 {address} 發生例外: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(Name, $"[{unitId}] 地址 {address} 發生例外: {ex.Message}");
+
+                if (ex is IOException || ex is SocketException)
+                {
+                    ASI.Lib.Log.ErrorLog.Log(Name, $"[{ip}] 偵測到斷線，下一輪將重新連線");
+                }
             }
         }
+        public class SocketDataSender 
+        {
+            private readonly string _serverIp;
+            private readonly int _serverPort;
+            private Socket _socket;
 
+            // 建構子，初始化伺服器 IP 和端口
+            public SocketDataSender(string serverIp, int serverPort)
+            {
+                _serverIp = serverIp;
+                _serverPort = serverPort;
+            }
+
+            // 傳送資料
+            public void Send(ushort address, ushort[] data)
+            {
+                try
+                {
+                    // 如果 socket 尚未建立，則建立一個新的 Socket
+                    if (_socket == null || !_socket.Connected)
+                    {
+                        EstablishConnection();
+                    }
+
+                    // 將資料組合成一個字串或二進制格式（視需求而定）
+                    byte[] dataToSend = PrepareData(address, data);
+
+                    // 傳送資料
+                    _socket.Send(dataToSend);
+                    ASI.Lib.Log.DebugLog.Log($"傳送資料至 {_serverIp}:{_serverPort} 地址 {address}");
+                }
+                catch (Exception ex)
+                {
+                    ASI.Lib.Log.ErrorLog.Log
+        
         #endregion
-    }
-}
+                }
+            }
+#endregion

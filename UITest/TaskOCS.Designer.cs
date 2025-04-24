@@ -130,6 +130,7 @@
             this.stopButton.TabIndex = 34;
             this.stopButton.Text = "stop";
             this.stopButton.UseVisualStyleBackColor = true;
+            this.stopButton.Click += new System.EventHandler(this.stopButton_Click_1);
             // 
             // adressText
             // 
@@ -156,6 +157,7 @@
             this.clearBT.TabIndex = 31;
             this.clearBT.Text = "clear";
             this.clearBT.UseVisualStyleBackColor = true;
+            this.clearBT.Click += new System.EventHandler(this.clearBT_Click_1);
             // 
             // slaveAddressText
             // 
@@ -216,6 +218,7 @@
             this.buttonInit.TabIndex = 23;
             this.buttonInit.Text = "Initial";
             this.buttonInit.UseVisualStyleBackColor = true;
+            this.buttonInit.Click += new System.EventHandler(this.buttonInit_Click_1);
             // 
             // TaskOCS
             // 

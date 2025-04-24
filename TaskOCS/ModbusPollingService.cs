@@ -38,6 +38,8 @@ namespace TaskOCS
             _cts?.Cancel();
         }
 
+        private ushort[] _previousData = null;
+
         private async Task PollingLoop(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
@@ -45,11 +47,24 @@ namespace TaskOCS
                 try
                 {
                     ushort startAddress = 0;
-                    ushort numRegisters = 10;
+                    ushort numRegisters = 38;  // 原本 ContinuousDataRead 是讀取 38 筆
                     byte slaveId = 1;
 
-                    ushort[] registers = _ocsData.Master.ReadHoldingRegisters(slaveId, startAddress, numRegisters);
-                    Console.WriteLine($"讀取結果: {string.Join(", ", registers)}");
+                    ushort[] currentData = _ocsData.Master.ReadHoldingRegisters(slaveId, startAddress, numRegisters);
+
+                    if (_previousData != null)
+                    {
+                        if (!currentData.SequenceEqual(_previousData)) // 或用你原來的 XOR 比對方法
+                        {
+                            ASI.Lib.Log.DebugLog.Log(_procName, $"資料變更: 新資料 = {string.Join(", ", currentData)}");
+                        }
+                    }
+                    else
+                    {
+                        ASI.Lib.Log.DebugLog.Log(_procName, $"首次讀取資料: {string.Join(", ", currentData)}");
+                    }
+
+                    _previousData = currentData;
                 }
                 catch (IOException ioEx)
                 {
@@ -66,6 +81,7 @@ namespace TaskOCS
 
             ASI.Lib.Log.DebugLog.Log(_procName, "Modbus 輪詢已停止。");
         }
+
 
         private void TryReconnect()
         {
@@ -90,6 +106,22 @@ namespace TaskOCS
 
             ASI.Lib.Log.ErrorLog.Log(_procName, "無法重新連線 Modbus slave");
         }
+        public static bool AreArraysEqual<T>(T[] array1, T[] array2) where T : IEquatable<T>
+        {
+            if (array1 == null || array2 == null) return false;
+            if (array1.Length != array2.Length) return false;
+
+            for (int i = 0; i < array1.Length; i++)
+            {
+                if (!array1[i].Equals(array2[i]))
+                    return false;
+            }
+
+            return true;
+        }
+
     }
+
+
 
 }

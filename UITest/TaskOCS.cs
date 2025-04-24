@@ -38,19 +38,14 @@ namespace UITest
             InitializeComponent();
             InitializeATSModbusAPI();
         }
-
         private void InitializeATSModbusAPI()
         {
-
             registerBuffer = new ushort[] { };
             transactionTimeout = 1000;
             connectionTries = 20;
             waitToRetryMilliseconds = 500;
         }
         private bool isReadingData = false;
-
-    
-
         /// <summary>
         /// 將接收的資料記錄到日誌檔案中。
         /// </summary>
@@ -58,164 +53,116 @@ namespace UITest
         /// <param name="currentAddress">當前操作的 Modbus 地址</param>
         private void LogReceivedData(List<byte> byteList, ushort currentAddress)
         {
-            // 建立日誌訊息，包含當前的 Modbus 地址
-            string logMessage = $"目前的 Address {currentAddress}：\n";
+            if (byteList == null || byteList.Count == 0) return;
 
-            int index = 1;
-            foreach (var data in byteList)
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"目前的 Address {currentAddress}：");
+
+            for (int i = 0; i < byteList.Count; i++)
             {
-                logMessage += $"接收第 {index} 個資料: {data}\n";
-                index++;
+                logBuilder.AppendLine($"接收第 {i + 1} 個資料: {byteList[i]}");
             }
 
-            // 將資料寫入日誌中
-            ASI.Lib.Log.DebugLog.Log("OCS", logMessage);
+            ASI.Lib.Log.DebugLog.Log("OCS", logBuilder.ToString());
         }
 
 
 
+
         #region method  
+        // 可重複使用的特殊索引集合
+        private readonly HashSet<int> _specialIndices = new HashSet<int> { 11, 13, 27, 29 };
         /// <summary>
         /// 處理註冊緩衝區的資料，並依據特殊索引進行不同的顯示和資料組合操作。
         /// </summary>
         /// <param name="registerBuffer">包含 ushort 數據的註冊緩衝區</param>
         /// <param name="newByteList">儲存轉換後 byte 數據的列表</param>
         /// <param name="textBox">用於顯示資料的 RichTextBox 控件</param>
-        void Process(ushort[] registerBuffer, List<byte> newByteList, RichTextBox textBox)
+        public void Process(ushort[] registerBuffer, List<byte> newByteList, RichTextBox textBox)
         {
+            if (registerBuffer == null || newByteList == null || textBox == null) return;
+
+            StringBuilder logBuilder = new StringBuilder();
+
             for (int i = 0; i < registerBuffer.Length; i++)
             {
-                // 如果索引為特殊索引，進行特殊資料處理
-                if (IsSpecialIndex(i))
+                if (IsSpecialIndex(i) && i + 1 < registerBuffer.Length)
                 {
-                    ushort firstValue = registerBuffer[i];
-                    ushort secondValue = registerBuffer[i + 1];
+                    ushort high = registerBuffer[i];
+                    ushort low = registerBuffer[i + 1];
 
-                    // 顯示特殊資料組合的值
-                    DisplaySpecialValue(i, firstValue, secondValue, textBox);
+                    // 顯示特殊資料組合值
+                    DisplaySpecialValue(i, high, low, logBuilder);
 
-                    // 將兩個 ushort 組合成 byte 數組並加入到 newByteList 中
-                    byte[] combinedBytes = CombineBytes(firstValue, secondValue);
-                    newByteList.AddRange(combinedBytes);
+                    // 組合為 byte 陣列並儲存
+                    newByteList.AddRange(CombineBytes(high, low));
 
-                    i++; // 跳過下一個索引
+                    i++; // 跳過下一個
                 }
                 else
                 {
-                    // 將單個 ushort 轉換為 byte 數組
-                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]);
-                    newByteList.AddRange(ushortBytes);
+                    ushort value = registerBuffer[i];
+                    byte[] ushortBytes = BitConverter.GetBytes(value);
 
-                    // 顯示單個 ushort 的值
-                    DisplayUshortValue(i, registerBuffer[i], ushortBytes, textBox);
+                    newByteList.AddRange(ushortBytes);
+                    DisplayUshortValue(i, value, ushortBytes, logBuilder);
                 }
             }
-        }
 
+            // 一次性更新 UI
+            textBox.Text = logBuilder.ToString();
+        }
         /// <summary>
-        /// 顯示普通 ushort 資料的值及其對應的 byte 數據。
+        /// 判斷是否為特殊索引。
         /// </summary>
-        /// <param name="index">當前索引位置</param>
-        /// <param name="value">ushort 值</param>
-        /// <param name="bytes">轉換後的 byte 數組</param>
-        /// <param name="textBox">用於顯示資料的 RichTextBox 控件</param>
-        void DisplayUshortValue(int index, ushort value, byte[] bytes, RichTextBox textBox)
+        private bool IsSpecialIndex(int index)
         {
-            textBox.Text += $"接收第 {index + 1} 個資料: {value}\n";
-            textBox.Text += $"接收第 {index + 1} 個資料(低8位): {bytes[0]}\n";
-            textBox.Text += $"接收第 {index + 1} 個資料(高8位): {bytes[1]}\n";
+            return _specialIndices.Contains(index);
         }
 
         /// <summary>
-        /// 顯示特殊索引對應的兩個 ushort 資料及其組合後的數字。
+        /// 顯示普通 ushort 的資料與 byte 表現形式。
         /// </summary>
-        /// <param name="index">當前索引位置</param>
-        /// <param name="firstValue">第一個 ushort 值</param>
-        /// <param name="secondValue">第二個 ushort 值</param>
-        /// <param name="textBox">用於顯示資料的 RichTextBox 控件</param>
-        void DisplaySpecialValue(int index, ushort firstValue, ushort secondValue, RichTextBox textBox)
+        private void DisplayUshortValue(int index, ushort value, byte[] bytes, StringBuilder builder)
         {
-            int combinedNumber = CombineUshortToInt(firstValue, secondValue);
-            textBox.Text += $"接收第 {index + 1} 個資料: {firstValue}\n";
-            textBox.Text += $"接收第 {index + 2} 個資料: {secondValue}\n";
-            textBox.Text += $"組合後的數字: {combinedNumber}\n";
+            builder.AppendLine($"接收第 {index + 1} 個資料: {value}");
+            builder.AppendLine($"  ↳ 低8位: {bytes[0]}");
+            builder.AppendLine($"  ↳ 高8位: {bytes[1]}");
         }
 
         /// <summary>
-        /// 將兩個 ushort 組合為一個 int 整數值。
-        /// </summary>   
-        /// <param name="highOrder">高位 ushort 數值</param>
-        /// <param name="lowOrder">低位 ushort 數值</param>
-        /// <returns>組合後的整數值</returns>
-        int CombineUshortToInt(ushort highOrder, ushort lowOrder)
-        {
-            // 創建 4 個 byte 的數組來表示 int
-            byte[] bytes = new byte[4];
-            // 將兩個 ushort 數值的高低位分別放入 byte 數組中
-            bytes[3] = (byte)(lowOrder >> 8);
-            bytes[2] = (byte)lowOrder;
-            bytes[1] = (byte)(highOrder >> 8);
-            bytes[0] = (byte)highOrder;
-            // 使用 BitConverter 將 byte 數組轉換為 int
-            return BitConverter.ToInt32(bytes, 0);
-        }
-
-        /// <summary>
-        /// 將兩個 ushort 的高低位組合為 4 個 byte 數組。
+        /// 顯示特殊索引對應的兩個 ushort 組合成 int 的結果。
         /// </summary>
-        /// <param name="highOrder">高位 ushort 數值</param> 
-        /// <param name="lowOrder">低位 ushort 數值</param>
-        /// <returns>組合後的 byte 數組</returns>
-        byte[] CombineBytes(ushort highOrder, ushort lowOrder)
+        private void DisplaySpecialValue(int index, ushort high, ushort low, StringBuilder builder)
         {
-            // 創建 4 個 byte 的數組來表示組合的結果
-            byte[] bytes = new byte[4];
-            // 將兩個 ushort 數值的高低位分別放入 byte 數組中  
-            bytes[3] = (byte)(lowOrder >> 8);
-            bytes[2] = (byte)lowOrder;
-            bytes[1] = (byte)(highOrder >> 8);
-            bytes[0] = (byte)highOrder;
-            return bytes;
+            int combined = CombineUshortToInt(high, low);
+            builder.AppendLine($"接收第 {index + 1} 個資料: {high}");
+            builder.AppendLine($"接收第 {index + 2} 個資料: {low}");
+            builder.AppendLine($"  ↳ 組合後的整數: {combined}");
         }
 
         /// <summary>
-        /// 判斷當前索引是否為特殊索引。 
+        /// 將兩個 ushort 組合為 int 整數。
         /// </summary>
-        /// <param name="index">當前索引</param>
-        /// <returns>若為特殊索引則返回 true，否則返回 false</returns>
-        bool IsSpecialIndex(int index)
+        private int CombineUshortToInt(ushort high, ushort low)
         {
-            // 定義特殊索引集合
-            HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
-            return specialIndices.Contains(index);
+            return (high << 16) | low; // 更簡潔無需 BitConverter
         }
-      
+
+        /// <summary>
+        /// 將兩個 ushort 組合為 4 個 byte 陣列。
+        /// </summary>
+        private byte[] CombineBytes(ushort high, ushort low)
+        {
+            byte[] result = new byte[4];
+            result[0] = (byte)high;
+            result[1] = (byte)(high >> 8);
+            result[2] = (byte)low;
+            result[3] = (byte)(low >> 8);
+            return result;
+        }
+
         #endregion
-
-
-        private static void PoressTime()
-        {
-            // 十進位的值  19111169  十六進位 01 23 9D 01   UNIX = 10/08/2018 04:39:29
-            // 十進位的值  19113989  十六進位 01 23 A8 05   UNIX = 10/08/2018 05:26:29
-            //  ArrivalTime 由四個Byte組成  DepartureTime 也是
-            // 定義各個位元組的值 
-            byte byte1 = 0x01;
-            byte byte2 = 0x9D;
-            byte byte3 = 0x23;
-            byte byte4 = 0x01;
-
-            // 將四個位元組組合成一個 32 位元整數
-            int unixTime = (byte1 << 24) | (byte2 << 16) | (byte3 << 8) | byte4;
-            // 設定基準時間 (假設基準時間是 2018-01-01 00:00:00) 
-            DateTime baseTime = new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-            // 計算對應的日期時間
-            DateTime arrivalTime = baseTime.AddSeconds(unixTime);
-
-            // 顯示結果
-            ASI.Lib.Log.DebugLog.Log("到達時間", $"Arrival Time (UNIX): {unixTime}");
-            ASI.Lib.Log.DebugLog.Log("到達精準時間", $"Arrival Time (Human Readable): {arrivalTime:yyyy-MM-dd HH:mm:ss}");
-        }
 
         private void buttonInit_Click_1(object sender, EventArgs e)
         {

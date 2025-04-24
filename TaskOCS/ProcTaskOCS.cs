@@ -12,6 +12,8 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+
 using TaskOCS;
 
 namespace ASI.Wanda.DMD.TaskOCS
@@ -51,7 +53,7 @@ namespace ASI.Wanda.DMD.TaskOCS
         {
             //定時回報TaskMain
             if (base.ProcTimerEvent(pMessage) <= 0) return -1;
-            
+
             //ping OCS Server
             if (this.mOCSServerConnStr != "")
             {
@@ -125,13 +127,12 @@ namespace ASI.Wanda.DMD.TaskOCS
 
                 // 使用指定的 IP 和埠號創建 Modbus 主站 
                 oCSData.Master = oCSData.ModbusFactory.CreateMaster(new TcpClient(tcpClientIP, tcpClientPort));
-             
+
                 // 設定 Modbus 通訊的讀取逾時時間 
                 oCSData.Master.Transport.ReadTimeout = oCSData.TransactionTimeout;
 
                 // 設定通訊失敗時的重試次數  
                 oCSData.Master.Transport.Retries = oCSData.ConnectionTries;
-
 
                 // 設定重試之間的等待時間（以毫秒為單位） 
                 oCSData.Master.Transport.WaitToRetryMilliseconds = oCSData.WaitToRetryMilliseconds;
@@ -139,8 +140,8 @@ namespace ASI.Wanda.DMD.TaskOCS
                 // 啟動背景執行緒持續讀取 Modbus 資料 
                 Task.Run(() => ContinuousDataRead(oCSData, 1000));
 
-              //  var pollingService = new ModbusPollingService(oCSData, 10000); // 每10秒讀一次
-
+                var pollingService = new ModbusPollingService(oCSData, 10000); // 每10秒讀一次
+                pollingService.Start();
                 return oCSData;
             }
             catch (FormatException ex)
@@ -161,33 +162,6 @@ namespace ASI.Wanda.DMD.TaskOCS
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
                 throw;
             }
-        }
-        /// <summary>
-        /// 重新連線
-        /// </summary>
-        /// <param name="oCSData"></param>
-        private void TryReconnect(OCSData oCSData)
-        {
-            for (int i = 0; i < oCSData.ConnectionTries; i++)
-            {
-                try
-                {
-                    var tcpClient = new TcpClient(oCSData.ClientIP, oCSData.Port);
-                    oCSData.Master = oCSData.ModbusFactory.CreateMaster(tcpClient);
-                    oCSData.Master.Transport.ReadTimeout = oCSData.TransactionTimeout;
-                    oCSData.Master.Transport.Retries = oCSData.ConnectionTries;
-                    oCSData.Master.Transport.WaitToRetryMilliseconds = oCSData.WaitToRetryMilliseconds;
-
-                    ASI.Lib.Log.DebugLog.Log(_mProcName, "重新連線成功");
-                    return;
-                }
-                catch
-                {
-                    Thread.Sleep(oCSData.WaitToRetryMilliseconds);
-                }
-            }
-
-            ASI.Lib.Log.ErrorLog.Log(_mProcName, "無法重新連線 Modbus slave");
         }
         /// <summary>
         /// 初始化資料庫連線
@@ -216,6 +190,8 @@ namespace ASI.Wanda.DMD.TaskOCS
 
         #region Method
 
+  
+
         // 持續讀取資料的邏輯
         private void ContinuousDataRead(OCSData oCSData, int intervalMilliseconds)
         {
@@ -225,12 +201,12 @@ namespace ASI.Wanda.DMD.TaskOCS
                 try
                 {
                     // 從 Modbus 主站讀取資料 (此處以讀取保持暫存器為例)
-                    var currentData = oCSData.Master.ReadHoldingRegisters(1, 0, 38 );
+                    var currentData = oCSData.Master.ReadHoldingRegisters(1, 0, 38);
 
                     // 如果有上一次的資料，進行 XOR 比對 
                     if (previousData != null)
                     {
-                        if (!AreArraysEqualWithXOR(previousData, currentData))
+                        if (!ModbusPollingService.AreArraysEqual(previousData, currentData))
                         {
                             ASI.Lib.Log.DebugLog.Log("ContinuousRead", $"資料變更: 新資料 = {string.Join(", ", currentData)}");
                         }
@@ -239,7 +215,7 @@ namespace ASI.Wanda.DMD.TaskOCS
                     {
                         ASI.Lib.Log.DebugLog.Log("ContinuousRead", $"首次讀取資料: {string.Join(", ", currentData)}");
                     }
-             
+
                     // 更新暫存的資料
                     previousData = currentData;
 
@@ -256,47 +232,34 @@ namespace ASI.Wanda.DMD.TaskOCS
 
         // 使用 XOR 比較兩個 ushort 陣列是否不同 
 
-        private bool AreArraysEqualWithXOR(ushort[] array1, ushort[] array2)
-        {
-            if (array1.Length != array2.Length) return false;
-            for (int i = 0; i < array1.Length; i++)
-            {
-                if ((array1[i] ^ array2[i]) != 0) return false; // XOR 判斷是否有變化
-            }
-            return true;
-        }
-
 
         /// <summary>
         /// 處理註冊緩衝區的資料，並依據特殊索引進行不同的顯示和資料組合操作。
         /// </summary>
         /// <param name="registerBuffer">包含 ushort 數據的註冊緩衝區</param>
         /// <param name="newByteList">儲存轉換後 byte 數據的列表</param>
-        void Process(ushort[] registerBuffer, List<byte> newByteList )
+        void Process(ushort[] registerBuffer, List<byte> newByteList)
         {
+            if (registerBuffer == null || newByteList == null) return;
+
             for (int i = 0; i < registerBuffer.Length; i++)
             {
-                // 如果索引為特殊索引，進行特殊資料處理
-                if (IsSpecialIndex(i))
+                if (IsSpecialIndex(i) && i + 1 < registerBuffer.Length)
                 {
-                    ushort firstValue = registerBuffer[i];
-                    ushort secondValue = registerBuffer[i + 1];
-
-                    // 將兩個 ushort 組合成 byte 數組並加入到 newByteList 中
-                    byte[] combinedBytes = CombineBytes(firstValue, secondValue);
-                    newByteList.AddRange(combinedBytes);
-
-                    i++; // 跳過下一個索引
+                    ushort high = registerBuffer[i];
+                    ushort low = registerBuffer[i + 1];
+                    byte[] combined = BitConverter.GetBytes((high << 16) | low); // 合併成 int，再轉 byte[]
+                    newByteList.AddRange(combined);
+                    i++; // 跳過下一個
                 }
                 else
                 {
-                    // 將單個 ushort 轉換為 byte 數組
-                    byte[] ushortBytes = BitConverter.GetBytes(registerBuffer[i]);
-                    newByteList.AddRange(ushortBytes);
-
+                    byte[] bytes = BitConverter.GetBytes(registerBuffer[i]);
+                    newByteList.AddRange(bytes);
                 }
             }
         }
+
         /// <summary>
         /// 判斷當前索引是否為特殊索引。 
         /// </summary>
@@ -345,102 +308,6 @@ namespace ASI.Wanda.DMD.TaskOCS
             // 使用 BitConverter 將 byte 數組轉換為 int 
             return BitConverter.ToInt32(bytes, 0);
         }
-
-
-        #region 新增測試
-        static readonly string ip = "10.107.26.99";
-        static readonly int port = 502;
-        static readonly byte unitId = 0;
-
-        const ushort START_BASE = 30001;
-        const ushort END_BASE = 31700;
-        const ushort READ_LENGTH = 38;
-        const int STEP = 100;
-        const int POLLING_INTERVAL = 10000; // 毫秒
-        const string Name = "測試用的task";
-        static void PollDevice()
-        {
-            while (true)
-            {
-                try
-                {
-                    using (TcpClient tcpClient = new TcpClient())
-                    {
-                        tcpClient.Connect(ip, port);
-                        var factory = new ModbusFactory();
-                        IModbusMaster master = factory.CreateMaster(tcpClient);
-
-                        ASI.Lib.Log.DebugLog.Log(Name, $"[{ip}] 成功連線，開始批次讀取...");
-
-                        for (ushort baseAddress = START_BASE; baseAddress <= END_BASE; baseAddress += STEP)
-                        {
-                            ReadBlock(master, baseAddress, READ_LENGTH);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    ASI.Lib.Log.ErrorLog.Log(Name,$"[{ip}] 連線失敗或中斷: {ex.Message}，將於 {POLLING_INTERVAL / 1000} 秒後重試");
-                }
-
-                Thread.Sleep(POLLING_INTERVAL);
-
-            }
-        }
-        static void ReadBlock(IModbusMaster master, ushort address, ushort length)
-        {
-            try
-            {
-                // Input Registers 是 Function Code 04，對應 ReadInputRegisters
-                ushort[] registers = master.ReadInputRegisters(unitId, address, length);
-                ASI.Lib.Log.DebugLog.Log(Name, $"[{unitId}] 讀取地址 {address}-{address + length - 1} => {string.Join(",", registers)}");
-            }
-            catch (Exception ex)
-            {
-                ASI.Lib.Log.ErrorLog.Log(Name, $"[{unitId}] 地址 {address} 發生例外: {ex.Message}");
-
-                if (ex is IOException || ex is SocketException)
-                {
-                    ASI.Lib.Log.ErrorLog.Log(Name, $"[{ip}] 偵測到斷線，下一輪將重新連線");
-                }
-            }
-        }
-        public class SocketDataSender 
-        {
-            private readonly string _serverIp;
-            private readonly int _serverPort;
-            private Socket _socket;
-
-            // 建構子，初始化伺服器 IP 和端口
-            public SocketDataSender(string serverIp, int serverPort)
-            {
-                _serverIp = serverIp;
-                _serverPort = serverPort;
-            }
-
-            // 傳送資料
-            public void Send(ushort address, ushort[] data)
-            {
-                try
-                {
-                    // 如果 socket 尚未建立，則建立一個新的 Socket
-                    if (_socket == null || !_socket.Connected)
-                    {
-                        EstablishConnection();
-                    }
-
-                    // 將資料組合成一個字串或二進制格式（視需求而定）
-                    byte[] dataToSend = PrepareData(address, data);
-
-                    // 傳送資料
-                    _socket.Send(dataToSend);
-                    ASI.Lib.Log.DebugLog.Log($"傳送資料至 {_serverIp}:{_serverPort} 地址 {address}");
-                }
-                catch (Exception ex)
-                {
-                    ASI.Lib.Log.ErrorLog.Log
-        
         #endregion
-                }
-            }
-#endregion
+    }
+}

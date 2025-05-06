@@ -35,7 +35,8 @@ namespace ASI.Wanda.DMD.Message
             Ack = 0x01,
             Command = 0x02,
             Response = 0x03,
-            ResponseOver = 0x04
+            ResponseOver = 0x04,
+            trainMessage = 0x05
         }
 
         /// <summary>

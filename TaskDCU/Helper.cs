@@ -339,7 +339,7 @@ namespace ASI.Wanda.DMD.TaskDCU
   
             // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容 
             var Message = new ASI.Wanda.DMD.Message.Message(
-                              ASI.Wanda.DMD.Message.Message.eMessageType.Command,
+                              ASI.Wanda.DMD.Message.Message.eMessageType.trainMessage,
                               DMDServerMessage.MessageID,
                               ASI.Lib.Text.Parsing.Json.SerializeObject(sendOCSMessage));
 

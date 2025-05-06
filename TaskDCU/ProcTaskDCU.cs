@@ -52,6 +52,10 @@ namespace ASI.Wanda.DMD.TaskDCU
 
                 return ProMsgFromCMFT(pBody);
             }
+            else if (pLabel == MSGFromTaskOCS.Label)
+            {
+                return ProMsgFromOCS(pBody);
+            }
             return base.ProcEvent(pLabel, pBody);
         }
         public override int ProcTimerEvent(string pMessage) // handle timer message
@@ -180,7 +184,7 @@ namespace ASI.Wanda.DMD.TaskDCU
 
                         foreach (var Targetdu in oJsonObject.failed_target)
                         {
-                            var station = Targetdu.Split('_')[0]; 
+                            var station = Targetdu.Split('_')[0];
                             if (!stationsDuDictionary.ContainsKey(station))
                             {
                                 stationsDuDictionary[station] = new List<string>();
@@ -207,7 +211,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(deviceInfo.StationID, deviceInfo.AreaID, deviceInfo.DeviceID);
                         }
                         //接下來回傳給Task CMFT 
-                    
+
 
 
                     }
@@ -215,7 +219,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                     {
                         var oJsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendInstantMessage)ASI.Wanda.DMD.Message.Helper.GetJsonObject(DCUServerMessage.JsonContent);
                         //失敗看板
-                        var stationDudictionary = new Dictionary<string, List<string>>(); 
+                        var stationDudictionary = new Dictionary<string, List<string>>();
 
                         foreach (var Targetdu in oJsonObject.failed_target)
                         {
@@ -259,7 +263,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// <summary>
         /// 處理TaskCMFT的訊息  
         /// </summary>
-        private int ProMsgFromCMFT(string pMessage) 
+        private int ProMsgFromCMFT(string pMessage)
         {
             try
             {
@@ -305,7 +309,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                             ASI.Lib.Log.DebugLog.Log("排成設定 傳送結果", result.ToString());
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendTrainMessageSetting: // 列車訊息設定  
-                            message = Helper.SendTrainMessageSetting(mSGFromTaskCMFT); 
+                            message = Helper.SendTrainMessageSetting(mSGFromTaskCMFT);
                             result = mDMD_API.Send((Message.Message)message);
                             ASI.Lib.Log.DebugLog.Log("列車訊息設定 傳送結果", result.ToString());
                             break;
@@ -333,6 +337,35 @@ namespace ASI.Wanda.DMD.TaskDCU
             return -1;
         }
 
+
+
+        private int ProMsgFromOCS(string pMessage)
+        {
+            try
+            {
+                ASI.Wanda.DMD.ProcMsg.MSGFromTaskOCS mSGFromTaskOCS = new ProcMsg.MSGFromTaskOCS(new MSGFrameBase(""));
+
+                if (mSGFromTaskOCS.UnPack(pMessage) > 0)
+                {
+                    string sJsonData = mSGFromTaskOCS.JsonData;
+                    string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskOCS.JsonData, "JsonObjectName");
+                    ASI.Lib.Log.DebugLog.Log(_mProcName + " fromTaskOCS", $"收到來自TaskOCS的訊息，JsonObjectName:{sJsonObjectName}");
+                    var Helper = new DCUHelper();
+                    var message = new object();
+                    int result;
+                    message = Helper.SendOCSMSGMSGToDCU(mSGFromTaskOCS);
+                    result = mDMD_API.Send((Message.Message)message);
+                    ASI.Lib.Log.DebugLog.Log("來自OCS的資料 傳送結果", result.ToString());
+                }
+
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
+            }
+
+            return -1;
+        }
         /// <summary>
         /// 開啟與DCU伺服器的Socket連線
         /// </summary>
@@ -388,7 +421,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                 try
                 {
                     mDMD_API.Dispose();
-                    ASI.Lib.Log.DebugLog.Log(_mProcName, "Existing DMD_API disconnected and disposed."); 
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, "Existing DMD_API disconnected and disposed.");
                 }
                 catch (Exception ex)
                 {

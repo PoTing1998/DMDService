@@ -25,6 +25,7 @@ namespace ASI.Wanda.DMD.TaskOCS
     public class ProcTaskOCS : ProcBase
     {
         public string mOCSServerConnStr = "";
+        private ASI.Wanda.DMD.DMD_API mDMD_API = null;
         #region  Task開啟處理
 
         /// <summary>
@@ -88,7 +89,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             // 初始化 OCS 資料並處理可能的例外狀況  
             try
             {
-                var oCSData = InitializeOCSData();
+                 InitializeOCSData();
             }
             catch (Exception ex)
             {
@@ -96,7 +97,7 @@ namespace ASI.Wanda.DMD.TaskOCS
                 return -1; // 異常狀態回傳 -1 
             }
 
-            // 初始化資料庫連線
+            // 初始化資料庫連線    
             if (!InitializeDatabaseConnection())
             {
                 ErrorLog.Log(_mProcName, $"資料庫連線失敗! {ConfigApp.Instance.GetConfigSetting("DMD_DB_IP")}:" +
@@ -110,7 +111,7 @@ namespace ASI.Wanda.DMD.TaskOCS
         /// 初始化 OCS 資料及 Modbus 設定
         /// </summary>
         /// <returns>回傳初始化後的 OCSData 物件</returns>
-        private OCSData InitializeOCSData()
+        private  OCSData InitializeOCSData()
         {
             try
             {
@@ -164,7 +165,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             }
         }
         /// <summary>
-        /// 初始化資料庫連線
+        /// 初始化資料庫連線 
         /// </summary>
         /// <returns>若連線成功回傳 true，否則回傳 false</returns>
         private bool InitializeDatabaseConnection()
@@ -229,10 +230,6 @@ namespace ASI.Wanda.DMD.TaskOCS
                 }
             }
         }
-
-        // 使用 XOR 比較兩個 ushort 陣列是否不同 
-
-
         /// <summary>
         /// 處理註冊緩衝區的資料，並依據特殊索引進行不同的顯示和資料組合操作。
         /// </summary>
@@ -242,7 +239,7 @@ namespace ASI.Wanda.DMD.TaskOCS
         {
             if (registerBuffer == null || newByteList == null) return;
 
-            for (int i = 0; i < registerBuffer.Length; i++)
+            for (int i = 0; i < registerBuffer.Length; i++) 
             {
                 if (IsSpecialIndex(i) && i + 1 < registerBuffer.Length)
                 {

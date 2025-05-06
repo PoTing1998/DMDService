@@ -103,17 +103,66 @@ namespace OCS.Modbus
         private byte[] _processByteArray;
         #endregion
 
-        #region Constructor
-        public OCSPlatform(ushort startAddress, ushort[] registerBuffer)
-        {
-            _startAddress = startAddress;
-            _registerBuffer = registerBuffer;
-            _platformByteData = new List<byte[]>();
-            _processByteArray = new byte[] { };
-        }
-        #endregion
-
         #region Methods
+
+        public void UpdateFromUShortArray(ushort[] data)
+        {
+            if (data.Length < 78)
+                throw new ArgumentException("資料長度不足");
+
+            int i = 0;
+            NumberOfPlatforms = data[i++];
+            Spare1 = data[i++];
+            PlatformID = data[i++];
+            PreArrival = data[i++];
+            Arrival = data[i++];
+            PreDeparture = data[i++];
+            Departure = data[i++];
+            Skip = data[i++];
+            Hold = data[i++];
+            NumberOfJourneyData = data[i++];
+            Spare2 = data[i++];
+            ValidityField1 = data[i++];
+            NumberOfCars1 = data[i++];
+            TrainUnitID1 = data[i++];
+            ServiceNumber1 = data[i++];
+            TripNumber1 = data[i++];
+            DestinationNumber1 = data[i++];
+            ArrivalTime1 = ((long)data[i++] << 16) | data[i++]; // 若使用 2 個 ushort 合成 long
+            DepartureTime1 = ((long)data[i++] << 16) | data[i++];
+            DelayAtArrival1 = data[i++];
+            DelayAtDeparture1 = data[i++];
+            CancelledTrain1 = data[i++];
+            NextTrainWillNotStop1 = data[i++];
+            TrainEndOfService1 = data[i++];
+            TrainWillNotOpenDoor1 = data[i++];
+            LastTrainOfTheOperatingDay1 = data[i++];
+            TrainNotInService1 = data[i++];
+            LineOperationMode1 = data[i++];
+            TestTrain1 = data[i++];
+            TrainDirection1 = data[i++];
+            Spare3 = data[i++];
+            ValidityField2 = data[i++];
+            NumberOfCars2 = data[i++];
+            TrainUnitID2 = data[i++];
+            ServiceNumber2 = data[i++];
+            TripNumber2 = data[i++];
+            DestinationNumber2 = data[i++];
+            ArrivalTime2 = ((long)data[i++] << 16) | data[i++];
+            DepartureTime2 = ((long)data[i++] << 16) | data[i++];
+            DelayAtArrival2 = data[i++];
+            DelayAtDeparture2 = data[i++];
+            CancelledTrain2 = data[i++];
+            NextTrainWillNotStop2 = data[i++];
+            TrainEndOfService2 = data[i++];
+            TrainWillNotOpenDoor2 = data[i++];
+            LastTrainOfTheOperatingDay2 = data[i++];
+            TrainNotInService2 = data[i++];
+            LineOperationMode2 = data[i++];
+            TestTrain2 = data[i++];
+            TrainDirection2 = data[i++];
+            Spare4 = data[i++];
+        }
 
 
         public bool TryConnectAndReadData(OCSData data)

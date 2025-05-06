@@ -306,6 +306,50 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 傳回已建立的訊息物件 
             return MSG;
         }
+
+
+
+        /// <summary>
+        /// 將預錄訊息傳送給 DCU 伺服器
+        /// </summary>
+        /// <param name="DMDServerMessage">來自 DMD 伺服器的訊息物件</param>
+        /// <returns>傳送給 DCU 伺服器的訊息物件</returns>
+        public object SendOCSMSGMSGToDCU(MSGFromTaskOCS DMDServerMessage)
+        {
+            // 取得 DMDServerMessage 中的 JSON 資料
+            string sJsonData = DMDServerMessage.JsonData;
+
+            // 將 JSON 資料反序列化成預錄訊息物件
+            var oJOFromOCS = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.TrainMSG)
+                              ASI.Wanda.DMD.Message.Helper.GetJsonObject(sJsonData);
+
+            // 組合要傳送給 DCU 的新預錄訊息物件
+            var sendOCSMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.TrainMSG(ASI.Wanda.DMD.Enum.Station.OCC);
+
+            // 將 oJOFromCMFT 中的 seatID, msg_id, target_du 等屬性賦值給新預錄訊息物件 
+            sendOCSMessage.Type = oJOFromOCS.Type;
+            sendOCSMessage.Command = oJOFromOCS.Command;
+            sendOCSMessage.Platform_id = oJOFromOCS.Platform_id;
+            sendOCSMessage.Arrive_time1 = oJOFromOCS.Arrive_time1;
+            sendOCSMessage.Depart_time1 = oJOFromOCS.Depart_time1;
+            sendOCSMessage.Destination1 = oJOFromOCS.Destination1;
+            sendOCSMessage.Arrive_time2 = oJOFromOCS.Arrive_time2;
+            sendOCSMessage.Depart_time2 = oJOFromOCS.Depart_time2;
+            sendOCSMessage.Destination2 = oJOFromOCS.Destination2;
+  
+            // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容 
+            var Message = new ASI.Wanda.DMD.Message.Message(
+                              ASI.Wanda.DMD.Message.Message.eMessageType.Command,
+                              DMDServerMessage.MessageID,
+                              ASI.Lib.Text.Parsing.Json.SerializeObject(sendOCSMessage));
+
+            // 紀錄將傳送的預錄訊息內容到日誌中   
+            ASI.Lib.Log.DebugLog.Log("SendOCSMSGToDCU", Message.JsonContent);
+
+            // 傳回已建立的訊息物件
+            return Message;
+
+        }
         #endregion
 
         ///傳送到內部的Server   

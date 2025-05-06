@@ -48,7 +48,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ByteArrayHandler.cs" />
     <Compile Include="ModbusPollingService.cs" />
     <Compile Include="OCSModbus.cs" />
     <Compile Include="ProcTaskOCS.cs" />

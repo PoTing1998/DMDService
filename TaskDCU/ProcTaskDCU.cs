@@ -347,7 +347,6 @@ namespace ASI.Wanda.DMD.TaskDCU
 
                 if (mSGFromTaskOCS.UnPack(pMessage) > 0)
                 {
-                    string sJsonData = mSGFromTaskOCS.JsonData;
                     string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskOCS.JsonData, "JsonObjectName");
                     ASI.Lib.Log.DebugLog.Log(_mProcName + " fromTaskOCS", $"收到來自TaskOCS的訊息，JsonObjectName:{sJsonObjectName}");
                     var Helper = new DCUHelper();

@@ -22,5 +22,8 @@
   <add key="TcpClientPort" value="502" />
   <add key="slaveAddress" value="0" />
   <add key="numberOfPoints" value="38" />
+  <add key ="PlatformClient1" value ="10.104.26.200" />
+  <add key ="PlatformClient2" value ="10.104.26.210" />
+  <add key ="PlatformClient3" value ="10.104.26.220" />
 
 </configuration>

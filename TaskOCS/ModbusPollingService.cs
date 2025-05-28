@@ -1,5 +1,5 @@
-﻿using ASI.Lib.Process;
-using ASI.Wanda.DMD.JsonObject.DCU.FromDMD;
+﻿using ASI.Wanda.DMD.JsonObject.DCU.FromDMD;
+using NModbus;
 using OCS.Modbus;
 using System;
 using System.Collections.Generic;
@@ -10,266 +10,240 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TaskOCS
+public class OCSClientPoller
 {
-    public class ModbusPollingService
+
+    private readonly string _procName = "OCSClientPoller";
+    private readonly int _pollingIntervalMs = 1000;
+
+    private readonly Dictionary<string, ushort[][]> _previousDataDict = new Dictionary<string, ushort[][]>();
+    private readonly Dictionary<string, OCSPlatform[]> _platformDict = new Dictionary<string, OCSPlatform[]>();
+ 
+    private readonly Action<int, int, string> _sendToTaskDCU;
+
+    private readonly Dictionary<string, ClientModbusConfig> _clients;
+
+    public OCSClientPoller(Dictionary<string, ClientModbusConfig> clients, Action<int, int, string> sendToTaskDCU)
     {
-        private readonly OCSData _ocsData;
-        private CancellationTokenSource _cts;
-        private Task _pollingTask;
-        private readonly int _pollingIntervalMs;
-        private readonly string _procName = "ModbusPollingService";
+        _clients = clients;
+        _sendToTaskDCU = sendToTaskDCU;
+    }
 
-        public ModbusPollingService(OCSData ocsData, int pollingIntervalMs = 10000)
+
+  
+
+    public void StartPollingAllClients()
+    {
+        foreach (var client in _clients.Keys)
         {
-            _ocsData = ocsData;
-            _pollingIntervalMs = pollingIntervalMs;
+            string clientName = client;
+            Task.Factory.StartNew(() => PollingLoop(clientName), TaskCreationOptions.LongRunning);
         }
+    }
+    public class ClientModbusConfig
+    {
+        public string IP { get; set; }
+        public int Port { get; set; } = 502;
+        public byte SlaveId { get; set; } = 0;
+        public List<ushort> StartAddresses { get; set; }
+    }
+    
 
-        public void Start()
+    private void PollingLoop(string clientName)
+    {
+        var tokenSource = new CancellationTokenSource();
+        CancellationToken token = tokenSource.Token;
+
+        var clientConfig = _clients[clientName]; 
+        string clientIP = clientConfig.IP;
+        int clientPort = clientConfig.Port;
+        List<ushort> startAddresses = clientConfig.StartAddresses;
+
+        _previousDataDict[clientName] = new ushort[startAddresses.Count][];
+        _platformDict[clientName] = Enumerable.Range(0, startAddresses.Count)
+                                              .Select(_ => new OCSPlatform())
+                                              .ToArray();
+
+        while (!token.IsCancellationRequested)
         {
-            if (_pollingTask != null && !_pollingTask.IsCompleted)
-                return;
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
 
-            _cts = new CancellationTokenSource();
-            _pollingTask = Task.Run(() => PollingLoop(_cts.Token));
-        }
-
-        public async Task StopAsync()
-        {
-            if (_cts == null)
-                return;
-
-            _cts.Cancel();
-
-            if (_pollingTask != null)
+            try
             {
-                try
+                using (var tcpClient = new TcpClient())
                 {
-                    await _pollingTask;
-                }
-                catch (OperationCanceledException)
-                {
-                    // 任務被取消，這是正常行為，可以略過
-                }
-                catch (Exception ex)
-                {
-                    ASI.Lib.Log.ErrorLog.Log(_procName, $"停止輪詢時發生例外: {ex.Message}");
-                }
-                finally
-                {
-                    _pollingTask = null;
-                    _cts.Dispose();
-                    _cts = null;
-                }
-            }
-        }
-
-
-        private ushort[] _previousData = null;
-        private OCSPlatform _ocsPlatform = new OCSPlatform();
-
-
-        private async Task PollingLoop(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    ushort startAddress = 0;
-                    ushort numRegisters = 38;  // 讀取 38 筆 
-                    byte slaveId = 1;
-                    List<byte> newByteList = new List<byte>();
-                    ushort[] currentData = _ocsData.Master.ReadHoldingRegisters(slaveId, startAddress, numRegisters);
-
-                    if (_previousData == null || !AreArraysEqual(_previousData, currentData))
+                    tcpClient.Connect(clientIP, clientPort);
+                    var factory = new ModbusFactory();
+                    using (var master = factory.CreateMaster(tcpClient))
                     {
-                        ASI.Lib.Log.DebugLog.Log(_procName, $"資料變更: 新資料 = {string.Join(", ", currentData)}");
+                        master.Transport.ReadTimeout = 1000;
 
-                        byte[] byteArray = new byte[currentData.Length * 2];
-                        for (int i = 0; i < currentData.Length; i++)
+                        for (int groupIndex = 0; groupIndex < startAddresses.Count; groupIndex++)
                         {
-                            byteArray[i * 2] = (byte)(currentData[i] >> 8);
-                            byteArray[i * 2 + 1] = (byte)(currentData[i] & 0xFF);
+                            ushort startAddress = startAddresses[groupIndex];
+                            ushort numRegisters = 38;
+
+                            ushort[] currentData = master.ReadInputRegisters(clientConfig.SlaveId, startAddress, numRegisters); 
+                            byte[] byteArray = new byte[currentData.Length * 2];
+
+                            for (int i = 0; i < currentData.Length; i++)
+                            {
+                                byteArray[i * 2] = (byte)(currentData[i] >> 8);
+                                byteArray[i * 2 + 1] = (byte)(currentData[i] & 0xFF);
+                            }
+
+                            var previousGroupData = _previousDataDict[clientName];
+                            if (previousGroupData[groupIndex] == null ||
+                                !AreArraysEqual(previousGroupData[groupIndex], currentData))
+                            {
+                                previousGroupData[groupIndex] = (ushort[])currentData.Clone();
+
+                                var platform = _platformDict[clientName][groupIndex];
+                                platform.UpdateFromUShortArray(currentData);
+
+                                int special1 = DetermineTrainStatus(byteArray);
+                                int special2 = DetermineTrainStatus(byteArray);
+
+
+                                var oJsonObject = new TrainMSG(ASI.Wanda.DMD.Enum.Station.OCC)
+                                {
+                                    Start_Address = startAddress,
+                                    Type = "Train",
+                                    Command = "Update",
+                                    Platform_id = platform.PlatformID.ToString(),
+                                    Arrive_time1 = platform.ArrivalTime1.ToString(),
+                                    Depart_time1 = platform.DepartureTime1.ToString(),
+                                    Destination1 = platform.DestinationNumber1.ToString(),
+                                    Arrive_time2 = platform.ArrivalTime2.ToString(),
+                                    Depart_time2 = platform.DepartureTime2.ToString(),
+                                    Destination2 = platform.DestinationNumber2.ToString(),
+                                    Special1 = special1,
+                                    Special2 = special2,
+                                };
+
+                                var jsonString = ASI.Lib.Text.Parsing.Json.SerializeObject(oJsonObject);
+                                _sendToTaskDCU(2, 0, jsonString);
+
+                                updateTrainMessage(currentData);
+                            }
+
+                            Thread.Sleep(20);
                         }
-
-                        string result = Encoding.ASCII.GetString(byteArray);  // 或使用 UTF8 / Big5 視資料編碼而定
-
-                        // 更新 _ocsPlatform 物件
-                        _ocsPlatform.UpdateFromUShortArray(currentData);
-
-                        // 如果需要，將資料存入 TrainMSG 物件 組封包
-                        var oJsonObject = new TrainMSG(ASI.Wanda.DMD.Enum.Station.OCC)
-                        {
-                            Type = "Train",
-                            Command = "Update",
-                            Platform_id = _ocsPlatform.PlatformID.ToString(),
-                            Arrive_time1 = _ocsPlatform.ArrivalTime1.ToString(),
-                            Depart_time1 = _ocsPlatform.DelayAtDeparture1.ToString(),
-                            Destination1 = _ocsPlatform.DestinationNumber1.ToString(),
-                            Arrive_time2 = _ocsPlatform.ArrivalTime2.ToString(),
-                            Depart_time2 = _ocsPlatform.DelayAtDeparture2.ToString(),
-                            Destination2 = _ocsPlatform.DestinationNumber2.ToString()
-                        };
-
-                        // 顯示更新後資料
-                        ASI.Lib.Log.DebugLog.Log(_procName, $"平台ID: {_ocsPlatform.PlatformID}, 到站: {_ocsPlatform.Arrival}, 離站: {_ocsPlatform.Departure}");
-
-                        var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, 0, ASI.Lib.Text.Parsing.Json.SerializeObject(oJsonObject));
-                        // 傳送不同的格式
-                        SendToTaskDCU(2, 0, ASI.Lib.Text.Parsing.Json.SerializeObject(oJsonObject));
-
-                        _previousData = (ushort[])currentData.Clone();
-                    }
-                    else
-                    {
-                        ASI.Lib.Log.DebugLog.Log(_procName, $"首次讀取資料: {string.Join(", ", currentData)}");
-
-                        Process(currentData, newByteList);
-                        _previousData = (ushort[])currentData.Clone(); // 資料有變才更新 
                     }
                 }
-                catch (IOException ioEx)
-                {
-                    ASI.Lib.Log.ErrorLog.Log(_procName, $"IO 錯誤: {ioEx.Message}，嘗試重新連線...");
-                    TryReconnect();
-                }
-                catch (Exception ex)
-                {
-                    ASI.Lib.Log.ErrorLog.Log(_procName, $"Modbus 讀取錯誤: {ex.Message}");
-                }
-
-                await Task.Delay(_pollingIntervalMs, token);
             }
-
-            ASI.Lib.Log.DebugLog.Log(_procName, "Modbus 輪詢已停止。");
-        }
-
-
-
-        private void TryReconnect()
-        {
-            for (int i = 0; i < _ocsData.ConnectionTries; i++)
+            catch (IOException ioEx)
             {
-                try
-                {
-                    var tcpClient = new TcpClient(_ocsData.ClientIP, _ocsData.Port);
-                    _ocsData.Master = _ocsData.ModbusFactory.CreateMaster(tcpClient);
-                    _ocsData.Master.Transport.ReadTimeout = _ocsData.TransactionTimeout;
-                    _ocsData.Master.Transport.Retries = _ocsData.ConnectionTries;
-                    _ocsData.Master.Transport.WaitToRetryMilliseconds = _ocsData.WaitToRetryMilliseconds;
-
-                    ASI.Lib.Log.DebugLog.Log(_procName, "重新連線成功");
-                    return;
-                }
-                catch
-                {
-                    Thread.Sleep(_ocsData.WaitToRetryMilliseconds);
-                }
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} IO 錯誤: {ioEx.Message}，嘗試重新連線...");
+                TryReconnect();
             }
-
-            ASI.Lib.Log.ErrorLog.Log(_procName, "無法重新連線 Modbus slave");
-        }
-        public static bool AreArraysEqual<T>(T[] array1, T[] array2) where T : IEquatable<T>
-        {
-            if (array1 == null || array2 == null) return false;
-            if (array1.Length != array2.Length) return false;
-
-            for (int i = 0; i < array1.Length; i++)
+            catch (Exception ex)
             {
-                if (!array1[i].Equals(array2[i]))
-                    return false;
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} 錯誤: {ex.Message}");
             }
 
-            return true;
+            Thread.Sleep(_pollingIntervalMs);
         }
+    }
 
-        /// <summary>
-        /// 判斷當前索引是否為特殊索引。 
-        /// </summary>
-        /// <param name="index">當前索引</param>
-        /// <returns>若為特殊索引則返回 true，否則返回 false</returns>
-        bool IsSpecialIndex(int index)
+
+    private bool AreArraysEqual(ushort[] a, ushort[] b)
+    {
+        if (a.Length != b.Length) return false;
+        for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
+        return true;
+    }
+
+    private int DetermineTrainStatus(byte[] data)
+    {
+        if (data.Length <= 36) return 0;
+
+        if (data[17] != 0 || data[19] != 0 || data[20] != 0 ||
+            data[33] != 36 || data[35] != 0 || data[36] != 0)
         {
-            // 定義特殊索引集合
-            HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
-            return specialIndices.Contains(index);
-        }
-        public void Process(ushort[] registerBuffer, List<byte> newByteList)
-        {
-            if (registerBuffer == null || newByteList == null ) return;
-
-            StringBuilder logBuilder = new StringBuilder();
-
-            for (int i = 0; i < registerBuffer.Length; i++)
-            {
-                if (IsSpecialIndex(i) && i + 1 < registerBuffer.Length)
-                {
-                    ProcessSpecialIndex(registerBuffer, newByteList, logBuilder, ref i);
-                }
-                else
-                {
-                    ProcessNormalIndex(registerBuffer[i], newByteList, logBuilder, i);
-                }
-            }
-
+            return 1;
         }
 
-        private void ProcessSpecialIndex(ushort[] buffer, List<byte> byteList, StringBuilder builder, ref int index)
-        {
-            ushort high = buffer[index];
-            ushort low = buffer[index + 1];
+        return 0;
+    }
 
-            // DisplaySpecialValue(index, high, low, builder);
-            byteList.AddRange(CombineBytes(high, low));
+    private void TryReconnect()
+    {
+        const int maxRetries = 3;
+        const int delayBetweenRetriesMs = 3000; // 3 秒
 
-            index++; // 因為用了兩個 ushort，所以手動 +1
-        }
-
-        private void ProcessNormalIndex(ushort value, List<byte> byteList, StringBuilder builder, int index)
-        {
-            byte[] bytes = BitConverter.GetBytes(value);
-            byteList.AddRange(bytes);
-
-        }
-
-        /// <summary>
-        /// 將兩個 ushort 的高低位組合為 4 個 byte 數組。
-        /// </summary>
-        /// <param name="highOrder">高位 ushort 數值</param> 
-        /// <param name="lowOrder">低位 ushort 數值</param>
-        /// <returns>組合後的 byte 數組</returns>
-        byte[] CombineBytes(ushort highOrder, ushort lowOrder)
-        {
-            // 創建 4 個 byte 的數組來表示組合的結果
-            byte[] bytes = new byte[4];
-            // 將兩個 ushort 數值的高低位分別放入 byte 數組中  
-            bytes[3] = (byte)(lowOrder >> 8);
-            bytes[2] = (byte)lowOrder;
-            bytes[1] = (byte)(highOrder >> 8);
-            bytes[0] = (byte)highOrder;
-            return bytes;
-        }
-
-        private void SendToTaskDCU(int msgType, int msgID, string jsonData)
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
-                var MSGFromTaskOCS = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskOCS(new MSGFrameBase("TaskOCS", "dmdserverTaskDCU"));
-                //組相對應的封包
-                MSGFromTaskOCS.MessageType = msgType;
-                MSGFromTaskOCS.MessageID = msgID;
-                MSGFromTaskOCS.JsonData = jsonData;
-                ASI.Lib.Process.ProcMsg.SendMessage(MSGFromTaskOCS);
-                ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData);
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"重新連線中... 第 {attempt} 次嘗試");
+
+                // 模擬連線測試（如果有 ping 或心跳）
+
+                Thread.Sleep(delayBetweenRetriesMs);
+                
+                break;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log("FromTaskCMFT", ex);
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"重新連線失敗（第 {attempt} 次）: {ex.Message}");
+
+                if (attempt == maxRetries)
+                {
+                    ASI.Lib.Log.ErrorLog.Log(_procName, "已達最大重試次數，放棄重連");
+                }
+            }
+        }
+    }
+    private void TryReconnectUntilSuccess(string clientIP, int clientPort)
+    {
+        while (true)
+        {
+            try
+            {
+                using (var tcpClient = new TcpClient())
+                {
+                    tcpClient.Connect(clientIP, clientPort);
+                    ASI.Lib.Log.ErrorLog.Log(_procName, "重新連線成功！");
+                    break;
+                }
+            }
+            catch
+            {
+                ASI.Lib.Log.ErrorLog.Log(_procName, "重新連線失敗，3 秒後再試...");
+                Thread.Sleep(3000);
             }
         }
     }
 
- 
+
+    private void UpdateOCSData(ushort[] ID)
+    {
+        try
+        {
+            int intID = ID[1];
+
+            ASI.Wanda.DMD.DB.Tables.Train.ocsData.updatePlatform_ID(intID);
+        }
+        catch (Exception updateException)
+        {
+            ASI.Lib.Log.ErrorLog.Log("Error updating dmd_playlist", updateException);
+        }
+    }
+    private void updateTrainMessage(ushort[] platform_id)
+    {
+        try
+        {
+            int intID = platform_id[1];//尚未與OCS確認id 的index
+
+            ASI.Wanda.DMD.DB.Tables.Train.trainMessage.UpdateTrain_MSG(intID);
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
 
 }

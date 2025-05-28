@@ -1,5 +1,5 @@
 ﻿using NModbus;
-
+using NModbus.Device;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -8,13 +8,15 @@ using System.Net.Sockets;
 
 namespace OCS.Modbus
 {
-    public class OCSData
+   
+    public class OCSModbusReader
     {
         public Configuration Config { get; set; }
         public ModbusFactory ModbusFactory { get; set; }
-        public IModbusMaster Master { get; set; }
+        public IModbusMaster _master { get; set; }
         public ushort[] RegisterBuffer { get; set; } = new ushort[38];
         public byte SlaveAddress { get; set; } = 0;
+        public byte _slaveId { get; set; } 
         public ushort NumberOfPoints { get; set; } = 38;
         public  int Port { get; set; } = 502;
         public string ClientIP { get; set; }
@@ -22,21 +24,29 @@ namespace OCS.Modbus
         public int ConnectionTries { get; set; }
         public int WaitToRetryMilliseconds { get; set; }
 
-        public OCSData() { }
+        public OCSModbusReader() { }
 
-        public OCSData(string clientIP, byte slaveAddress)
+
+        public OCSModbusReader(ModbusMaster master, byte slaveId = 0)
         {
-            ClientIP = clientIP;
-            SlaveAddress = slaveAddress;
+            _master = master;
+            _slaveId = slaveId;
         }
-        public OCSData(string clientIP, byte slaveAddress, int connectionTries = 3, int timeout = 10, int retryMilliseconds = 1000)
+
+        public ushort[] ReadData(ushort startAddress, ushort numRegisters)
         {
-            ClientIP = clientIP;
-            SlaveAddress = slaveAddress;
-            ConnectionTries = connectionTries;
-            TransactionTimeout = timeout;
-            WaitToRetryMilliseconds = retryMilliseconds;
-            RegisterBuffer = new ushort[NumberOfPoints];
+            return _master.ReadHoldingRegisters(_slaveId, startAddress, numRegisters);
+        }
+
+        public byte[] ToByteArray(ushort[] data)
+        {
+            byte[] byteArray = new byte[data.Length * 2];
+            for (int i = 0; i < data.Length; i++)
+            {
+                byteArray[i * 2] = (byte)(data[i] >> 8);
+                byteArray[i * 2 + 1] = (byte)(data[i] & 0xFF);
+            }
+            return byteArray;
         }
     }
 
@@ -97,75 +107,81 @@ namespace OCS.Modbus
         #endregion
 
         #region Fields
-        private ushort _startAddress;
-        private ushort[] _registerBuffer; // OCS 的原始資料
-        private static List<byte[]> _platformByteData;
-        private byte[] _processByteArray;
+     
         #endregion
 
         #region Methods
 
         public void UpdateFromUShortArray(ushort[] data)
         {
-            if (data.Length < 78)
-                throw new ArgumentException("資料長度不足");
+            if (data == null || data.Length < 38)
+                throw new ArgumentException("資料長度不足（需要至少 38 個 ushort）");
+
+            // 轉換成 byte[76]
+            byte[] byteArray = new byte[data.Length * 2];
+            for (int j = 0; j < data.Length; j++)
+            {
+                byteArray[j * 2] = (byte)(data[j] >> 8);
+                byteArray[j * 2 + 1] = (byte)(data[j] & 0xFF);
+            }
 
             int i = 0;
-            NumberOfPlatforms = data[i++];
-            Spare1 = data[i++];
-            PlatformID = data[i++];
-            PreArrival = data[i++];
-            Arrival = data[i++];
-            PreDeparture = data[i++];
-            Departure = data[i++];
-            Skip = data[i++];
-            Hold = data[i++];
-            NumberOfJourneyData = data[i++];
-            Spare2 = data[i++];
-            ValidityField1 = data[i++];
-            NumberOfCars1 = data[i++];
-            TrainUnitID1 = data[i++];
-            ServiceNumber1 = data[i++];
-            TripNumber1 = data[i++];
-            DestinationNumber1 = data[i++];
-            ArrivalTime1 = ((long)data[i++] << 16) | data[i++]; // 若使用 2 個 ushort 合成 long
-            DepartureTime1 = ((long)data[i++] << 16) | data[i++];
-            DelayAtArrival1 = data[i++];
-            DelayAtDeparture1 = data[i++];
-            CancelledTrain1 = data[i++];
-            NextTrainWillNotStop1 = data[i++];
-            TrainEndOfService1 = data[i++];
-            TrainWillNotOpenDoor1 = data[i++];
-            LastTrainOfTheOperatingDay1 = data[i++];
-            TrainNotInService1 = data[i++];
-            LineOperationMode1 = data[i++];
-            TestTrain1 = data[i++];
-            TrainDirection1 = data[i++];
-            Spare3 = data[i++];
-            ValidityField2 = data[i++];
-            NumberOfCars2 = data[i++];
-            TrainUnitID2 = data[i++];
-            ServiceNumber2 = data[i++];
-            TripNumber2 = data[i++];
-            DestinationNumber2 = data[i++];
-            ArrivalTime2 = ((long)data[i++] << 16) | data[i++];
-            DepartureTime2 = ((long)data[i++] << 16) | data[i++];
-            DelayAtArrival2 = data[i++];
-            DelayAtDeparture2 = data[i++];
-            CancelledTrain2 = data[i++];
-            NextTrainWillNotStop2 = data[i++];
-            TrainEndOfService2 = data[i++];
-            TrainWillNotOpenDoor2 = data[i++];
-            LastTrainOfTheOperatingDay2 = data[i++];
-            TrainNotInService2 = data[i++];
-            LineOperationMode2 = data[i++];
-            TestTrain2 = data[i++];
-            TrainDirection2 = data[i++];
-            Spare4 = data[i++];
+
+            NumberOfPlatforms = byteArray[i++];
+            Spare1 = byteArray[i++];
+            PlatformID = byteArray[i++];
+            PreArrival = byteArray[i++];
+            Arrival = byteArray[i++];
+            PreDeparture = byteArray[i++];
+            Departure = byteArray[i++];
+            Skip = byteArray[i++];
+            Hold = byteArray[i++];
+            NumberOfJourneyData = byteArray[i++];
+            Spare2 = byteArray[i++];
+            ValidityField1 = byteArray[i++];
+            NumberOfCars1 = byteArray[i++];
+            TrainUnitID1 = byteArray[i++];
+            ServiceNumber1 = byteArray[i++];
+            TripNumber1 = byteArray[i++];
+            DestinationNumber1 = byteArray[i++];
+            ArrivalTime1 = ((long)byteArray[i++] << 16) | byteArray[i++]; // 若使用 2 個 ushort 合成 long
+            DepartureTime1 = ((long)byteArray[i++] << 16) | byteArray[i++];
+            DelayAtArrival1 = byteArray[i++];
+            DelayAtDeparture1 = byteArray[i++];
+            CancelledTrain1 = byteArray[i++];
+            NextTrainWillNotStop1 = byteArray[i++];
+            TrainEndOfService1 = byteArray[i++];
+            TrainWillNotOpenDoor1 = byteArray[i++];
+            LastTrainOfTheOperatingDay1 = byteArray[i++];
+            TrainNotInService1 = byteArray[i++];
+            LineOperationMode1 = byteArray[i++];
+            TestTrain1 = byteArray[i++];
+            TrainDirection1 = byteArray[i++];
+            Spare3 = byteArray[i++];
+            ValidityField2 = byteArray[i++];
+            NumberOfCars2 = byteArray[i++];
+            TrainUnitID2 = byteArray[i++];
+            ServiceNumber2 = byteArray[i++];
+            TripNumber2 = byteArray[i++];
+            DestinationNumber2 = byteArray[i++];
+            ArrivalTime2 = ((long)byteArray[i++] << 16) | byteArray[i++];
+            DepartureTime2 = ((long)byteArray[i++] << 16) | byteArray[i++];
+            DelayAtArrival2 = byteArray[i++];
+            DelayAtDeparture2 = byteArray[i++];
+            CancelledTrain2 = byteArray[i++];
+            NextTrainWillNotStop2 = byteArray[i++];
+            TrainEndOfService2 = byteArray[i++];
+            TrainWillNotOpenDoor2 = byteArray[i++];
+            LastTrainOfTheOperatingDay2 = byteArray[i++];
+            TrainNotInService2 = byteArray[i++];
+            LineOperationMode2 = byteArray[i++];
+            TestTrain2 = byteArray[i++];
+            TrainDirection2 = byteArray[i++];
+            Spare4 = byteArray[i++];
         }
 
 
-        public bool TryConnectAndReadData(OCSData data)
+        public bool TryConnectAndReadData(OCSModbusReader data)
         {
             int attempt = 0;
 
@@ -186,7 +202,7 @@ namespace OCS.Modbus
                         // 建立 Modbus master
                         var factory = new ModbusFactory();
                         var master = factory.CreateMaster(client);
-                        data.Master = master;
+                        data._master = master;
 
                         // 讀取資料
                         data.RegisterBuffer = master.ReadHoldingRegisters(data.SlaveAddress, 0, data.NumberOfPoints);

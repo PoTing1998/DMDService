@@ -90,6 +90,9 @@
     <EmbeddedResource Include="TaskOCS.resx">
       <DependentUpon>TaskOCS.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="UITest.resx">
+      <DependentUpon>UITest.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -127,6 +130,10 @@
     <ProjectReference Include="..\DMD_Frame\DMD_Frame.csproj">
       <Project>{a169f312-d665-4361-9a74-edd9d2e807f8}</Project>
       <Name>DMD_Frame</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TaskOCS\TaskOCS.csproj">
+      <Project>{0ACE28BF-EA1C-4E6A-9B29-78AEFBCBB2D9}</Project>
+      <Name>TaskOCS</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -44,11 +44,11 @@
   <ItemGroup>
     <Compile Include="Manager.cs" />
     <Compile Include="Models\DMD.cs" />
-    <Compile Include="Models\Others.cs" />
+    <Compile Include="Models\Train.cs" />
     <Compile Include="Models\System.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tables\DMD.cs" />
-    <Compile Include="Tables\Others.cs" />
+    <Compile Include="Tables\Train.cs" />
     <Compile Include="Tables\System.cs" />
     <Compile Include="Tables\Table.cs" />
   </ItemGroup>

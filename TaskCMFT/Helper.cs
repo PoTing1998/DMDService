@@ -270,7 +270,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(
                         item.station_id, item.area_id, item.device_id);
                 });
-
+                
                 ///遍歷轉換後的列表，進行更新操作
                 foreach (var item in convertedList)
                 {

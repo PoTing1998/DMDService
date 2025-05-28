@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using ASI.Lib.Process;
+using Microsoft.Extensions.Configuration;
 
 using NModbus;
-
+using OCS.Modbus;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,6 +13,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static OCSClientPoller;
 
 namespace UITest
 {
@@ -109,8 +111,7 @@ namespace UITest
                 }
             }
 
-            // 一次性更新 UI
-            textBox.Text = logBuilder.ToString();
+            textBox.AppendText(logBuilder.ToString());
         }
         /// <summary>
         /// 判斷是否為特殊索引。
@@ -166,6 +167,7 @@ namespace UITest
 
         private void buttonInit_Click_1(object sender, EventArgs e)
         {
+         
             // 設定 Modbus 連接的 IP 地址與端口號
             client1IP = textBoxConnIP.Text;
             port = int.Parse(textBoxConnPort.Text);
@@ -224,11 +226,12 @@ namespace UITest
                             break;
                     }
 
+                    // 紀錄接收資料至日誌中
+                 //   LogReceivedData(newByteList, startAddress);
                     // 每次迴圈結束後將起始地址增加 100，進行下一次讀取
                     startAddress += 100;
+                    StartOCSClients();
 
-                    // 紀錄接收資料至日誌中
-                    LogReceivedData(newByteList, startAddress);
                 }
             }
             catch (Exception ex)
@@ -250,6 +253,50 @@ namespace UITest
             ReceDataText.Text = String.Empty;
             ReceDataText2.Text = String.Empty;
             ReceDataText3.Text = String.Empty;
+        }
+
+
+        private void StartOCSClients()
+        {
+            try
+            {
+
+                // 啟動背景執行緒持續讀取 Modbus 資料 
+                var clients = new Dictionary<string, ClientModbusConfig>
+{
+    { "Client1", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 30001, 30101, 30201 , 30301 , 30401 , 30501 } } },
+    { "Client2", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 30601, 30701, 30801 , 30901 , 31001 , 31101 } } },
+    { "Client3", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 31201, 31301, 31401 , 31501 , 31601 , 31701 } } }
+};
+
+
+                var poller = new OCSClientPoller(clients, SendToTaskDCU);
+                poller.StartPollingAllClients();
+
+                MessageBox.Show("啟動成功！");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("初始化失敗: " + ex.Message);
+            }
+        }
+
+        private void SendToTaskDCU(int msgType, int msgID, string jsonData)
+        {
+            try
+            {
+                var MSGFromTaskOCS = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskOCS(new MSGFrameBase("TaskOCS", "dmdserverTaskDCU"));
+                //組相對應的封包
+                MSGFromTaskOCS.MessageType = msgType;
+                MSGFromTaskOCS.MessageID = msgID;
+                MSGFromTaskOCS.JsonData = jsonData;
+                ASI.Lib.Process.ProcMsg.SendMessage(MSGFromTaskOCS);
+                ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData);
+            }
+            catch (System.Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log("FromTaskCMFT", ex);
+            }
         }
     }
 }

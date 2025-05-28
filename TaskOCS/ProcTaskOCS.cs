@@ -13,8 +13,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-
-using TaskOCS;
+using static OCSClientPoller;
 
 namespace ASI.Wanda.DMD.TaskOCS
 {
@@ -89,7 +88,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             // 初始化 OCS 資料並處理可能的例外狀況  
             try
             {
-                 InitializeOCSData();
+                InitializeOCSData();
             }
             catch (Exception ex)
             {
@@ -111,11 +110,11 @@ namespace ASI.Wanda.DMD.TaskOCS
         /// 初始化 OCS 資料及 Modbus 設定
         /// </summary>
         /// <returns>回傳初始化後的 OCSData 物件</returns>
-        private  OCSData InitializeOCSData()
+        private OCSModbusReader InitializeOCSData()
         {
             try
             {
-                var oCSData = new OCSData();
+                var ocsDataInstance = new OCSModbusReader();
 
                 // 從配置中獲取 TCP 客戶端 IP 地址 
                 var tcpClientIP = ConfigApp.Instance.GetConfigSetting("TcpClientIP");
@@ -124,26 +123,32 @@ namespace ASI.Wanda.DMD.TaskOCS
                 var tcpClientPort = int.Parse(ConfigApp.Instance.GetConfigSetting("TcpClientPort"));
 
                 // 初始化 ModbusFactory 以建立 Modbus 通訊物件 
-                oCSData.ModbusFactory = new NModbus.ModbusFactory();
+                ocsDataInstance.ModbusFactory = new NModbus.ModbusFactory();
 
                 // 使用指定的 IP 和埠號創建 Modbus 主站 
-                oCSData.Master = oCSData.ModbusFactory.CreateMaster(new TcpClient(tcpClientIP, tcpClientPort));
+                ocsDataInstance._master = ocsDataInstance.ModbusFactory.CreateMaster(new TcpClient(tcpClientIP, tcpClientPort));
 
                 // 設定 Modbus 通訊的讀取逾時時間 
-                oCSData.Master.Transport.ReadTimeout = oCSData.TransactionTimeout;
+                ocsDataInstance._master.Transport.ReadTimeout = ocsDataInstance.TransactionTimeout;
 
                 // 設定通訊失敗時的重試次數  
-                oCSData.Master.Transport.Retries = oCSData.ConnectionTries;
+                ocsDataInstance._master.Transport.Retries = ocsDataInstance.ConnectionTries;
 
                 // 設定重試之間的等待時間（以毫秒為單位） 
-                oCSData.Master.Transport.WaitToRetryMilliseconds = oCSData.WaitToRetryMilliseconds;
+                ocsDataInstance._master.Transport.WaitToRetryMilliseconds = ocsDataInstance.WaitToRetryMilliseconds;
 
                 // 啟動背景執行緒持續讀取 Modbus 資料 
-                Task.Run(() => ContinuousDataRead(oCSData, 1000));
+                var clients = new Dictionary<string, ClientModbusConfig>
+{
+    { "Client1", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 30001, 30101, 30201 , 30301 , 30401 , 30501 } } },
+    { "Client2", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 30601, 30701, 30801 , 30901 , 31001 , 31101 } } },
+    { "Client3", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 31201, 31301, 31401 , 31501 , 31601 , 31701 } } }
+};
 
-                var pollingService = new ModbusPollingService(oCSData, 10000); // 每10秒讀一次
-                pollingService.Start();
-                return oCSData;
+
+                var poller = new OCSClientPoller(clients, SendToTaskDCU);
+                poller.StartPollingAllClients();
+                return ocsDataInstance;
             }
             catch (FormatException ex)
             {
@@ -164,6 +169,8 @@ namespace ASI.Wanda.DMD.TaskOCS
                 throw;
             }
         }
+        #endregion
+        #region Method
         /// <summary>
         /// 初始化資料庫連線 
         /// </summary>
@@ -186,124 +193,23 @@ namespace ASI.Wanda.DMD.TaskOCS
                 return false;
             }
         }
-        #endregion
 
-
-        #region Method
-
-  
-
-        // 持續讀取資料的邏輯
-        private void ContinuousDataRead(OCSData oCSData, int intervalMilliseconds)
+        private void SendToTaskDCU(int msgType, int msgID, string jsonData)
         {
-            ushort[] previousData = null; // 用於存儲上一次的資料 
-            while (true)
+            try
             {
-                try
-                {
-                    // 從 Modbus 主站讀取資料 (此處以讀取保持暫存器為例)
-                    var currentData = oCSData.Master.ReadHoldingRegisters(1, 0, 38);
-
-                    // 如果有上一次的資料，進行 XOR 比對 
-                    if (previousData != null)
-                    {
-                        if (!ModbusPollingService.AreArraysEqual(previousData, currentData))
-                        {
-                            ASI.Lib.Log.DebugLog.Log("ContinuousRead", $"資料變更: 新資料 = {string.Join(", ", currentData)}");
-                        }
-                    }
-                    else
-                    {
-                        ASI.Lib.Log.DebugLog.Log("ContinuousRead", $"首次讀取資料: {string.Join(", ", currentData)}");
-                    }
-
-                    // 更新暫存的資料
-                    previousData = currentData;
-
-                    // 避免過度讀取，設定每次讀取間隔
-                    Thread.Sleep(intervalMilliseconds);
-                }
-                catch (Exception ex)
-                {
-                    // 記錄讀取過程中的錯誤
-                    ASI.Lib.Log.ErrorLog.Log("ContinuousRead", $"讀取 Modbus 資料時發生錯誤: {ex.Message}");
-                }
+                var MSGFromTaskOCS = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskOCS(new MSGFrameBase("TaskOCS", "dmdserverTaskDCU"));
+                //組相對應的封包
+                MSGFromTaskOCS.MessageType = msgType;
+                MSGFromTaskOCS.MessageID = msgID;
+                MSGFromTaskOCS.JsonData = jsonData;
+                ASI.Lib.Process.ProcMsg.SendMessage(MSGFromTaskOCS);
+                ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData);
             }
-        }
-        /// <summary>
-        /// 處理註冊緩衝區的資料，並依據特殊索引進行不同的顯示和資料組合操作。
-        /// </summary>
-        /// <param name="registerBuffer">包含 ushort 數據的註冊緩衝區</param>
-        /// <param name="newByteList">儲存轉換後 byte 數據的列表</param>
-        void Process(ushort[] registerBuffer, List<byte> newByteList)
-        {
-            if (registerBuffer == null || newByteList == null) return;
-
-            for (int i = 0; i < registerBuffer.Length; i++) 
+            catch (System.Exception ex)
             {
-                if (IsSpecialIndex(i) && i + 1 < registerBuffer.Length)
-                {
-                    ushort high = registerBuffer[i];
-                    ushort low = registerBuffer[i + 1];
-                    byte[] combined = BitConverter.GetBytes((high << 16) | low); // 合併成 int，再轉 byte[]
-                    newByteList.AddRange(combined);
-                    i++; // 跳過下一個
-                }
-                else
-                {
-                    byte[] bytes = BitConverter.GetBytes(registerBuffer[i]);
-                    newByteList.AddRange(bytes);
-                }
+                ASI.Lib.Log.ErrorLog.Log("FromTaskCMFT", ex);
             }
-        }
-
-        /// <summary>
-        /// 判斷當前索引是否為特殊索引。 
-        /// </summary>
-        /// <param name="index">當前索引</param>
-        /// <returns>若為特殊索引則返回 true，否則返回 false</returns>
-        bool IsSpecialIndex(int index)
-        {
-            // 定義特殊索引集合
-            HashSet<int> specialIndices = new HashSet<int> { 11, 13, 27, 29 };
-            return specialIndices.Contains(index);
-        }
-
-
-        /// <summary>
-        /// 將兩個 ushort 的高低位組合為 4 個 byte 數組。
-        /// </summary>
-        /// <param name="highOrder">高位 ushort 數值</param> 
-        /// <param name="lowOrder">低位 ushort 數值</param>
-        /// <returns>組合後的 byte 數組</returns>
-        byte[] CombineBytes(ushort highOrder, ushort lowOrder)
-        {
-            // 創建 4 個 byte 的數組來表示組合的結果
-            byte[] bytes = new byte[4];
-            // 將兩個 ushort 數值的高低位分別放入 byte 數組中  
-            bytes[3] = (byte)(lowOrder >> 8);
-            bytes[2] = (byte)lowOrder;
-            bytes[1] = (byte)(highOrder >> 8);
-            bytes[0] = (byte)highOrder;
-            return bytes;
-        }
-        /// <summary>
-        /// 將兩個 ushort 組合為一個 int 整數值。
-        /// </summary>   
-        /// <param name="highOrder">高位 ushort 數值</param>
-        /// <param name="lowOrder">低位 ushort 數值</param>
-        /// <returns>組合後的整數值</returns>
-        int CombineUshortToInt(ushort highOrder, ushort lowOrder)
-        {
-            // 創建 4 個 byte 的數組來表示 int
-            byte[] bytes = new byte[4];
-            // 將兩個 ushort 數值的高低位分別放入 byte 數組中
-            bytes[3] = (byte)(lowOrder >> 8);
-            bytes[2] = (byte)lowOrder;
-            bytes[1] = (byte)(highOrder >> 8);
-            bytes[0] = (byte)highOrder;
-            // 使用 BitConverter 將 byte 數組轉換為 int 
-            return BitConverter.ToInt32(bytes, 0);
         }
         #endregion
     }

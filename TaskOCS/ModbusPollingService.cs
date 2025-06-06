@@ -77,7 +77,7 @@ public class OCSClientPoller
                     using (var master = factory.CreateMaster(tcpClient))
                     {
                         master.Transport.ReadTimeout = 1000;
-
+                        
                         for (int groupIndex = 0; groupIndex < startAddresses.Count; groupIndex++)
                         {
                             ushort startAddress = startAddresses[groupIndex];
@@ -91,11 +91,14 @@ public class OCSClientPoller
                                 byteArray[i * 2] = (byte)(currentData[i] >> 8);
                                 byteArray[i * 2 + 1] = (byte)(currentData[i] & 0xFF);
                             }
-
+                            // 取出前次資料來進行變更比對
                             var previousGroupData = _previousDataDict[clientName];
                             if (previousGroupData[groupIndex] == null ||
                                 !AreArraysEqual(previousGroupData[groupIndex], currentData))
                             {
+                                Console.WriteLine($"[Debug] 內容變動：GroupIndex={groupIndex}");
+                                Console.WriteLine($"[Debug] 舊資料: {string.Join(",", previousGroupData[groupIndex] ?? new ushort[0])}");
+                                Console.WriteLine($"[Debug] 新資料: {string.Join(",", currentData)}");
                                 previousGroupData[groupIndex] = (ushort[])currentData.Clone();
 
                                 var platform = _platformDict[clientName][groupIndex];
@@ -104,7 +107,7 @@ public class OCSClientPoller
                                 int special1 = DetermineTrainStatus(byteArray);
                                 int special2 = DetermineTrainStatus(byteArray);
 
-
+                               
                                 var oJsonObject = new TrainMSG(ASI.Wanda.DMD.Enum.Station.OCC)
                                 {
                                     Start_Address = startAddress,
@@ -121,11 +124,14 @@ public class OCSClientPoller
                                     Special2 = special2,
                                 };
 
+                                Console.WriteLine($"[Send] client={clientName}, groupIndex={groupIndex}, startAddr={startAddress}");
                                 var jsonString = ASI.Lib.Text.Parsing.Json.SerializeObject(oJsonObject);
                                 _sendToTaskDCU(2, 0, jsonString);
 
-                                updateTrainMessage(currentData);
+                                //  updateTrainMessage(currentData);
                             }
+          
+
 
                             Thread.Sleep(20);
                         }
@@ -149,10 +155,15 @@ public class OCSClientPoller
 
     private bool AreArraysEqual(ushort[] a, ushort[] b)
     {
+        if (a == null || b == null) return false;
         if (a.Length != b.Length) return false;
-        for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
+        for (int i = 0; i < a.Length; i++)
+        {
+            if (a[i] != b[i]) return false;
+        }
         return true;
     }
+
 
     private int DetermineTrainStatus(byte[] data)
     {

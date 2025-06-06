@@ -111,7 +111,7 @@
             this.adressTextEND.Name = "adressTextEND";
             this.adressTextEND.Size = new System.Drawing.Size(61, 22);
             this.adressTextEND.TabIndex = 36;
-            this.adressTextEND.Text = "30239";
+            this.adressTextEND.Text = "30539";
             // 
             // label6
             // 
@@ -208,7 +208,7 @@
             this.textBoxConnIP.Name = "textBoxConnIP";
             this.textBoxConnIP.Size = new System.Drawing.Size(75, 22);
             this.textBoxConnIP.TabIndex = 24;
-            this.textBoxConnIP.Text = "127.0.0.1";
+            this.textBoxConnIP.Text = "10.107.26.99";
             // 
             // buttonInit
             // 

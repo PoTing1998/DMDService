@@ -24,7 +24,6 @@ namespace ASI.Wanda.DMD.TaskOCS
     public class ProcTaskOCS : ProcBase
     {
         public string mOCSServerConnStr = "";
-        private ASI.Wanda.DMD.DMD_API mDMD_API = null;
         #region  Task開啟處理
 
         /// <summary>
@@ -140,11 +139,10 @@ namespace ASI.Wanda.DMD.TaskOCS
                 // 啟動背景執行緒持續讀取 Modbus 資料 
                 var clients = new Dictionary<string, ClientModbusConfig>
 {
-    { "Client1", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 30001, 30101, 30201 , 30301 , 30401 , 30501 } } },
-    { "Client2", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 30601, 30701, 30801 , 30901 , 31001 , 31101 } } },
-    { "Client3", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 31201, 31301, 31401 , 31501 , 31601 , 31701 } } }
+    { "Client1", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 30001, 30101, 30201 , 30301 , 30401 , 30501 } } },
+    { "Client2", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 30601, 30701, 30801 , 30901 , 31001 , 31101 } } },
+    { "Client3", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 31201, 31301, 31401 , 31501 , 31601 , 31701 } } }
 };
-
 
                 var poller = new OCSClientPoller(clients, SendToTaskDCU);
                 poller.StartPollingAllClients();

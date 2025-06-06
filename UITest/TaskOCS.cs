@@ -4,13 +4,16 @@ using Microsoft.Extensions.Configuration;
 using NModbus;
 using OCS.Modbus;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using static OCSClientPoller;
@@ -227,8 +230,8 @@ namespace UITest
                     }
 
                     // 紀錄接收資料至日誌中
-                 //   LogReceivedData(newByteList, startAddress);
-                    // 每次迴圈結束後將起始地址增加 100，進行下一次讀取
+                     LogReceivedData(newByteList, startAddress);
+                    // 每次迴圈結束後將起始地址增加 100，進行下一次讀取 
                     startAddress += 100;
                     StartOCSClients();
 
@@ -264,39 +267,44 @@ namespace UITest
                 // 啟動背景執行緒持續讀取 Modbus 資料 
                 var clients = new Dictionary<string, ClientModbusConfig>
 {
-    { "Client1", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 30001, 30101, 30201 , 30301 , 30401 , 30501 } } },
-    { "Client2", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 30601, 30701, 30801 , 30901 , 31001 , 31101 } } },
-    { "Client3", new ClientModbusConfig { IP = "127.0.0.1", StartAddresses = new List<ushort> { 31201, 31301, 31401 , 31501 , 31601 , 31701 } } }
+    { "Client1", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 30001, 30101, 30201 , 30301 , 30401 , 30501 } } },
+    //{ "Client2", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 30601, 30701, 30801 , 30901 , 31001 , 31101 } } },
+    //{ "Client3", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 31201, 31301, 31401 , 31501 , 31601 , 31701 } } }
 };
-
 
                 var poller = new OCSClientPoller(clients, SendToTaskDCU);
                 poller.StartPollingAllClients();
 
-                MessageBox.Show("啟動成功！");
+               // MessageBox.Show("啟動成功！");
             }
             catch (Exception ex)
             {
                 MessageBox.Show("初始化失敗: " + ex.Message);
             }
         }
-
+        private static readonly object _fileLock = new object();
         private void SendToTaskDCU(int msgType, int msgID, string jsonData)
         {
             try
             {
+                
                 var MSGFromTaskOCS = new ASI.Wanda.DMD.ProcMsg.MSGFromTaskOCS(new MSGFrameBase("TaskOCS", "dmdserverTaskDCU"));
                 //組相對應的封包
                 MSGFromTaskOCS.MessageType = msgType;
                 MSGFromTaskOCS.MessageID = msgID;
                 MSGFromTaskOCS.JsonData = jsonData;
                 ASI.Lib.Process.ProcMsg.SendMessage(MSGFromTaskOCS);
-                ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData);
+                lock (_fileLock)
+                {
+                    ASI.Lib.Log.DebugLog.Log("SendToTaskDCU", jsonData);
+                }
             }
             catch (System.Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log("FromTaskCMFT", ex);
+                ASI.Lib.Log.ErrorLog.Log("SendToTaskDCU", ex);
             }
         }
+
+
     }
 }

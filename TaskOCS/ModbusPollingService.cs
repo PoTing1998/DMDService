@@ -26,7 +26,7 @@ public class OCSClientPoller
     public OCSClientPoller(Dictionary<string, ClientModbusConfig> clients, Action<int, int, string> sendToTaskDCU)
     {
         _clients = clients;
-        _sendToTaskDCU = sendToTaskDCU;
+        _sendToTaskDCU = sendToTaskDCU; 
     }
 
 
@@ -53,7 +53,7 @@ public class OCSClientPoller
     {
         var tokenSource = new CancellationTokenSource();
         CancellationToken token = tokenSource.Token;
-
+        
         var clientConfig = _clients[clientName]; 
         string clientIP = clientConfig.IP;
         int clientPort = clientConfig.Port;
@@ -113,13 +113,13 @@ public class OCSClientPoller
                                     Start_Address = startAddress,
                                     Type = "Train",
                                     Command = "Update",
-                                    Platform_id = platform.PlatformID.ToString(),
-                                    Arrive_time1 = platform.ArrivalTime1.ToString(),
-                                    Depart_time1 = platform.DepartureTime1.ToString(),
-                                    Destination1 = platform.DestinationNumber1.ToString(),
-                                    Arrive_time2 = platform.ArrivalTime2.ToString(),
-                                    Depart_time2 = platform.DepartureTime2.ToString(),
-                                    Destination2 = platform.DestinationNumber2.ToString(),
+                                    Platform_id = platform.PlatformID,
+                                    Arrive_time1 = platform.ArrivalTime1,
+                                    Depart_time1 = platform.DepartureTime1,
+                                    Destination1 = platform.DestinationNumber1,
+                                    Arrive_time2 = platform.ArrivalTime2,
+                                    Depart_time2 = platform.DepartureTime2,
+                                    Destination2 = platform.DestinationNumber2,
                                     Special1 = special1,
                                     Special2 = special2,
                                 };
@@ -128,7 +128,7 @@ public class OCSClientPoller
                                 var jsonString = ASI.Lib.Text.Parsing.Json.SerializeObject(oJsonObject);
                                 _sendToTaskDCU(2, 0, jsonString);
 
-                                //  updateTrainMessage(currentData);
+                                //updateTrainMessage(currentData);
                             }
           
 

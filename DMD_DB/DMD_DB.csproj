@@ -53,9 +53,26 @@
     <Compile Include="Tables\Table.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Npgsql">
-      <Version>7.0.4</Version>
-    </PackageReference>
+    <Reference Include="Npgsql">
+      <HintPath>..\common\Npgsql.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions">
+      <HintPath>..\common\System.Threading.Tasks.Extensions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.ValueTuple">
+      <HintPath>..\common\System.ValueTuple.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>..\common\System.Buffers.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Memory">
+      <HintPath>..\common\System.Memory.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ASILib\ASILib.csproj">

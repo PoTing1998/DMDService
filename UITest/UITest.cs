@@ -12,17 +12,21 @@ namespace UITest
 {
     public partial class UITest : Form
     {
-        private TaskOCS homeControl;
-
+        private TaskOCS taskOCSControl;
+        private TaskCMFT taskCMFTControl;
+        private TaskDCU taskDCUControl;
 
         public UITest()
         {
             InitializeComponent();
-            homeControl = new TaskOCS();
 
+            // 初始化所有 UserControl
+            taskOCSControl = new TaskOCS();
+            taskCMFTControl = new TaskCMFT();
+            taskDCUControl = new TaskDCU();
 
-            // 預設載入首頁
-            LoadUserControl(homeControl);
+            // 預設載入 TaskOCS
+            LoadUserControl(taskOCSControl);
         }
 
         private void LoadUserControl(UserControl control)
@@ -32,10 +36,19 @@ namespace UITest
             mainPanel.Controls.Add(control); // 加入新畫面
         }
 
-
         private void button1_Click(object sender, EventArgs e)
         {
-            LoadUserControl(homeControl);
+            LoadUserControl(taskOCSControl);
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            LoadUserControl(taskCMFTControl);
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            LoadUserControl(taskDCUControl);
         }
     }
 

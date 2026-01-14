@@ -1,10 +1,9 @@
-﻿using NModbus;
-using NModbus.Device;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Net.Sockets;
+using TaskOCS;
 
 namespace OCS.Modbus
 {
@@ -12,22 +11,20 @@ namespace OCS.Modbus
     public class OCSModbusReader
     {
         public Configuration Config { get; set; }
-        public ModbusFactory ModbusFactory { get; set; }
-        public IModbusMaster _master { get; set; }
+        public ModbusTcpClient _master { get; set; }
         public ushort[] RegisterBuffer { get; set; } = new ushort[38];
         public byte SlaveAddress { get; set; } = 0;
-        public byte _slaveId { get; set; } 
+        public byte _slaveId { get; set; }
         public ushort NumberOfPoints { get; set; } = 38;
         public  int Port { get; set; } = 502;
         public string ClientIP { get; set; }
-        public int TransactionTimeout { get; set; } = 10;
-        public int ConnectionTries { get; set; }
-        public int WaitToRetryMilliseconds { get; set; }
+        public int TransactionTimeout { get; set; } = 1000;
+        public int ConnectionTries { get; set; } = 3;
+        public int WaitToRetryMilliseconds { get; set; } = 1000;
 
         public OCSModbusReader() { }
 
-
-        public OCSModbusReader(ModbusMaster master, byte slaveId = 0)
+        public OCSModbusReader(ModbusTcpClient master, byte slaveId = 0)
         {
             _master = master;
             _slaveId = slaveId;
@@ -189,27 +186,18 @@ namespace OCS.Modbus
             {
                 try
                 {
-                    using (TcpClient client = new TcpClient())
-                    {
-                        var result = client.BeginConnect(data.ClientIP, data.Port, null, null);
-                        bool success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(data.TransactionTimeout));
+                    // 建立 Modbus TCP 客戶端
+                    var master = new ModbusTcpClient();
+                    master.ReadTimeout = data.TransactionTimeout;
+                    master.Connect(data.ClientIP, data.Port);
 
-                        if (!success)
-                            throw new TimeoutException("Modbus connection timed out.");
+                    data._master = master;
 
-                        client.EndConnect(result); // complete connection 
+                    // 讀取資料
+                    data.RegisterBuffer = master.ReadHoldingRegisters(data.SlaveAddress, 0, data.NumberOfPoints);
 
-                        // 建立 Modbus master
-                        var factory = new ModbusFactory();
-                        var master = factory.CreateMaster(client);
-                        data._master = master;
-
-                        // 讀取資料
-                        data.RegisterBuffer = master.ReadHoldingRegisters(data.SlaveAddress, 0, data.NumberOfPoints);
-
-                        ASI.Lib.Log.DebugLog.Log("OCS_Connection", $"Successfully connected and read data from {data.ClientIP} on attempt {attempt + 1}.");
-                        return true; // 成功
-                    }
+                    ASI.Lib.Log.DebugLog.Log("OCS_Connection", $"Successfully connected and read data from {data.ClientIP} on attempt {attempt + 1}.");
+                    return true; // 成功
                 }
                 catch (Exception ex)
                 {

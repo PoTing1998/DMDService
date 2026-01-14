@@ -213,7 +213,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
         {
             string sLog = $"從CMFT Server收到:{sByteArray}；訊息類別碼:{CMFTServerMessage.MessageType}；識別碼:{iMsgID}；長度:{CMFTServerMessage.MessageLength}；內容:{sJsonData}；JsonObjectName:{sJsonObjectName}";
             ASI.Lib.Log.DebugLog.Log("FromCMFTDate", $"{sLog}\r\n");
-            // 處理不同的 JSON 物件類型
+            // 處理不同的 JSON 物件類型 
             if (string.IsNullOrEmpty(sJsonObjectName)) return; // 基本檢查 
 
             switch (sJsonObjectName) 
@@ -273,13 +273,13 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 {
                     if (mSGFromTaskDCU.MessageType == 1)
                     {
-                        //DMD內部通訊定義:Ack  
-                        //從TaskDCU過來不應該有Ack  
+                        //DMD內部通訊定義:Ack   
+                        //從TaskDCU過來不應該有Ack   
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從TaskDCU來的訊息不應有DMD內部通訊定義:Ack，MessageType:{mSGFromTaskDCU.MessageType}"); ;
                     }
                     else if (mSGFromTaskDCU.MessageType == 2)
                     {
-                        //DMD內部通訊定義:Change/Command  
+                        //DMD內部通訊定義:Change/Command   
                         string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskDCU.JsonData, "JsonObjectName");
                         sLog = $"sJsonObjectName = {sJsonObjectName}";
                         ASI.Lib.Log.DebugLog.Log(_mProcName, sLog);

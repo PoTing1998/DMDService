@@ -1,11 +1,7 @@
 ﻿using ASI.Lib.Config;
 using ASI.Lib.Log;
 using ASI.Lib.Process;
-
-using NModbus;
-
 using OCS.Modbus;
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,6 +9,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using TaskOCS;
 using static OCSClientPoller;
 
 namespace ASI.Wanda.DMD.TaskOCS
@@ -24,6 +21,8 @@ namespace ASI.Wanda.DMD.TaskOCS
     public class ProcTaskOCS : ProcBase
     {
         public string mOCSServerConnStr = "";
+        private OCSModbusReader ocsDataInstance; // 改為實例變數，以便在其他方法中使用
+        private OCSClientPoller poller; // 新增以便在結束時能正確清理
         #region  Task開啟處理
 
         /// <summary>
@@ -59,7 +58,6 @@ namespace ASI.Wanda.DMD.TaskOCS
                 try
                 {
                     string sOCSServerIP = ASI.Lib.Config.ConfigApp.Instance.GetIPFromConnStr(this.mOCSServerConnStr);
-
                     bool bStatus = ASI.Lib.Comm.Network.NetworkLib.TryPing(sOCSServerIP, 300, 4);
                     ASI.Lib.Log.DebugLog.Log(_mProcName, $"嘗試ping OCS Server IP = {sOCSServerIP}，連線狀態:{bStatus}");
                 }
@@ -84,15 +82,15 @@ namespace ASI.Wanda.DMD.TaskOCS
             mTimerTick = 30;
             _mProcName = "TaskOCS";
 
-            // 初始化 OCS 資料並處理可能的例外狀況  
+            // 初始化 OCS 資料並處理可能的例外狀況
             try
             {
-                InitializeOCSData();
+                ocsDataInstance = InitializeOCSData();  // 修复：赋值给字段
             }
             catch (Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
-                return -1; // 異常狀態回傳 -1 
+                return -1; // 異常狀態回傳 -1
             }
 
             // 初始化資料庫連線    
@@ -115,40 +113,31 @@ namespace ASI.Wanda.DMD.TaskOCS
             {
                 var ocsDataInstance = new OCSModbusReader();
 
-                // 從配置中獲取 TCP 客戶端 IP 地址 
+                // 從配置中獲取 TCP 客戶端 IP 地址  
                 var tcpClientIP = ConfigApp.Instance.GetConfigSetting("TcpClientIP");
 
-                // 從配置中獲取 TCP 客戶端埠號並將其解析為整數  
+                // 從配置中獲取 TCP 客戶端埠號並將其解析為整數
                 var tcpClientPort = int.Parse(ConfigApp.Instance.GetConfigSetting("TcpClientPort"));
 
-                // 初始化 ModbusFactory 以建立 Modbus 通訊物件 
-                ocsDataInstance.ModbusFactory = new NModbus.ModbusFactory();
+                // 初始化 Modbus TCP 客戶端
+                ocsDataInstance._master = new ModbusTcpClient();
+                ocsDataInstance._master.ReadTimeout = ocsDataInstance.TransactionTimeout;
 
-                // 使用指定的 IP 和埠號創建 Modbus 主站 
-                ocsDataInstance._master = ocsDataInstance.ModbusFactory.CreateMaster(new TcpClient(tcpClientIP, tcpClientPort));
+                // 連接到 Modbus 伺服器
+                ocsDataInstance._master.Connect(tcpClientIP, tcpClientPort);
 
-                // 設定 Modbus 通訊的讀取逾時時間 
-                ocsDataInstance._master.Transport.ReadTimeout = ocsDataInstance.TransactionTimeout;
-
-                // 設定通訊失敗時的重試次數  
-                ocsDataInstance._master.Transport.Retries = ocsDataInstance.ConnectionTries;
-
-                // 設定重試之間的等待時間（以毫秒為單位） 
-                ocsDataInstance._master.Transport.WaitToRetryMilliseconds = ocsDataInstance.WaitToRetryMilliseconds;
-
-                // 啟動背景執行緒持續讀取 Modbus 資料 
+                // 啟動背景執行緒持續讀取 Modbus 資料
+                // 測試配置：只讀取地址 0 的 1 個寄存器
                 var clients = new Dictionary<string, ClientModbusConfig>
-{
-    { "Client1", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 30001, 30101, 30201 , 30301 , 30401 , 30501 } } },
-    { "Client2", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 30601, 30701, 30801 , 30901 , 31001 , 31101 } } },
-    { "Client3", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 31201, 31301, 31401 , 31501 , 31601 , 31701 } } }
-};
+                {
+                    { "Client1", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 0 } } }
+                };
 
-                var poller = new OCSClientPoller(clients, SendToTaskDCU);
-                poller.StartPollingAllClients();
+                this.poller = new OCSClientPoller(clients, SendToTaskDCU);  // 修复：赋值给字段
+                this.poller.StartPollingAllClients();
                 return ocsDataInstance;
             }
-            catch (FormatException ex)
+            catch (FormatException ex) 
             {
                 // 捕捉並處理字串轉數字的格式錯誤
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, $"TCP 客戶端 Port 格式錯誤: {ex.Message}");
@@ -209,6 +198,59 @@ namespace ASI.Wanda.DMD.TaskOCS
                 ASI.Lib.Log.ErrorLog.Log("FromTaskCMFT", ex);
             }
         }
+
+        /// <summary>
+        /// 停止任务并清理资源
+        /// </summary>
+        public override void StopTask()
+        {
+            try
+            {
+                ASI.Lib.Log.DebugLog.Log(_mProcName, "正在停止 TaskOCS...");
+
+                // 关闭 Modbus 连接
+                if (ocsDataInstance?._master != null)
+                {
+                    try
+                    {
+                        ocsDataInstance._master.Close();
+                        ASI.Lib.Log.DebugLog.Log(_mProcName, "Modbus 连接已关闭");
+                    }
+                    catch (Exception ex)
+                    {
+                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"关闭 Modbus 连接时发生错误: {ex.Message}");
+                    }
+                }
+
+                ASI.Lib.Log.DebugLog.Log(_mProcName, "TaskOCS 已成功停止");
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"停止 TaskOCS 时发生错误: {ex}");
+            }
+
+            base.StopTask();
+        }
         #endregion
+
+        #region 
+        /// <summary>
+        /// 將收到的數值轉成標準時間
+        /// </summary>
+        public class UnixTimeConverter
+        {
+            public static DateTime UnixToUTC(long unixTimestamp)
+            {
+                DateTime baseDate= new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                return baseDate.AddSeconds(unixTimestamp);
+            } 
+            public static DateTime StandardUnixToUTC(long unixTimestamp)
+            {
+                DateTime baseDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                return baseDate.AddSeconds(unixTimestamp);
+            }
+        }
+        #endregion
+
     }
 }

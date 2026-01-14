@@ -175,6 +175,12 @@ namespace ASI.Wanda.DMD.TaskKernel
 
         public override int StartTask(string pComputer, string pProcName)
         {
+
+            // 在 Debug 模式下等待除錯器附加
+            //if (!System.Diagnostics.Debugger.IsAttached)
+            //{
+            //    System.Diagnostics.Debugger.Launch();
+            //}
             if (base.StartTask(pComputer, pProcName) < 0)
                 return -1;
 

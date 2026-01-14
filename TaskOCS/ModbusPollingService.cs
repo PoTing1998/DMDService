@@ -1,5 +1,4 @@
 ﻿using ASI.Wanda.DMD.JsonObject.DCU.FromDMD;
-using NModbus;
 using OCS.Modbus;
 using System;
 using System.Collections.Generic;
@@ -9,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using TaskOCS;
 
 public class OCSClientPoller
 {
@@ -44,7 +44,7 @@ public class OCSClientPoller
     {
         public string IP { get; set; }
         public int Port { get; set; } = 502;
-        public byte SlaveId { get; set; } = 0;
+        public byte SlaveId { get; set; } = 1;
         public List<ushort> StartAddresses { get; set; }
     }
     
@@ -70,20 +70,21 @@ public class OCSClientPoller
 
             try
             {
-                using (var tcpClient = new TcpClient())
+                using (var master = new ModbusTcpClient())
                 {
-                    tcpClient.Connect(clientIP, clientPort);
-                    var factory = new ModbusFactory();
-                    using (var master = factory.CreateMaster(tcpClient))
-                    {
-                        master.Transport.ReadTimeout = 1000;
-                        
-                        for (int groupIndex = 0; groupIndex < startAddresses.Count; groupIndex++)
-                        {
-                            ushort startAddress = startAddresses[groupIndex];
-                            ushort numRegisters = 38;
+                    master.Connect(clientIP, clientPort);
+                    master.ReadTimeout = 1000;
 
-                            ushort[] currentData = master.ReadInputRegisters(clientConfig.SlaveId, startAddress, numRegisters); 
+                    for (int groupIndex = 0; groupIndex < startAddresses.Count; groupIndex++)
+                    {
+                        ushort startAddress = startAddresses[groupIndex];
+                        ushort numRegisters = 38;  // 讀取完整的 38 個寄存器
+
+                        ushort[] currentData = master.ReadInputRegisters(clientConfig.SlaveId, startAddress, numRegisters);
+
+                        // 記錄收到的資料
+                        ASI.Lib.Log.DebugLog.Log(_procName, $"[{clientName}] 成功讀取 Modbus 資料 - 地址:{startAddress}, 數量:{numRegisters}, 前3個值:[{currentData[0]}, {currentData[1]}, {currentData[2]}]");
+
                             byte[] byteArray = new byte[currentData.Length * 2];
 
                             for (int i = 0; i < currentData.Length; i++)
@@ -128,7 +129,8 @@ public class OCSClientPoller
                                 var jsonString = ASI.Lib.Text.Parsing.Json.SerializeObject(oJsonObject);
                                 _sendToTaskDCU(2, 0, jsonString);
 
-                                //updateTrainMessage(currentData);
+                                // 写入数据库 (暫時註解，等資料庫表格建立後再啟用)
+                                // UpdateOCSData(platform);
                             }
           
 
@@ -137,7 +139,6 @@ public class OCSClientPoller
                         }
                     }
                 }
-            }
             catch (IOException ioEx)
             {
                 ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} IO 錯誤: {ioEx.Message}，嘗試重新連線...");
@@ -228,17 +229,72 @@ public class OCSClientPoller
     }
 
 
-    private void UpdateOCSData(ushort[] ID)
+    /// <summary>
+    /// 将 OCSPlatform 数据写入数据库（自动判断 Insert 或 Update）
+    /// </summary>
+    private void UpdateOCSData(OCS.Modbus.OCSPlatform platform)
     {
         try
         {
-            int intID = ID[1];
+            // 将 OCSPlatform 转换为 OCS_Data 数据库模型
+            var ocsData = new ASI.Wanda.DMD.DB.Models.Train.OCS_Data
+            {
+                number_of_platforms = platform.NumberOfPlatforms,
+                platform_id = platform.PlatformID,
+                arrival = platform.Arrival,
+                departure = platform.Departure,
+                skip_hold = platform.Skip | (platform.Hold << 8), // 合并 Skip 和 Hold
+                number_of_journey_data = platform.NumberOfJourneyData,
 
-            ASI.Wanda.DMD.DB.Tables.Train.ocsData.updatePlatform_ID(intID);
+                // 列车1数据
+                validity_field = platform.ValidityField1,
+                train_unit_id = platform.TrainUnitID1,
+                service_number = platform.ServiceNumber1,
+                trip_number = platform.TripNumber1,
+                destination_number = platform.DestinationNumber1,
+                arrivaltime = (int)platform.ArrivalTime1,
+                departuretime = (int)platform.DepartureTime1,
+                delayatarrival = platform.DelayAtArrival1,
+                delayatdeparture = platform.DelayAtDeparture1,
+                cancelledtrain = platform.CancelledTrain1,
+                trainend_of_service = platform.TrainEndOfService1,
+                lasttrainoftheoperatingday = platform.LastTrainOfTheOperatingDay1,
+                line_operation_mode = platform.LineOperationMode1,
+                train_direction = platform.TrainDirection1,
+
+                // 列车2数据
+                validity_field2 = platform.ValidityField2,
+                train_unit_id2 = platform.TrainUnitID2,
+                service_number2 = platform.ServiceNumber2,
+                trip_number2 = platform.TripNumber2,
+                destination_number2 = platform.DestinationNumber2,
+                arrivaltime2 = (int)platform.ArrivalTime2,
+                departuretime2 = (int)platform.DepartureTime2,
+                delayatarrival2 = platform.DelayAtArrival2,
+                delayatdeparture2 = platform.DelayAtDeparture2,
+                cancelledtrain2 = platform.CancelledTrain2,
+                trainend_of_service2 = platform.TrainEndOfService2,
+                lasttrainoftheoperatingday2 = platform.LastTrainOfTheOperatingDay2,
+                line_operation_mode2 = platform.LineOperationMode2,
+                train_direction2 = platform.TrainDirection2
+            };
+
+            // 自动判断 Insert 或 Update
+            int affectedRows = ASI.Wanda.DMD.DB.Tables.Train.ocsData.InsertOrUpdateOCSData(ocsData);
+
+            if (affectedRows > 0)
+            {
+                ASI.Lib.Log.DebugLog.Log(_procName, $"成功写入 OCS_Data，platform_id = {platform.PlatformID}，影响行数 = {affectedRows}");
+            }
+            else
+            {
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"写入 OCS_Data 失败，platform_id = {platform.PlatformID}，影响行数 = 0");
+            }
         }
         catch (Exception updateException)
         {
-            ASI.Lib.Log.ErrorLog.Log("Error updating dmd_playlist", updateException);
+            ASI.Lib.Log.ErrorLog.Log(_procName, $"写入 OCS_Data 异常: {updateException.Message}");
+            ASI.Lib.Log.ErrorLog.Log(_procName, updateException);
         }
     }
     private void updateTrainMessage(ushort[] platform_id)

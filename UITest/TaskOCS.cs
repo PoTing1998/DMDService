@@ -1,7 +1,4 @@
 ﻿using ASI.Lib.Process;
-using Microsoft.Extensions.Configuration;
-
-using NModbus;
 using OCS.Modbus;
 using System;
 using System.Collections.Concurrent;
@@ -16,6 +13,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using TaskOCS;
 using static OCSClientPoller;
 
 namespace UITest
@@ -23,8 +21,7 @@ namespace UITest
     public partial class TaskOCS : UserControl
     {
         #region constructor
-        private static ModbusFactory modbusFactory;
-        private static IModbusMaster master;
+        private static ModbusTcpClient master;
         private static ushort[] registerBuffer;
         private static byte slaveAddress = 0;
         private static ushort numberOfPoints = 38;
@@ -180,14 +177,10 @@ namespace UITest
 
             try
             {
-                // 初始化 Modbus 工廠及其主站
-                modbusFactory = new ModbusFactory();
-                master = modbusFactory.CreateMaster(new TcpClient(client1IP, port));
-
-                // 設置傳輸層的超時、重試和等待時間
-                master.Transport.ReadTimeout = transactionTimeout;
-                master.Transport.Retries = connectionTries;
-                master.Transport.WaitToRetryMilliseconds = waitToRetryMilliseconds;
+                // 初始化 Modbus TCP 客戶端
+                master = new ModbusTcpClient();
+                master.ReadTimeout = transactionTimeout;
+                master.Connect(client1IP, port);
 
                 // 解析起始和結束地址
                 ushort startAddress = ushort.Parse(adressText.Text);

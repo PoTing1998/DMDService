@@ -41,6 +41,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// <returns></returns>
         public override int ProcEvent(string pLabel, string pBody)
         {
+            
             LogFile.Display(pBody);
 
             if (pLabel == MSGFinish.Label)
@@ -108,7 +109,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             catch (System.Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, $"資料庫連線失敗! Exception: {ex.Message}");
-                return -1; // 返回錯誤代碼
+                return -1; // 返回錯誤代碼 
             }
             ConnectToDCUServer();
             return base.StartTask(pComputer, pProcName);
@@ -205,14 +206,12 @@ namespace ASI.Wanda.DMD.TaskDCU
                                 };
                             })
                             .ToList();
-                        //將失敗的的看板從 dmd_playlist中刪除
+                        //將失敗的的看板從 dmd_playlist中刪除  
                         foreach (var deviceInfo in deviceInfoList)
                         {
                             ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(deviceInfo.StationID, deviceInfo.AreaID, deviceInfo.DeviceID);
                         }
                         //接下來回傳給Task CMFT 
-
-
 
                     }
                     else if (sJsonObjectName == "ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendInstantMessage")
@@ -235,7 +234,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                              .Select(Targetdu =>
                              {
                                  var parts = Targetdu.Split('_');
-                                 return new DeviceInfo
+                                 return new DeviceInfo 
                                  {
                                      StationID = parts[0],
                                      AreaID = parts[1],
@@ -328,7 +327,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                     }
                 }
 
-            }
+            } 
             catch (Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
@@ -336,8 +335,6 @@ namespace ASI.Wanda.DMD.TaskDCU
 
             return -1;
         }
-
-
 
         private int ProMsgFromOCS(string pMessage)
         {
@@ -372,7 +369,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         {
             try
             {
-                DisconnectExistingDMDAPI();
+                DisconnectExistingDMDAPI(); 
                 mDMD_API = new ASI.Wanda.DMD.DMD_API();
                 mDMD_API.ConnectedEvent += DMD_API_ConnectedEvent;
                 mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;

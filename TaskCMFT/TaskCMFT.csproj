@@ -74,10 +74,6 @@
       <Project>{a169f312-d665-4361-9a74-edd9d2e807f8}</Project>
       <Name>DMD_Frame</Name>
     </ProjectReference>
-    <ProjectReference Include="D:\Svn\TRTS_Wanda\01_CMFT\04_DB\01_SourceCode\Develop%28開發中%29\CMFT_DB\CMFT_DB.csproj">
-      <Project>{76ca49bf-c3a1-43d9-b996-3272ce9ab1ad}</Project>
-      <Name>CMFT_DB</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql">

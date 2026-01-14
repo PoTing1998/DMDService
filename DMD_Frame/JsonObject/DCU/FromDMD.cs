@@ -163,6 +163,9 @@ namespace ASI.Wanda.DMD.JsonObject.DCU.FromDMD
             public int Special2; //同上 
 
         }
+
+
+
 }
 #endregion
 

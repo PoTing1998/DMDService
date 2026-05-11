@@ -22,7 +22,7 @@ namespace ASI.Wanda.DMD.JsonObject.DCU.FromDMD
         }
 
 
-        //(4). 預錄訊息命令 
+        //(4). 預錄訊息命令
         public class SendPreRecordMessage : ASI.Wanda.DMD.JsonObject.Base
         {
             public SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station station) :base (station) { }
@@ -35,9 +35,13 @@ namespace ASI.Wanda.DMD.JsonObject.DCU.FromDMD
             //相關資料庫
             public string dbName1 { get; set; } = "dmd_pre_record_message";
             public string dbName2 { get; set; } = "dmd_target";
+            //訊息參數
+            public int message_priority { get; set; }
+            public int move_speed { get; set; }
+            public int move_mode { get; set; }
         }
 
-        //(5). 即時訊息命令  
+        //(5). 即時訊息命令
         public class SendInstantMessage : ASI.Wanda.DMD.JsonObject.Base
         {
             public SendInstantMessage(ASI.Wanda.DMD.Enum.Station station) : base(station) { }
@@ -51,6 +55,10 @@ namespace ASI.Wanda.DMD.JsonObject.DCU.FromDMD
 
             public string dbName1 { get; set; } = "dmd_instant_message";
             public string dbName2 { get; set; } = "dmd_target";
+            //訊息參數
+            public int message_priority { get; set; }
+            public int move_speed { get; set; }
+            public int move_mode { get; set; }
 
         }
         //(6). 預錄訊息排程 

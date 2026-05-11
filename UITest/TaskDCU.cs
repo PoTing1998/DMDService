@@ -20,12 +20,123 @@ namespace UITest
         ASI.Wanda.DMD.DMD_API mDMD_API = null;
         ASI.Wanda.DMD.DMD_API mDMD_API2 = null;
 
+        // 车站到数据库IP的映射
+        private Dictionary<string, string> stationIPMapping = new Dictionary<string, string>
+        {
+            { "OCC", "127.0.0.1" },
+            { "BOCC", "127.0.0.1" },
+            { "LG01", "127.0.0.1" },
+            { "LG02", "127.0.0.1" },
+            { "LG03", "127.0.0.1" },
+            { "LG04", "127.0.0.1" },
+            { "LG05", "127.0.0.1" },
+            { "LG06", "127.0.0.1" },
+            { "LG07", "127.0.0.1" },
+            { "LG08", "127.0.0.1" },
+            { "LG08A", "127.0.0.1" }
+        };
+
         public TaskDCU()
         {
             InitializeComponent();
             mDMD_API = new DMD_API();
             mDMD_API2 = new DMD_API();
-            ReflashViewData();
+            InitializeDatabaseConnections("127.0.0.1"); // 默认连接
+            InitializeStationComboBox();
+            ReflashViewData(); // 初始化显示
+        }
+
+        private void InitializeDatabaseConnections(string dbIP)
+        {
+            try
+            {
+                // 初始化 DMD 数据库连接
+                ASI.Wanda.DMD.DB.Manager.Initializer(dbIP, "5432", "DMDDB", "postgres", "postgres", "DMDServer");
+                // 初始化 DCU 数据库连接
+                ASI.Wanda.DCU.DB.Manager.Initializer(dbIP, "5432", "DCUDB", "postgres", "postgres", "DCUServer");
+
+                ASI.Lib.Log.DebugLog.Log("TaskDCU", $"已连接到数据库: {dbIP}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"连接到 {dbIP} 数据库失败：" + ex.Message);
+                ASI.Lib.Log.ErrorLog.Log("TaskDCU", ex);
+            }
+        }
+
+        private void InitializeStationComboBox()
+        {
+            // 清空现有项目
+            stationListCB.Items.Clear();
+
+            // 添加提示选项
+            stationListCB.Items.Add("請選擇車站");
+
+            // 从 DMD 枚举中添加所有车站
+            foreach (var station in System.Enum.GetValues(typeof(ASI.Wanda.DMD.Enum.Station)))
+            {
+                stationListCB.Items.Add(station.ToString());
+            }
+
+            // 先绑定选择变更事件，再设置默认选择
+            stationListCB.SelectedIndexChanged += StationListCB_SelectedIndexChanged;
+
+            // 默认选择提示项
+            stationListCB.SelectedIndex = 0;
+        }
+
+        private void StationListCB_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                string selectedStation = stationListCB.SelectedItem?.ToString();
+
+                if (selectedStation == "請選擇車站" || string.IsNullOrEmpty(selectedStation))
+                {
+                    // 选择提示项时，清空DCU数据显示
+                    InitializeDataGridView(DCUdataGridView, new string[] { "設備ID", "面板ID", "設備狀態" }, new List<object[]>());
+                    return;
+                }
+
+                // 当选择具体车站时，重新连接到该车站的数据库
+                RefreshDCUDataByStation(selectedStation);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("刷新数据失败：" + ex.Message);
+                ASI.Lib.Log.ErrorLog.Log("TaskDCU_StationChange", ex);
+            }
+        }
+
+        private void RefreshDCUDataByStation(string station)
+        {
+            try
+            {
+                // 获取该车站的数据库IP
+                if (!stationIPMapping.ContainsKey(station))
+                {
+                    MessageBox.Show($"未配置车站 {station} 的数据库IP地址");
+                    return;
+                }
+
+                string dbIP = stationIPMapping[station];
+
+                // 重新连接到该车站的数据库
+                InitializeDatabaseConnections(dbIP);
+
+                // 读取该车站数据库的所有DCU数据
+                string[] dcuColumnNames = { "設備ID", "面板ID", "設備狀態" };
+                var data = GetAllData("DCU", null); // 不需要筛选，读取全部
+                InitializeDataGridView(DCUdataGridView, dcuColumnNames, data);
+
+                // 调试信息：显示结果
+                ASI.Lib.Log.DebugLog.Log("TaskDCU", $"选择车站: {station}, IP: {dbIP}, 读取到 {data.Count} 条数据");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("刷新DCU数据失败：" + ex.Message);
+                ASI.Lib.Log.ErrorLog.Log("TaskDCU_RefreshData", ex);
+            }
         }
 
         #region DMD_ReceivedEvent
@@ -147,32 +258,53 @@ namespace UITest
 
         public void ReflashViewData()
         {
-            // 添加要顯示的列表
-            string[] dcuColumnNames = { "設備ID", "面板ID", "設備狀態" };
-            InitializeDataGridView(DCUdataGridView, dcuColumnNames, GetAllData("DCU"));
-
+            // 初始化 DMD 数据（使用默认连接）
             string[] dmdColumnNames = { "設備ID", "設備狀態" };
-            InitializeDataGridView(DMDdataGridView, dmdColumnNames, GetAllData("DMD"));
+            InitializeDataGridView(DMDdataGridView, dmdColumnNames, GetAllData("DMD", null));
+
+            // DCU 数据需要选择车站后才加载
+            string[] dcuColumnNames = { "設備ID", "面板ID", "設備狀態" };
+            InitializeDataGridView(DCUdataGridView, dcuColumnNames, new List<object[]>());
         }
 
-        private List<object[]> GetAllData(string type)
+        private List<object[]> GetAllData(string type, string station = null)
         {
             List<object[]> data = new List<object[]>();
-            if (type == "DCU")
+            try
             {
-                var du_list = ASI.Wanda.DCU.DB.Tables.DCU.dulist.SelectAll();
-                foreach (var list in du_list)
+                if (type == "DCU")
                 {
-                    data.Add(new object[] { list.equip_id, list.panel_id, list.status });
+                    // 读取当前连接数据库中的所有DCU数据
+                    var du_list = ASI.Wanda.DCU.DB.Tables.DCU.dulist.SelectAll();
+                    ASI.Lib.Log.DebugLog.Log("TaskDCU", $"从数据库读取到 {du_list?.Count ?? 0} 条 DCU 数据");
+
+                    if (du_list != null)
+                    {
+                        foreach (var list in du_list)
+                        {
+                            data.Add(new object[] { list.equip_id, list.panel_id, list.status });
+                        }
+                    }
+                }
+                else if (type == "DMD")
+                {
+                    // 读取当前连接数据库中的所有DMD数据
+                    var equip_status_list = ASI.Wanda.DMD.DB.Tables.System.sysEquipStatus.SelectAll();
+                    ASI.Lib.Log.DebugLog.Log("TaskDCU", $"从数据库读取到 {equip_status_list?.Count ?? 0} 条 DMD 数据");
+
+                    if (equip_status_list != null)
+                    {
+                        foreach (var equip_status in equip_status_list)
+                        {
+                            data.Add(new object[] { equip_status.equip_id, equip_status.equip_status });
+                        }
+                    }
                 }
             }
-            else if (type == "DMD")
+            catch (Exception ex)
             {
-                var equip_status_list = ASI.Wanda.DMD.DB.Tables.System.sysEquipStatus.SelectAll();
-                foreach (var equip_status in equip_status_list)
-                {
-                    data.Add(new object[] { equip_status.equip_id, equip_status.equip_status });
-                }
+                MessageBox.Show($"读取{type}数据失败：" + ex.Message);
+                ASI.Lib.Log.ErrorLog.Log("TaskDCU_GetAllData", ex);
             }
             return data;
         }

@@ -1,7 +1,31 @@
 {
   "permissions": {
     "allow": [
-      "Bash(msbuild:*)"
+      "Bash(msbuild:*)",
+      "Bash(where msbuild)",
+      "Bash(dir \"C:\\\\Program Files\\\\Microsoft Visual Studio\" /s /b)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITestUITest.csproj /p:Configuration=Debug /t:Build /v:minimal)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITest/UITest.csproj /p:Configuration=Debug /t:Build /v:minimal /nologo)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITest.csproj)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITest.csproj /t:Build /v:minimal /nologo)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITestUITest.csproj /p:Configuration=Debug /t:Build /v:minimal /nologo)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITestUITest.csproj /property:Configuration=Debug /target:Build /verbosity:minimal /nologo)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITestUITest.csproj /property:Configuration=Debug)",
+      "Bash(dir:*)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\Desktop\\\\DMDService\\\\DMD_Service\\\\UITest\\\\UITest.csproj\" /p:Configuration=Debug /t:Build /v:minimal)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\Desktop\\\\DMDService\\\\DMD_Service\\\\UITest\\\\UITest.csproj\")",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\Desktop\\\\DMDService\\\\DMD_Service\\\\UITest\\\\UITest.csproj\" /t:Clean)",
+      "Bash(taskkill:*)",
+      "Bash(tasklist:*)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\Desktop\\\\DMDService\\\\DMD_Service\\\\UITest\\\\UITest.csproj\" /p:Configuration=Debug /t:Build /v:minimal /nologo)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITest.csproj /property:Configuration=Debug /target:Build /verbosity:minimal /nologo)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" UITest.csproj /property:Configuration=Debug)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" CMFTSimulator.csproj /p:Configuration=Debug /t:Build /v:minimal /nologo)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\Desktop\\\\工具和软件\\\\DMDService\\\\CMFTSimulator\\\\CMFTSimulator.csproj\" /property:Configuration=Debug /target:Build /verbosity:minimal /nologo)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\Desktop\\\\工具和软件\\\\DMDService\\\\CMFTSimulator\\\\CMFTSimulator.csproj\")",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\Desktop\\\\工具和软件\\\\DMDService\\\\CMFTSimulator\\\\CMFTSimulatorGUI.csproj\")"
     ],
     "deny": [],
     "ask": []

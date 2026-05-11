@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DMDService is a Windows service-based system built with C# and .NET Framework 4.7.2. It implements a distributed task processing architecture where multiple task processes communicate via MSMQ (Microsoft Message Queuing).
 
+## Prerequisites
+
+- **Visual Studio 2017 or later** (or MSBuild Tools 15.0+)
+- **.NET Framework 4.7.2** SDK and targeting pack
+- **MSMQ (Microsoft Message Queuing)** must be enabled on Windows
+  - Control Panel → Programs → Turn Windows features on/off → MSMQ Server
+  - Required for inter-process communication
+
 ## Building and Running
 
 ### Build the Solution
@@ -24,6 +32,15 @@ msbuild TaskMain\TaskMain.csproj /p:Configuration=Debug
 
 ### Post-Build Deployment
 All projects have a post-build event that copies binaries to `D:\ASI.Wanda.DMD.DMDService`. Be aware that this hardcoded path may need adjustment for different development environments.
+
+### Running UITest
+UITest is a WinForms application for testing task processes:
+```bash
+# Build and run UITest from Visual Studio or
+msbuild UITest\UITest.csproj /p:Configuration=Debug
+UITest\bin\Debug\UITest.exe
+```
+UITest provides UI controls to test TaskCMFT, TaskDCU, and TaskOCS functionality.
 
 ## Architecture
 
@@ -50,6 +67,10 @@ The solution is organized into logical folders:
   - `DMD_DB`: DMD database models and tables
   - `CMFT_DB`: CMFT database models and tables
   - `DCU_DB`: DCU database models and tables
+
+- **UITest**: WinForms testing application
+  - Provides manual testing interface for TaskCMFT, TaskDCU, and TaskOCS
+  - No automated unit test framework - testing is manual via UI
 
 ### Process Communication Pattern
 
@@ -235,11 +256,31 @@ Tables inherit from `Table<T>` base class:
 - **Solution**: Override `StopTask()` to dispose resources
 - **Pattern**: Check for null, try-catch individual cleanup operations, call `base.StopTask()`
 
+## Debugging and Logging
+
+### Log Files
+- Each process writes logs via `ASI.Lib.Log` classes (`ErrorLog`, `DebugLog`, `LogFile`)
+- Logs typically written to deployment directory or configured log path
+- Check logs for process startup failures, communication errors, or exceptions
+
+### Debugging Tips
+- Use UITest application to test individual task processes without full service deployment
+- Monitor MSMQ queues in Computer Management → Services and Applications → Message Queuing
+- Process health monitoring can be temporarily disabled for debugging by adjusting timeout values
+- Socket communication can be tested independently using DMD_API and CMFT_API directly
+
+### Common Startup Issues
+- **MSMQ not available**: Ensure MSMQ feature is enabled in Windows
+- **Post-build deployment fails**: Create `D:\ASI.Wanda.DMD.DMDService` directory or modify post-build events
+- **Database connection fails**: Verify PostgreSQL connection strings in Config.xml files
+- **Process health timeout**: Processes fail if TaskMain not responding - check TaskMain logs first
+
 ## Important Notes
 
 - All namespaces use `ASI.Wanda.DMD` or `ASI.Lib` prefix
 - Task executables accept process name as command-line argument (defaults to assembly name if not provided)
 - Messages between processes must follow MSGFrameBase format for proper routing
-- Socket communication uses proprietary ByteMessage protocol with specific delimiters
+- Socket communication uses proprietary ByteMessage protocol with specific delimiters (0xAC header, 0xA9 tail)
 - Process health monitoring is critical - processes must send health messages within timeout periods
 - Post-build events copy to `D:\ASI.Wanda.DMD.DMDService` - adjust path for local environments
+- No automated unit tests exist - use UITest for manual testing

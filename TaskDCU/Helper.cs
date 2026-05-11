@@ -19,12 +19,20 @@ namespace ASI.Wanda.DMD.TaskDCU
         public const string SendParameterSetting        = "ASI.Wanda.DMD.JsonObject.DCU.FromDMD.ParameterSetting";
     }
 
-   
+
     public class DCUHelper
     {
+        private string _currentStationID;
+
         public DCUHelper()
         {
-        } 
+        }
+
+        public DCUHelper(string currentStationID)
+        {
+            _currentStationID = currentStationID;
+        }
+
         public ASI.Wanda.DMD.Message.Message Message { get; set; }
         public List <string> Stations { get; set; }
         public object HandleAckMessage(ASI.Wanda.DMD.Message.Message DMDServerMessage)
@@ -34,6 +42,44 @@ namespace ASI.Wanda.DMD.TaskDCU
             ASI.Lib.Log.DebugLog.Log("FromDMDService", sLog);
             return MSG;
         }
+
+        /// <summary>
+        /// 篩選屬於當前車站的目標設備
+        /// </summary>
+        /// <param name="targetDuList">目標設備列表 (格式: StationID_AreaID_DeviceID)</param>
+        /// <returns>篩選後屬於當前車站的設備列表</returns>
+        private List<string> FilterTargetDuForCurrentStation(List<string> targetDuList)
+        {
+            if (string.IsNullOrEmpty(_currentStationID))
+            {
+                // 如果沒有設定當前車站 ID，返回所有目標
+                ASI.Lib.Log.DebugLog.Log("DCUHelper", "未設定當前車站 ID，不進行篩選");
+                return targetDuList;
+            }
+
+            if (targetDuList == null || targetDuList.Count == 0)
+            {
+                ASI.Lib.Log.DebugLog.Log("DCUHelper", "target_du 列表為空");
+                return targetDuList;
+            }
+
+            // 篩選出屬於當前車站的設備
+            var filteredList = targetDuList
+                .Where(target => target.StartsWith(_currentStationID + "_"))
+                .ToList();
+
+            ASI.Lib.Log.DebugLog.Log("DCUHelper",
+                $"原始 target_du 數量: {targetDuList.Count}，篩選後屬於車站 [{_currentStationID}] 的數量: {filteredList.Count}");
+
+            if (filteredList.Count > 0)
+            {
+                ASI.Lib.Log.DebugLog.Log("DCUHelper",
+                    $"篩選結果: {string.Join(", ", filteredList)}");
+            }
+
+            return filteredList;
+        }
+
         #region 傳給DCU 的Method
 
         /// <summary>
@@ -53,18 +99,20 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 組合要傳送給 DCU 的新預錄訊息物件
             var sendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
 
-            // 將 oJOFromCMFT 中的 seatID, msg_id, target_du 等屬性賦值給新預錄訊息物件 
-            sendPreRecordMessage.seatID = oJOFromCMFT.seatID; 
-            sendPreRecordMessage.msg_id = oJOFromCMFT.msg_id; 
-            sendPreRecordMessage.target_du = oJOFromCMFT.target_du;  
+            // 將 oJOFromCMFT 中的 seatID, msg_id 等屬性賦值給新預錄訊息物件
+            sendPreRecordMessage.seatID = oJOFromCMFT.seatID;
+            sendPreRecordMessage.msg_id = oJOFromCMFT.msg_id;
 
-            // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容 
+            // 篩選屬於當前車站的 target_du
+            sendPreRecordMessage.target_du = FilterTargetDuForCurrentStation(oJOFromCMFT.target_du);
+
+            // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容
             var Message = new ASI.Wanda.DMD.Message.Message(
                               ASI.Wanda.DMD.Message.Message.eMessageType.Command,
                               DMDServerMessage.MessageID,
                               ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
 
-            // 紀錄將傳送的預錄訊息內容到日誌中   
+            // 紀錄將傳送的預錄訊息內容到日誌中
             ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCU", Message.JsonContent);
 
             // 傳回已建立的訊息物件
@@ -88,10 +136,12 @@ namespace ASI.Wanda.DMD.TaskDCU
             // 組合要傳送給 DCU 的新訊息物件
             var SendInstantMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendInstantMessage(ASI.Wanda.DMD.Enum.Station.OCC);
 
-            // 將 oJOFromCMFT 中的 seatID, msg_id, target_du 等屬性賦值給新訊息物件
+            // 將 oJOFromCMFT 中的 seatID, msg_id 等屬性賦值給新訊息物件
             SendInstantMessage.seatID = oJOFromCMFT.seatID;
             SendInstantMessage.msg_id = oJOFromCMFT.msg_id;
-            SendInstantMessage.target_du = oJOFromCMFT.target_du;
+
+            // 篩選屬於當前車站的 target_du
+            SendInstantMessage.target_du = FilterTargetDuForCurrentStation(oJOFromCMFT.target_du);
 
             // 建立一個新的訊息物件，指定訊息類型、訊息 ID 及序列化的訊息內容
             var MSG = new ASI.Wanda.DMD.Message.Message(

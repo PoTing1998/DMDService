@@ -20,6 +20,10 @@ namespace ASI.Wanda.DMD.TaskDCU
 
         public bool mIsConnectedToDCU = false;
         /// <summary>
+        /// 當前車站 ID
+        /// </summary>
+        private string mCurrentStationID = "";
+        /// <summary>
         /// 儲存已連接的客戶端
         /// </summary>
         private List<string> connectedClients = new List<string>();
@@ -78,6 +82,16 @@ namespace ASI.Wanda.DMD.TaskDCU
         {
             mTimerTick = 30;
             _mProcName = "TaskDCU";
+
+            // 讀取當前車站 ID
+            mCurrentStationID = ConfigApp.Instance.GetConfigSetting("STATION_ID");
+            if (string.IsNullOrEmpty(mCurrentStationID))
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, "未設定 STATION_ID，無法啟動 TaskDCU");
+                return -1;
+            }
+            ASI.Lib.Log.DebugLog.Log(_mProcName, $"當前車站 ID: {mCurrentStationID}");
+
             // DMD Database Configuration
             string sDMD_DBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
             string sDMD_DBPort = ConfigApp.Instance.GetConfigSetting("DMD_DB_Port");
@@ -109,7 +123,7 @@ namespace ASI.Wanda.DMD.TaskDCU
             catch (System.Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, $"資料庫連線失敗! Exception: {ex.Message}");
-                return -1; // 返回錯誤代碼 
+                return -1; // 返回錯誤代碼
             }
             ConnectToDCUServer();
             return base.StartTask(pComputer, pProcName);
@@ -260,7 +274,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         }
 
         /// <summary>
-        /// 處理TaskCMFT的訊息  
+        /// 處理TaskCMFT的訊息
         /// </summary>
         private int ProMsgFromCMFT(string pMessage)
         {
@@ -276,7 +290,9 @@ namespace ASI.Wanda.DMD.TaskDCU
                     string sSeatID = ASI.Lib.Text.Parsing.Json.GetValue(sJsonData, "SeatID");
                     int iMsgID = mSGFromTaskCMFT.MessageID;
                     ASI.Lib.Log.DebugLog.Log(_mProcName + " fromTaskCMFT", $"收到來自TaskCMFT的訊息，SeatID:{sSeatID}；MsgID:{iMsgID}；JsonObjectName:{sJsonObjectName}");
-                    var Helper = new DCUHelper();
+
+                    // 建立 Helper 並傳入當前車站 ID，用於篩選 target_du
+                    var Helper = new DCUHelper(mCurrentStationID);
                     var message = new object();
                     int result;
                     //回應Ack給CMFT
@@ -346,7 +362,8 @@ namespace ASI.Wanda.DMD.TaskDCU
                 {
                     string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskOCS.JsonData, "JsonObjectName");
                     ASI.Lib.Log.DebugLog.Log(_mProcName + " fromTaskOCS", $"收到來自TaskOCS的訊息，JsonObjectName:{sJsonObjectName}");
-                    var Helper = new DCUHelper();
+                    // 建立 Helper 並傳入當前車站 ID
+                    var Helper = new DCUHelper(mCurrentStationID);
                     var message = new object();
                     int result;
                     message = Helper.SendOCSMSGMSGToDCU(mSGFromTaskOCS);

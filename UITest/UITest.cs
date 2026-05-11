@@ -15,6 +15,7 @@ namespace UITest
         private TaskOCS taskOCSControl;
         private TaskCMFT taskCMFTControl;
         private TaskDCU taskDCUControl;
+        private SendToDCU sendToDCUControl;
 
         public UITest()
         {
@@ -24,9 +25,10 @@ namespace UITest
             taskOCSControl = new TaskOCS();
             taskCMFTControl = new TaskCMFT();
             taskDCUControl = new TaskDCU();
+            sendToDCUControl = new SendToDCU();
 
-            // 預設載入 TaskOCS
-            LoadUserControl(taskOCSControl);
+            // 預設載入 SendToDCU
+            LoadUserControl(sendToDCUControl);
         }
 
         private void LoadUserControl(UserControl control)
@@ -49,6 +51,11 @@ namespace UITest
         private void button3_Click(object sender, EventArgs e)
         {
             LoadUserControl(taskDCUControl);
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            LoadUserControl(sendToDCUControl);
         }
     }
 

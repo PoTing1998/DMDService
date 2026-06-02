@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using DMDService.Services.Interfaces;
+using DMDService.Services.Services;
 
 namespace UITest
 {
@@ -17,46 +19,59 @@ namespace UITest
         private TaskDCU taskDCUControl;
         private SendToDCU sendToDCUControl;
 
+        private bool[] tabLoaded = new bool[4];
+
         public UITest()
         {
             InitializeComponent();
 
-            // 初始化所有 UserControl
-            taskOCSControl = new TaskOCS();
-            taskCMFTControl = new TaskCMFT();
+            // Composition Root — DMD Services
+            IDmdConnectionService dmdConnectionService = new DmdConnectionService();
+            IDmdMessageService dmdMessageService = new DmdMessageService(dmdConnectionService);
+
+            // Composition Root — CMFT Services
+            ICmftConnectionService cmftConnectionService = new CmftConnectionService();
+            ICmftMessageService cmftMessageService = new CmftMessageService(cmftConnectionService);
+
+            // Composition Root — OCS Services
+            IOcsService ocsService = new OcsService();
+
+            taskOCSControl = new TaskOCS(ocsService);
+            taskCMFTControl = new TaskCMFT(cmftMessageService);
             taskDCUControl = new TaskDCU();
-            sendToDCUControl = new SendToDCU();
+            sendToDCUControl = new SendToDCU(dmdMessageService);
 
-            // 預設載入 SendToDCU
-            LoadUserControl(sendToDCUControl);
+            // Default: load SendToDCU tab
+            mainTabControl.SelectedTab = tabSendToDCU;
+            LoadControlIntoTab(tabSendToDCU, sendToDCUControl, 3);
         }
 
-        private void LoadUserControl(UserControl control)
+        private void LoadControlIntoTab(TabPage tab, UserControl control, int tabIndex)
         {
-            mainPanel.Controls.Clear(); // 清空現有畫面
-            control.Dock = DockStyle.Fill; // 填滿區域
-            mainPanel.Controls.Add(control); // 加入新畫面
+            if (tabLoaded[tabIndex]) return;
+
+            control.Dock = DockStyle.Fill;
+            tab.Controls.Add(control);
+            tabLoaded[tabIndex] = true;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void mainTabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
-            LoadUserControl(taskOCSControl);
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            LoadUserControl(taskCMFTControl);
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            LoadUserControl(taskDCUControl);
-        }
-
-        private void button4_Click(object sender, EventArgs e)
-        {
-            LoadUserControl(sendToDCUControl);
+            switch (mainTabControl.SelectedIndex)
+            {
+                case 0:
+                    LoadControlIntoTab(tabTaskOCS, taskOCSControl, 0);
+                    break;
+                case 1:
+                    LoadControlIntoTab(tabTaskCMFT, taskCMFTControl, 1);
+                    break;
+                case 2:
+                    LoadControlIntoTab(tabTaskDCU, taskDCUControl, 2);
+                    break;
+                case 3:
+                    LoadControlIntoTab(tabSendToDCU, sendToDCUControl, 3);
+                    break;
+            }
         }
     }
-
 }

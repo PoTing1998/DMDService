@@ -1,21 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using ASI.Wanda.DMD;
+using DMDService.Services.Interfaces;
+using DMDService.Services.Models;
 
 namespace UITest
 {
     public partial class SendToDCU : UserControl
     {
         #region Fields
-        private ASI.Wanda.DMD.DMD_API mDMD_API = null;
-        private Random random = new Random();
+        private readonly IDmdMessageService _messageService;
         private ASI.Wanda.DMD.DB.Models.dmd_instant_message currentInstantMessage = null;
         #endregion
 
@@ -24,27 +21,23 @@ namespace UITest
         {
             InitializeComponent();
             InitializeUI();
-            mDMD_API = new DMD_API();
+        }
+
+        public SendToDCU(IDmdMessageService messageService) : this()
+        {
+            _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
+            _messageService.LogMessage += AppendLog;
         }
         #endregion
 
         #region Initialize
         private void InitializeUI()
         {
-            // 設定預設值 - DMD 連線
             txtIP.Text = "127.0.0.1";
             txtPort.Text = "8001";
             cboType.Items.AddRange(new object[] { "Server", "Client" });
-            cboType.SelectedIndex = 0; // 預設 Server
+            cboType.SelectedIndex = 0;
 
-            // 設定預設值 - 資料庫連線（已在 Designer 中設定）
-            // txtDBIP.Text = "127.0.0.1";
-            // txtDBPort.Text = "5432";
-            // txtDBName.Text = "DMDDB";
-            // txtDBUserID.Text = "postgres";
-            // txtDBPassword.Text = "postgres";
-
-            // 訊息類型下拉選單
             cboMessageType.Items.AddRange(new object[] {
                 "預錄訊息 (SendPreRecordMessage)",
                 "即時訊息 (SendInstantMessage)"
@@ -52,38 +45,26 @@ namespace UITest
             cboMessageType.SelectedIndex = 0;
             cboMessageType.SelectedIndexChanged += cboMessageType_SelectedIndexChanged;
 
-            // 車站下拉選單
             cboStation.Items.AddRange(new object[] {
                 "全部", "LG01", "LG02", "LG03", "LG04", "LG05",
                 "LG06", "LG07", "LG08", "LG08A"
             });
             cboStation.SelectedIndex = 0;
 
-            // 優先等級下拉選單 (1~5)
             cboPriority.Items.AddRange(new object[] { "1", "2", "3", "4", "5" });
-            cboPriority.SelectedIndex = 2; // 預設選擇 3
+            cboPriority.SelectedIndex = 2;
 
-            // 移動速度下拉選單 (1~5)
             cboMoveSpeed.Items.AddRange(new object[] { "1", "2", "3", "4", "5" });
-            cboMoveSpeed.SelectedIndex = 2; // 預設選擇 3
+            cboMoveSpeed.SelectedIndex = 2;
 
-            // 移動方式下拉選單
             cboMoveMode.Items.AddRange(new object[] {
-                "0-立即",
-                "1-靜態",
-                "2-上移",
-                "3-下移",
-                "4-左移",
-                "5-右移",
-                "6-閃爍"
+                "0-立即", "1-靜態", "2-上移", "3-下移", "4-左移", "5-右移", "6-閃爍"
             });
-            cboMoveMode.SelectedIndex = 0; // 預設選擇 立即
+            cboMoveMode.SelectedIndex = 0;
 
-            // 初始化日誌
             txtLog.Text = "=== 發送至 DCU 日誌 ===\r\n";
             AppendLog("提示：請先點擊「連線資料庫」載入訊息");
 
-            // 初始化 ListView 列頭
             InitializeListViewColumns();
         }
 
@@ -94,297 +75,80 @@ namespace UITest
             clbTargetDU.Columns.Add("區域", 80);
             clbTargetDU.Columns.Add("設備ID", 200);
         }
-
-        private void InitializeDatabase(string dbIP, string dbPort, string dbName, string userID, string password)
-        {
-            try
-            {
-                // 初始化 DMD 資料庫連線
-                bool result = ASI.Wanda.DMD.DB.Manager.Initializer(
-                    dbIP,           // Host
-                    dbPort,         // Port
-                    dbName,         // Database
-                    userID,         // UserID
-                    password,       // Password
-                    "DMDServer"     // CurrentUserID
-                );
-
-                if (result)
-                {
-                    AppendLog($"✓ 資料庫連線成功: {dbIP}:{dbPort}/{dbName}");
-                    LoadMessageIDsFromDatabase();
-                    // 根據當前選擇的車站載入目標看板
-                    string selectedStation = cboStation.SelectedItem?.ToString();
-                    LoadTargetDUFromDatabase(selectedStation);
-                }
-                else
-                {
-                    AppendLog("✗ 資料庫連線失敗");
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"資料庫初始化錯誤: {ex.Message}");
-                ASI.Lib.Log.ErrorLog.Log("SendToDCU", ex);
-            }
-        }
-
-        private void LoadMessageIDsFromDatabase()
-        {
-            try
-            {
-                // 從資料庫讀取所有預錄訊息
-                var messages = ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage.SelectAll();
-
-                if (messages != null && messages.Count > 0)
-                {
-                    // 清空現有項目
-                    cboMessageID.Items.Clear();
-                    cboMessageIDEn.Items.Clear();
-
-                    // 設定 ComboBox 的顯示成員
-                    cboMessageID.DisplayMember = "message_content";
-                    cboMessageID.ValueMember = "message_id";
-                    cboMessageIDEn.DisplayMember = "message_content_en";
-                    cboMessageIDEn.ValueMember = "message_id";
-
-                    // 添加所有 message 物件到兩個下拉選單
-                    foreach (var message in messages)
-                    {
-                        cboMessageID.Items.Add(message);
-                        cboMessageIDEn.Items.Add(message);
-                    }
-
-                    // 預設選擇第一個
-                    if (cboMessageID.Items.Count > 0)
-                    {
-                        cboMessageID.SelectedIndex = 0;
-                        cboMessageIDEn.SelectedIndex = 0;
-                    }
-
-                    AppendLog($"✓ 已載入 {cboMessageID.Items.Count} 個訊息");
-                }
-                else
-                {
-                    // 沒有訊息時，清空下拉選單
-                    cboMessageID.Items.Clear();
-                    cboMessageIDEn.Items.Clear();
-                    AppendLog("⚠ 資料庫中沒有預錄訊息");
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"載入訊息錯誤: {ex.Message}");
-                ASI.Lib.Log.ErrorLog.Log("SendToDCU", ex);
-            }
-        }
-
-        private void LoadTargetDUFromDatabase(string stationFilter = null)
-        {
-            try
-            {
-                // 從資料庫讀取所有目標看板
-                var playlists = ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.SelectAll();
-
-                if (playlists != null && playlists.Count > 0)
-                {
-                    // 清空現有項目
-                    clbTargetDU.Items.Clear();
-
-                    // 建立分組結構：車站 → 區域 → 設備列表
-                    var groupedData = new Dictionary<string, Dictionary<string, List<string>>>();
-
-                    // 組合 station_id_area_id_device_id 格式並分組
-                    foreach (var playlist in playlists)
-                    {
-                        // 如果有車站篩選條件，則只添加符合條件的看板
-                        if (!string.IsNullOrEmpty(stationFilter))
-                        {
-                            // 特殊處理：全部
-                            if (stationFilter == "全部")
-                            {
-                                // 排除 OCC
-                                if (playlist.station_id == "OCC")
-                                {
-                                    continue; // 跳過 OCC
-                                }
-                            }
-                            else
-                            {
-                                // 檢查 station_id 是否符合篩選條件
-                                if (playlist.station_id != stationFilter)
-                                {
-                                    continue; // 跳過不符合的看板
-                                }
-                            }
-                        }
-
-                        string stationId = playlist.station_id;
-                        string areaId = playlist.area_id;
-                        string target = $"{playlist.station_id}_{playlist.area_id}_{playlist.device_id}";
-
-                        // 建立車站分組
-                        if (!groupedData.ContainsKey(stationId))
-                        {
-                            groupedData[stationId] = new Dictionary<string, List<string>>();
-                        }
-
-                        // 建立區域分組
-                        if (!groupedData[stationId].ContainsKey(areaId))
-                        {
-                            groupedData[stationId][areaId] = new List<string>();
-                        }
-
-                        // 添加設備（避免重複）
-                        if (!groupedData[stationId][areaId].Contains(target))
-                        {
-                            groupedData[stationId][areaId].Add(target);
-                        }
-                    }
-
-                    // 按照分組添加到 ListView
-                    int totalDevices = 0;
-                    foreach (var station in groupedData.OrderBy(s => s.Key))
-                    {
-                        foreach (var area in station.Value.OrderBy(a => a.Key))
-                        {
-                            // 添加設備項目（默認勾選）
-                            foreach (var device in area.Value.OrderBy(d => d))
-                            {
-                                var deviceItem = new ListViewItem(station.Key);
-                                deviceItem.SubItems.Add(area.Key);
-                                deviceItem.SubItems.Add(device);
-                                deviceItem.Tag = device; // 保存原始設備ID
-                                deviceItem.Checked = true; // 默認勾選
-                                clbTargetDU.Items.Add(deviceItem);
-                                totalDevices++;
-                            }
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(stationFilter))
-                    {
-                        AppendLog($"✓ 已載入 {totalDevices} 個目標看板 (車站: {stationFilter})");
-                    }
-                    else
-                    {
-                        AppendLog($"✓ 已載入 {totalDevices} 個目標看板");
-                    }
-                }
-                else
-                {
-                    AppendLog("⚠ 資料庫中沒有播放清單資料");
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"載入目標看板錯誤: {ex.Message}");
-                ASI.Lib.Log.ErrorLog.Log("SendToDCU", ex);
-            }
-        }
-        #endregion
-
-        #region DMD API Events
-        private void DMD_API_ReceivedEvent(ASI.Wanda.DMD.Message.Message DCUServerMessage)
-        {
-            try
-            {
-                string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-                string jsonData = DCUServerMessage.JsonContent;
-                string jsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(jsonData, "JsonObjectName");
-
-                if (DCUServerMessage.MessageType == ASI.Wanda.DMD.Message.Message.eMessageType.Ack)
-                {
-                    AppendLog($"[{timestamp}] 收到 ACK，訊息ID: {DCUServerMessage.MessageID}");
-                }
-                else if (DCUServerMessage.MessageType == ASI.Wanda.DMD.Message.Message.eMessageType.Response)
-                {
-                    AppendLog($"[{timestamp}] 收到回應: {jsonObjectName}");
-                    AppendLog($"內容: {jsonData}");
-                }
-                else if (DCUServerMessage.MessageType == ASI.Wanda.DMD.Message.Message.eMessageType.Command)
-                {
-                    AppendLog($"[{timestamp}] 收到命令: {jsonObjectName}");
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"接收訊息錯誤: {ex.Message}");
-                ASI.Lib.Log.ErrorLog.Log("SendToDCU", ex);
-            }
-        }
         #endregion
 
         #region Button Events
         private void btnConnect_Click(object sender, EventArgs e)
         {
-            try
+            if (_messageService == null) return;
+
+            int result = _messageService.Connect(txtIP.Text, txtPort.Text, cboType.Text);
+
+            if (result == 0)
             {
-                if (mDMD_API != null)
-                {
-                    mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
-                    mDMD_API.Dispose();
-                }
-
-                string connString = $"IP={txtIP.Text};Port={txtPort.Text};Type={cboType.Text}";
-                mDMD_API = new DMD_API();
-                mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;
-
-                int result = mDMD_API.Initial(connString);
-
-                if (result == 0)
-                {
-                    AppendLog($"✓ 連線成功: {connString}");
-                    btnConnect.Enabled = false;
-                    btnDisconnect.Enabled = true;
-                    btnSend.Enabled = true;
-                }
-                else
-                {
-                    AppendLog($"✗ 連線失敗，錯誤碼: {result}");
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"連線錯誤: {ex.Message}");
+                btnConnect.Enabled = false;
+                btnDisconnect.Enabled = true;
+                btnSend.Enabled = true;
             }
         }
 
         private void btnDisconnect_Click(object sender, EventArgs e)
         {
+            if (_messageService == null) return;
+
+            _messageService.Disconnect();
+            btnConnect.Enabled = true;
+            btnDisconnect.Enabled = false;
+            btnSend.Enabled = false;
+        }
+
+        private void btnConnectDB_Click(object sender, EventArgs e)
+        {
+            if (_messageService == null) return;
+
+            if (string.IsNullOrWhiteSpace(txtDBIP.Text))
+            { AppendLog("錯誤：請輸入資料庫 IP"); return; }
+            if (string.IsNullOrWhiteSpace(txtDBPort.Text))
+            { AppendLog("錯誤：請輸入資料庫 Port"); return; }
+            if (string.IsNullOrWhiteSpace(txtDBName.Text))
+            { AppendLog("錯誤：請輸入資料庫名稱"); return; }
+            if (string.IsNullOrWhiteSpace(txtDBUserID.Text))
+            { AppendLog("錯誤：請輸入使用者帳號"); return; }
+
             try
             {
-                if (mDMD_API != null)
-                {
-                    mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
-                    mDMD_API.Dispose();
-                    mDMD_API = null;
-                }
+                AppendLog($"正在連線至資料庫 {txtDBIP.Text}:{txtDBPort.Text}/{txtDBName.Text}...");
 
-                AppendLog("✓ 已斷開連線");
-                btnConnect.Enabled = true;
-                btnDisconnect.Enabled = false;
-                btnSend.Enabled = false;
+                bool success = _messageService.InitializeDatabase(
+                    txtDBIP.Text, txtDBPort.Text, txtDBName.Text,
+                    txtDBUserID.Text, txtDBPassword.Text);
+
+                if (success)
+                {
+                    LoadPreRecordMessages();
+                    string selectedStation = cboStation.SelectedItem?.ToString();
+                    LoadTargetDevices(selectedStation);
+                }
             }
             catch (Exception ex)
             {
-                AppendLog($"斷線錯誤: {ex.Message}");
+                AppendLog($"連線資料庫錯誤: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log("SendToDCU", ex);
             }
         }
 
         private void btnSend_Click(object sender, EventArgs e)
         {
+            if (_messageService == null) return;
+
             try
             {
                 int messageType = cboMessageType.SelectedIndex;
-
                 switch (messageType)
                 {
-                    case 0: SendPreRecordMessage(); break;
-                    case 1: SendInstantMessage(); break;
-                    default:
-                        AppendLog("請選擇訊息類型");
-                        break;
+                    case 0: DoSendPreRecordMessage(); break;
+                    case 1: DoSendInstantMessage(); break;
+                    default: AppendLog("請選擇訊息類型"); break;
                 }
             }
             catch (Exception ex)
@@ -403,19 +167,23 @@ namespace UITest
         {
             try
             {
-                // 創建 SaveFileDialog
                 using (SaveFileDialog saveFileDialog = new SaveFileDialog())
                 {
-                    saveFileDialog.Filter = "文本文件 (*.txt)|*.txt|所有文件 (*.*)|*.*";
+                    saveFileDialog.Filter = "文本文件 (*.txt)|*.txt|Excel CSV (*.csv)|*.csv|所有文件 (*.*)|*.*";
                     saveFileDialog.Title = "匯出 DCU 日誌";
-                    saveFileDialog.FileName = $"DCU_Log_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+                    saveFileDialog.FileName = $"DCU_Log_{DateTime.Now:yyyyMMdd_HHmmss}";
 
                     if (saveFileDialog.ShowDialog() == DialogResult.OK)
                     {
-                        // 寫入日誌內容到檔案
-                        System.IO.File.WriteAllText(saveFileDialog.FileName, txtLog.Text, Encoding.UTF8);
-                        AppendLog($"✓ 日誌已匯出至: {saveFileDialog.FileName}");
-                        MessageBox.Show($"日誌已成功匯出至:\n{saveFileDialog.FileName}", "匯出成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        string filePath = saveFileDialog.FileName;
+
+                        if (filePath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                            ExportLogToCsv(filePath);
+                        else
+                            System.IO.File.WriteAllText(filePath, txtLog.Text, Encoding.UTF8);
+
+                        AppendLog($"✓ 日誌已匯出至: {filePath}");
+                        MessageBox.Show($"日誌已成功匯出至:\n{filePath}", "匯出成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
@@ -430,100 +198,35 @@ namespace UITest
         private void btnRefreshMessageID_Click(object sender, EventArgs e)
         {
             AppendLog("正在重新載入訊息...");
-
-            int messageType = cboMessageType.SelectedIndex;
-
-            if (messageType == 0) // 預錄訊息
-            {
-                LoadMessageIDsFromDatabase();
-            }
-            else if (messageType == 1) // 即時訊息
-            {
-                LoadInstantMessageIDsFromDatabase();
-            }
-        }
-
-        private void btnConnectDB_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                // 驗證輸入
-                if (string.IsNullOrWhiteSpace(txtDBIP.Text))
-                {
-                    AppendLog("錯誤：請輸入資料庫 IP");
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(txtDBPort.Text))
-                {
-                    AppendLog("錯誤：請輸入資料庫 Port");
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(txtDBName.Text))
-                {
-                    AppendLog("錯誤：請輸入資料庫名稱");
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(txtDBUserID.Text))
-                {
-                    AppendLog("錯誤：請輸入使用者帳號");
-                    return;
-                }
-
-                // 連線資料庫
-                AppendLog($"正在連線至資料庫 {txtDBIP.Text}:{txtDBPort.Text}/{txtDBName.Text}...");
-
-                InitializeDatabase(
-                    txtDBIP.Text,
-                    txtDBPort.Text,
-                    txtDBName.Text,
-                    txtDBUserID.Text,
-                    txtDBPassword.Text
-                );
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"連線資料庫錯誤: {ex.Message}");
-                ASI.Lib.Log.ErrorLog.Log("SendToDCU", ex);
-            }
+            if (cboMessageType.SelectedIndex == 0)
+                LoadPreRecordMessages();
+            else if (cboMessageType.SelectedIndex == 1)
+                LoadInstantMessages();
         }
 
         private void btnRefreshTargetDU_Click(object sender, EventArgs e)
         {
             AppendLog("正在重新載入目標看板...");
-            // 根據當前選擇的車站進行篩選
             string selectedStation = cboStation.SelectedItem?.ToString();
-            LoadTargetDUFromDatabase(selectedStation);
+            LoadTargetDevices(selectedStation);
         }
 
         private void cboStation_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // 當車站選擇變更時，自動篩選目標看板
             string selectedStation = cboStation.SelectedItem?.ToString();
             if (!string.IsNullOrEmpty(selectedStation))
-            {
-                LoadTargetDUFromDatabase(selectedStation);
-            }
+                LoadTargetDevices(selectedStation);
         }
 
         private void cboMessageType_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // 當訊息類型變更時，載入對應的訊息列表
             int messageType = cboMessageType.SelectedIndex;
-
-            if (messageType == 0) // 預錄訊息
-            {
-                LoadMessageIDsFromDatabase();
-            }
-            else if (messageType == 1) // 即時訊息
-            {
-                LoadInstantMessageIDsFromDatabase();
-            }
+            if (messageType == 0)
+                LoadPreRecordMessages();
+            else if (messageType == 1)
+                LoadInstantMessages();
             else
             {
-                // 其他類型清空訊息列表
                 cboMessageID.Items.Clear();
                 cboMessageIDEn.Items.Clear();
             }
@@ -531,163 +234,150 @@ namespace UITest
         #endregion
 
         #region Send Methods
-        private void SendPreRecordMessage()
+        private void DoSendPreRecordMessage()
         {
-            var stationEnum = GetStationEnum(cboStation.Text);
-            var jsonObject = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage(stationEnum);
+            if (cboMessageID.SelectedItem == null)
+            { AppendLog("錯誤：請選擇訊息"); return; }
 
-            jsonObject.seatID = txtSeatID.Text;
+            var selectedMessage = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_pre_record_message;
+            if (selectedMessage == null)
+            { AppendLog("錯誤：選中的訊息格式不正確"); return; }
 
-            // 從 ComboBox 取得選中的訊息物件並取得 message_id
-            if (cboMessageID.SelectedItem != null)
-            {
-                var selectedMessage = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_pre_record_message;
-                if (selectedMessage != null)
-                {
-                    jsonObject.msg_id = new List<string> { selectedMessage.message_id.ToString() };
-                }
-                else
-                {
-                    AppendLog("錯誤：選中的訊息格式不正確");
-                    return;
-                }
-            }
-            else
-            {
-                AppendLog("錯誤：請選擇訊息");
-                return;
-            }
-
-            // 從 CheckedListBox 取得勾選的目標看板
             var checkedTargets = GetCheckedTargetDU();
             if (checkedTargets.Count == 0)
-            {
-                AppendLog("錯誤：請至少勾選一個目標看板");
-                return;
-            }
-            jsonObject.target_du = checkedTargets;
+            { AppendLog("錯誤：請至少勾選一個目標看板"); return; }
 
-            // 設定訊息參數
-            jsonObject.message_priority = int.Parse(cboPriority.SelectedItem.ToString());
-            jsonObject.move_speed = int.Parse(cboMoveSpeed.SelectedItem.ToString());
-            // 從 "0-立即" 格式中提取數字
             string moveModeText = cboMoveMode.SelectedItem.ToString();
-            jsonObject.move_mode = int.Parse(moveModeText.Split('-')[0]);
+            int moveMode = int.Parse(moveModeText.Split('-')[0]);
 
-            var message = CreateMessage(jsonObject);
-            SendMessage(message, "預錄訊息");
+            _messageService.SendPreRecordMessage(
+                txtSeatID.Text, cboStation.Text,
+                selectedMessage.message_id.ToString(),
+                checkedTargets,
+                int.Parse(cboPriority.SelectedItem.ToString()),
+                int.Parse(cboMoveSpeed.SelectedItem.ToString()),
+                moveMode);
         }
 
-        private void SendInstantMessage()
+        private void DoSendInstantMessage()
         {
-            var stationEnum = GetStationEnum(cboStation.Text);
-            var jsonObject = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendInstantMessage(stationEnum);
+            if (cboMessageID.SelectedItem == null)
+            { AppendLog("錯誤：請選擇訊息"); return; }
 
-            jsonObject.seatID = txtSeatID.Text;
+            var selectedMessage = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_instant_message;
+            if (selectedMessage == null)
+            { AppendLog("錯誤：選中的訊息格式不正確"); return; }
 
-            // 從 ComboBox 取得選中的訊息物件並取得 message_id
-            if (cboMessageID.SelectedItem != null)
-            {
-                // 即時訊息使用 dmd_instant_message 類型
-                var selectedMessage = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_instant_message;
-                if (selectedMessage != null)
-                {
-                    jsonObject.msg_id = selectedMessage.message_id.ToString();
-                }
-                else
-                {
-                    AppendLog("錯誤：選中的訊息格式不正確");
-                    return;
-                }
-            }
-            else
-            {
-                AppendLog("錯誤：請選擇訊息");
-                return;
-            }
-
-            // 從 CheckedListBox 取得勾選的目標看板
             var checkedTargets = GetCheckedTargetDU();
             if (checkedTargets.Count == 0)
-            {
-                AppendLog("錯誤：請至少勾選一個目標看板");
-                return;
-            }
-            jsonObject.target_du = checkedTargets;
+            { AppendLog("錯誤：請至少勾選一個目標看板"); return; }
 
-            // 設定訊息參數
-            jsonObject.message_priority = int.Parse(cboPriority.SelectedItem.ToString());
-            jsonObject.move_speed = int.Parse(cboMoveSpeed.SelectedItem.ToString());
-            // 從 "0-立即" 格式中提取數字
             string moveModeText = cboMoveMode.SelectedItem.ToString();
-            jsonObject.move_mode = int.Parse(moveModeText.Split('-')[0]);
+            int moveMode = int.Parse(moveModeText.Split('-')[0]);
 
-            var message = CreateMessage(jsonObject);
-            SendMessage(message, "即時訊息");
+            _messageService.SendInstantMessage(
+                txtSeatID.Text, cboStation.Text,
+                selectedMessage.message_id.ToString(),
+                checkedTargets,
+                int.Parse(cboPriority.SelectedItem.ToString()),
+                int.Parse(cboMoveSpeed.SelectedItem.ToString()),
+                moveMode);
         }
+        #endregion
 
-        private void SendPowerTimeSetting()
+        #region Data Loading (UI population from Service)
+        private void LoadPreRecordMessages()
         {
-            var stationEnum = GetStationEnum(cboStation.Text);
-            var jsonObject = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PowerTimeSetting(stationEnum);
+            if (_messageService == null) return;
 
-            jsonObject.seatID = txtSeatID.Text;
-            jsonObject.SqlCommand = ASI.Wanda.DMD.Enum.SqlCommand.update;
+            var messages = _messageService.GetPreRecordMessages();
 
-            var message = CreateMessage(jsonObject);
-            SendMessage(message, "電源設定");
-        }
+            cboMessageID.Items.Clear();
+            cboMessageIDEn.Items.Clear();
+            cboMessageID.DisplayMember = "message_content";
+            cboMessageID.ValueMember = "message_id";
+            cboMessageIDEn.DisplayMember = "message_content_en";
+            cboMessageIDEn.ValueMember = "message_id";
 
-        private void SendTrainMessage()
-        {
-            var stationEnum = GetStationEnum(cboStation.Text);
-            var jsonObject = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.TrainMSG(stationEnum);
-
-            // Platform_id 是 int 類型，需要轉換
-            if (cboMessageID.SelectedItem != null && int.TryParse(cboMessageID.SelectedItem.ToString(), out int platformId))
+            if (messages.Count > 0)
             {
-                jsonObject.Platform_id = platformId;
+                foreach (var message in messages)
+                {
+                    cboMessageID.Items.Add(message);
+                    cboMessageIDEn.Items.Add(message);
+                }
+                cboMessageID.SelectedIndex = 0;
+                cboMessageIDEn.SelectedIndex = 0;
+                AppendLog($"✓ 已載入 {messages.Count} 個訊息");
             }
             else
             {
-                AppendLog("錯誤：請選擇有效的數字訊息ID");
-                return;
+                AppendLog("⚠ 資料庫中沒有預錄訊息");
             }
-
-            jsonObject.Type = "Train";
-            jsonObject.Command = "Update";
-
-            var message = CreateMessage(jsonObject);
-            SendMessage(message, "列車訊息");
         }
 
-        private void SendScheduleSetting()
+        private void LoadInstantMessages()
         {
-            // ScheduleSetting 類別不存在，使用 PowerTimeSetting 代替
-            var stationEnum = GetStationEnum(cboStation.Text);
-            var jsonObject = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.PowerTimeSetting(stationEnum);
+            if (_messageService == null) return;
 
-            jsonObject.seatID = txtSeatID.Text;
-            jsonObject.SqlCommand = ASI.Wanda.DMD.Enum.SqlCommand.update;
+            var messages = _messageService.GetInstantMessages();
 
-            var message = CreateMessage(jsonObject);
-            SendMessage(message, "排程設定 (使用 PowerTimeSetting)");
+            cboMessageID.Items.Clear();
+            cboMessageIDEn.Items.Clear();
+            cboMessageID.DisplayMember = "message_content";
+            cboMessageID.ValueMember = "message_id";
+            cboMessageIDEn.DisplayMember = "message_content_en";
+            cboMessageIDEn.ValueMember = "message_id";
+
+            if (messages.Count > 0)
+            {
+                foreach (var message in messages)
+                {
+                    cboMessageID.Items.Add(message);
+                    cboMessageIDEn.Items.Add(message);
+                }
+                cboMessageID.SelectedIndex = 0;
+                cboMessageIDEn.SelectedIndex = 0;
+                AppendLog($"✓ 已載入 {messages.Count} 個即時訊息");
+            }
+            else
+            {
+                AppendLog("⚠ 資料庫中沒有即時訊息");
+            }
+        }
+
+        private void LoadTargetDevices(string stationFilter)
+        {
+            if (_messageService == null) return;
+
+            var devices = _messageService.GetTargetDevices(stationFilter);
+            clbTargetDU.Items.Clear();
+
+            foreach (var device in devices)
+            {
+                var item = new ListViewItem(device.StationId);
+                item.SubItems.Add(device.AreaId);
+                item.SubItems.Add(device.ToTargetString());
+                item.Tag = device.ToTargetString();
+                item.Checked = true;
+                clbTargetDU.Items.Add(item);
+            }
+
+            if (!string.IsNullOrEmpty(stationFilter))
+                AppendLog($"✓ 已載入 {devices.Count} 個目標看板 (車站: {stationFilter})");
+            else
+                AppendLog($"✓ 已載入 {devices.Count} 個目標看板");
         }
         #endregion
 
         #region ListView Events
         private void clbTargetDU_ItemCheck(object sender, ItemCheckEventArgs e)
         {
-            // 防止車站和區域標題被勾選
             if (e.Index >= 0 && e.Index < clbTargetDU.Items.Count)
             {
                 ListViewItem item = clbTargetDU.Items[e.Index];
-
-                // 如果是標題行，則取消勾選操作
                 if (item.Tag != null && item.Tag.ToString() == "header")
-                {
                     e.NewValue = CheckState.Unchecked;
-                }
             }
         }
         #endregion
@@ -696,74 +386,12 @@ namespace UITest
         private List<string> GetCheckedTargetDU()
         {
             var checkedTargets = new List<string>();
-
             foreach (ListViewItem item in clbTargetDU.Items)
             {
-                // 只處理設備項（非標題行）且已勾選
                 if (item.Tag != null && item.Tag.ToString() != "header" && item.Checked)
-                {
-                    // Tag 中保存了原始設備 ID
                     checkedTargets.Add(item.Tag.ToString());
-                }
             }
-
             return checkedTargets;
-        }
-
-        private ASI.Wanda.DMD.Message.Message CreateMessage(object jsonObject)
-        {
-            string jsonContent = ASI.Lib.Text.Parsing.Json.SerializeObject(jsonObject);
-            int messageId = random.Next(1, 100000);
-
-            return new ASI.Wanda.DMD.Message.Message(
-                ASI.Wanda.DMD.Message.Message.eMessageType.Command,
-                messageId,
-                jsonContent
-            );
-        }
-
-        private void SendMessage(ASI.Wanda.DMD.Message.Message message, string messageTypeName)
-        {
-            if (mDMD_API == null)
-            {
-                AppendLog("✗ 尚未連線");
-                return;
-            }
-
-            int result = mDMD_API.Send(message);
-            string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-
-            if (result == 0)
-            {
-                AppendLog($"[{timestamp}] ✓ 發送成功: {messageTypeName}");
-                AppendLog($"訊息ID: {message.MessageID}");
-                AppendLog($"內容: {message.JsonContent}");
-                AppendLog("---");
-                ASI.Lib.Log.DebugLog.Log("SendToDCU", $"{messageTypeName}: {message.JsonContent}");
-            }
-            else
-            {
-                AppendLog($"[{timestamp}] ✗ 發送失敗，錯誤碼: {result}");
-            }
-        }
-
-        private ASI.Wanda.DMD.Enum.Station GetStationEnum(string stationText)
-        {
-            switch (stationText)
-            {
-                case "OCC": return ASI.Wanda.DMD.Enum.Station.OCC;
-                case "LG01": return ASI.Wanda.DMD.Enum.Station.LG01;
-                case "LG02": return ASI.Wanda.DMD.Enum.Station.LG02;
-                case "LG03": return ASI.Wanda.DMD.Enum.Station.LG03;
-                case "LG04": return ASI.Wanda.DMD.Enum.Station.LG04;
-                case "LG05": return ASI.Wanda.DMD.Enum.Station.LG05;
-                case "LG06": return ASI.Wanda.DMD.Enum.Station.LG06;
-                case "LG07": return ASI.Wanda.DMD.Enum.Station.LG07;
-                case "LG08": return ASI.Wanda.DMD.Enum.Station.LG08;
-                case "LG08A": return ASI.Wanda.DMD.Enum.Station.LG08A;
-
-                default: return ASI.Wanda.DMD.Enum.Station.OCC;
-            }
         }
 
         private void AppendLog(string message)
@@ -780,68 +408,67 @@ namespace UITest
             }
         }
 
+        private void ExportLogToCsv(string filePath)
+        {
+            var lines = txtLog.Text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            var sb = new StringBuilder();
+            sb.AppendLine("行號,時間,內容");
+
+            int lineNum = 1;
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                string time = "";
+                string content = line;
+
+                int bracketStart = line.IndexOf('[');
+                int bracketEnd = line.IndexOf(']');
+                if (bracketStart >= 0 && bracketEnd > bracketStart)
+                {
+                    time = line.Substring(bracketStart + 1, bracketEnd - bracketStart - 1);
+                    content = line.Substring(bracketEnd + 1).TrimStart();
+                }
+
+                string escapedContent = content.Replace("\"", "\"\"");
+                sb.AppendLine($"{lineNum},\"{time}\",\"{escapedContent}\"");
+                lineNum++;
+            }
+
+            System.IO.File.WriteAllText(filePath, sb.ToString(), new UTF8Encoding(true));
+        }
+
         public void CloseConnection()
         {
-            if (mDMD_API != null)
-            {
-                mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
-                mDMD_API.Dispose();
-            }
+            _messageService?.Disconnect();
         }
         #endregion
 
         #region Instant Message Methods
         private void btnLoadInstantMessage_Click(object sender, EventArgs e)
         {
+            if (_messageService == null) return;
+
             try
             {
-                // 確認當前訊息類型是否為即時訊息
                 if (cboMessageType.SelectedIndex != 1)
-                {
-                    AppendLog("請先選擇「即時訊息 (SendInstantMessage)」類型");
-                    return;
-                }
+                { AppendLog("請先選擇「即時訊息 (SendInstantMessage)」類型"); return; }
 
-                // 檢查是否有選擇訊息
                 if (cboMessageID.SelectedItem == null)
-                {
-                    AppendLog("請先選擇一個即時訊息");
-                    return;
-                }
+                { AppendLog("請先選擇一個即時訊息"); return; }
 
-                // 從 ComboBox 取得選中的訊息 ID
                 string selectedMessageId = null;
-
-                // 根據當前資料來源判斷類型
-                if (cboMessageID.SelectedItem is ASI.Wanda.DMD.DB.Models.dmd_instant_message)
-                {
-                    var instantMsg = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_instant_message;
+                if (cboMessageID.SelectedItem is ASI.Wanda.DMD.DB.Models.dmd_instant_message instantMsg)
                     selectedMessageId = instantMsg.message_id.ToString();
-                }
-                else if (cboMessageID.SelectedItem is ASI.Wanda.DMD.DB.Models.dmd_pre_record_message)
-                {
-                    var preRecordMsg = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_pre_record_message;
+                else if (cboMessageID.SelectedItem is ASI.Wanda.DMD.DB.Models.dmd_pre_record_message preRecordMsg)
                     selectedMessageId = preRecordMsg.message_id.ToString();
-                }
-                else
-                {
-                    AppendLog("錯誤：無法識別的訊息類型");
-                    return;
-                }
 
                 if (string.IsNullOrEmpty(selectedMessageId))
-                {
-                    AppendLog("錯誤：無法取得訊息 ID");
-                    return;
-                }
+                { AppendLog("錯誤：無法取得訊息 ID"); return; }
 
-                // 從資料庫載入即時訊息
-                var instantMessages = ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.SelectAll();
-                currentInstantMessage = instantMessages.FirstOrDefault(m => m.message_id.ToString() == selectedMessageId);
+                currentInstantMessage = _messageService.GetInstantMessage(selectedMessageId);
 
                 if (currentInstantMessage != null)
                 {
-                    // 顯示訊息內容到 TextBox
                     txtInstantMessageCHN.Text = currentInstantMessage.message_content ?? "";
                     txtInstantMessageENG.Text = currentInstantMessage.message_content_en ?? "";
                     AppendLog($"✓ 已載入即時訊息 ID: {selectedMessageId}");
@@ -862,42 +489,24 @@ namespace UITest
 
         private void btnSaveInstantMessage_Click(object sender, EventArgs e)
         {
+            if (_messageService == null) return;
+
             try
             {
                 if (currentInstantMessage == null)
-                {
-                    AppendLog("錯誤：請先載入一個即時訊息");
-                    return;
-                }
+                { AppendLog("錯誤：請先載入一個即時訊息"); return; }
 
-                // 更新訊息內容
                 currentInstantMessage.message_content = txtInstantMessageCHN.Text;
                 currentInstantMessage.message_content_en = txtInstantMessageENG.Text;
 
-                // 更新資料庫
-                ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.UpdateInstantMessages(
-                    currentInstantMessage.message_id,
-                    currentInstantMessage.message_type,
-                    currentInstantMessage.message_priority,
-                    currentInstantMessage.move_mode,
-                    currentInstantMessage.move_speed,
-                    currentInstantMessage.Interval,
-                    currentInstantMessage.message_content,
-                    currentInstantMessage.font_type,
-                    currentInstantMessage.font_size,
-                    currentInstantMessage.font_color,
-                    currentInstantMessage.message_content_en,
-                    currentInstantMessage.font_type_en,
-                    currentInstantMessage.font_size_en,
-                    currentInstantMessage.font_color_en
-                );
+                bool success = _messageService.SaveInstantMessage(currentInstantMessage);
 
-                AppendLog($"✓ 即時訊息已更新 ID: {currentInstantMessage.message_id}");
-                AppendLog($"  中文: {currentInstantMessage.message_content}");
-                AppendLog($"  英文: {currentInstantMessage.message_content_en}");
-
-                // 重新載入訊息列表以更新顯示
-                LoadInstantMessageIDsFromDatabase();
+                if (success)
+                {
+                    AppendLog($"  中文: {currentInstantMessage.message_content}");
+                    AppendLog($"  英文: {currentInstantMessage.message_content_en}");
+                    LoadInstantMessages();
+                }
             }
             catch (Exception ex)
             {
@@ -906,57 +515,7 @@ namespace UITest
             }
         }
 
-        private void LoadInstantMessageIDsFromDatabase()
-        {
-            try
-            {
-                // 從資料庫讀取所有即時訊息
-                var messages = ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.SelectAll();
-
-                if (messages != null && messages.Count > 0)
-                {
-                    // 清空現有項目
-                    cboMessageID.Items.Clear();
-                    cboMessageIDEn.Items.Clear();
-
-                    // 設定 ComboBox 的顯示成員
-                    cboMessageID.DisplayMember = "message_content";
-                    cboMessageID.ValueMember = "message_id";
-                    cboMessageIDEn.DisplayMember = "message_content_en";
-                    cboMessageIDEn.ValueMember = "message_id";
-
-                    // 添加所有 message 物件到兩個下拉選單
-                    foreach (var message in messages)
-                    {
-                        cboMessageID.Items.Add(message);
-                        cboMessageIDEn.Items.Add(message);
-                    }
-
-                    // 預設選擇第一個
-                    if (cboMessageID.Items.Count > 0)
-                    {
-                        cboMessageID.SelectedIndex = 0;
-                        cboMessageIDEn.SelectedIndex = 0;
-                    }
-
-                    AppendLog($"✓ 已載入 {cboMessageID.Items.Count} 個即時訊息");
-                }
-                else
-                {
-                    // 沒有訊息時，清空下拉選單
-                    cboMessageID.Items.Clear();
-                    cboMessageIDEn.Items.Clear();
-                    AppendLog("⚠ 資料庫中沒有即時訊息");
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendLog($"載入即時訊息錯誤: {ex.Message}");
-                ASI.Lib.Log.ErrorLog.Log("SendToDCU", ex);
-            }
-        }
-
-        private bool isUpdatingSelection = false; // 防止循環觸發
+        private bool isUpdatingSelection = false;
 
         private void cboMessageID_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -964,12 +523,8 @@ namespace UITest
             {
                 isUpdatingSelection = true;
                 if (cboMessageIDEn.Items.Count > cboMessageID.SelectedIndex)
-                {
                     cboMessageIDEn.SelectedIndex = cboMessageID.SelectedIndex;
-                }
                 isUpdatingSelection = false;
-
-                // 載入訊息的參數值到 UI 控制項
                 LoadMessageParameters();
             }
         }
@@ -980,75 +535,36 @@ namespace UITest
             {
                 isUpdatingSelection = true;
                 if (cboMessageID.Items.Count > cboMessageIDEn.SelectedIndex)
-                {
                     cboMessageID.SelectedIndex = cboMessageIDEn.SelectedIndex;
-                }
                 isUpdatingSelection = false;
-
-                // 載入訊息的參數值到 UI 控制項
                 LoadMessageParameters();
             }
         }
 
-        /// <summary>
-        /// 從選中的訊息載入參數值到 UI 控制項
-        /// </summary>
         private void LoadMessageParameters()
         {
+            if (cboMessageID.SelectedItem == null) return;
+
             try
             {
-                if (cboMessageID.SelectedItem == null)
-                    return;
+                int priority = -1, moveSpeed = -1, moveMode = -1;
 
-                // 根據訊息類型讀取對應的參數
-                if (cboMessageType.SelectedIndex == 0) // 預錄訊息
+                if (cboMessageType.SelectedIndex == 0)
                 {
-                    var selectedMessage = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_pre_record_message;
-                    if (selectedMessage != null)
-                    {
-                        // 設定優先等級 (1-5)
-                        if (selectedMessage.message_priority >= 1 && selectedMessage.message_priority <= 5)
-                        {
-                            cboPriority.SelectedIndex = selectedMessage.message_priority - 1;
-                        }
-
-                        // 設定移動速度 (1-5)
-                        if (selectedMessage.move_speed >= 1 && selectedMessage.move_speed <= 5)
-                        {
-                            cboMoveSpeed.SelectedIndex = selectedMessage.move_speed - 1;
-                        }
-
-                        // 設定移動方式 (0-6)
-                        if (selectedMessage.move_mode >= 0 && selectedMessage.move_mode <= 6)
-                        {
-                            cboMoveMode.SelectedIndex = selectedMessage.move_mode;
-                        }
-                    }
+                    var msg = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_pre_record_message;
+                    if (msg != null)
+                    { priority = msg.message_priority; moveSpeed = msg.move_speed; moveMode = msg.move_mode; }
                 }
-                else if (cboMessageType.SelectedIndex == 1) // 即時訊息
+                else if (cboMessageType.SelectedIndex == 1)
                 {
-                    var selectedMessage = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_instant_message;
-                    if (selectedMessage != null)
-                    {
-                        // 設定優先等級 (1-5)
-                        if (selectedMessage.message_priority >= 1 && selectedMessage.message_priority <= 5)
-                        {
-                            cboPriority.SelectedIndex = selectedMessage.message_priority - 1;
-                        }
-
-                        // 設定移動速度 (1-5)
-                        if (selectedMessage.move_speed >= 1 && selectedMessage.move_speed <= 5)
-                        {
-                            cboMoveSpeed.SelectedIndex = selectedMessage.move_speed - 1;
-                        }
-
-                        // 設定移動方式 (0-6)
-                        if (selectedMessage.move_mode >= 0 && selectedMessage.move_mode <= 6)
-                        {
-                            cboMoveMode.SelectedIndex = selectedMessage.move_mode;
-                        }
-                    }
+                    var msg = cboMessageID.SelectedItem as ASI.Wanda.DMD.DB.Models.dmd_instant_message;
+                    if (msg != null)
+                    { priority = msg.message_priority; moveSpeed = msg.move_speed; moveMode = msg.move_mode; }
                 }
+
+                if (priority >= 1 && priority <= 5) cboPriority.SelectedIndex = priority - 1;
+                if (moveSpeed >= 1 && moveSpeed <= 5) cboMoveSpeed.SelectedIndex = moveSpeed - 1;
+                if (moveMode >= 0 && moveMode <= 6) cboMoveMode.SelectedIndex = moveMode;
             }
             catch (Exception ex)
             {

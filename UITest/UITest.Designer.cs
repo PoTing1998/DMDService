@@ -1,4 +1,4 @@
-﻿namespace UITest
+namespace UITest
 {
     partial class UITest
     {
@@ -28,82 +28,89 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.mainPanel = new System.Windows.Forms.Panel();
-            this.button1 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
-            this.button3 = new System.Windows.Forms.Button();
-            this.button4 = new System.Windows.Forms.Button();
+            this.mainTabControl = new System.Windows.Forms.TabControl();
+            this.tabTaskOCS = new System.Windows.Forms.TabPage();
+            this.tabTaskCMFT = new System.Windows.Forms.TabPage();
+            this.tabTaskDCU = new System.Windows.Forms.TabPage();
+            this.tabSendToDCU = new System.Windows.Forms.TabPage();
+            this.mainTabControl.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // mainPanel
-            // 
-            this.mainPanel.Location = new System.Drawing.Point(12, 50);
-            this.mainPanel.Name = "mainPanel";
-            this.mainPanel.Size = new System.Drawing.Size(1304, 818);
-            this.mainPanel.TabIndex = 0;
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(12, 12);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(100, 30);
-            this.button1.TabIndex = 1;
-            this.button1.Text = "TaskOCS";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
-            // 
-            // button2
-            // 
-            this.button2.Location = new System.Drawing.Point(118, 12);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(100, 30);
-            this.button2.TabIndex = 2;
-            this.button2.Text = "TaskCMFT";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
-            // 
-            // button3
-            // 
-            this.button3.Location = new System.Drawing.Point(224, 12);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(100, 30);
-            this.button3.TabIndex = 3;
-            this.button3.Text = "TaskDCU";
-            this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += new System.EventHandler(this.button3_Click);
-            // 
-            // button4
             //
-            this.button4.Location = new System.Drawing.Point(330, 12);
-            this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(160, 30);
-            this.button4.TabIndex = 4;
-            this.button4.Text = "Connet_To_DCU_SERVER";
-            this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.button4_Click);
-            // 
+            // mainTabControl
+            //
+            this.mainTabControl.Controls.Add(this.tabTaskOCS);
+            this.mainTabControl.Controls.Add(this.tabTaskCMFT);
+            this.mainTabControl.Controls.Add(this.tabTaskDCU);
+            this.mainTabControl.Controls.Add(this.tabSendToDCU);
+            this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mainTabControl.Font = new System.Drawing.Font("Microsoft JhengHei", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.mainTabControl.ItemSize = new System.Drawing.Size(120, 28);
+            this.mainTabControl.Location = new System.Drawing.Point(0, 0);
+            this.mainTabControl.Name = "mainTabControl";
+            this.mainTabControl.Padding = new System.Drawing.Point(12, 4);
+            this.mainTabControl.SelectedIndex = 0;
+            this.mainTabControl.Size = new System.Drawing.Size(1328, 880);
+            this.mainTabControl.TabIndex = 0;
+            this.mainTabControl.SelectedIndexChanged += new System.EventHandler(this.mainTabControl_SelectedIndexChanged);
+            //
+            // tabTaskOCS
+            //
+            this.tabTaskOCS.Location = new System.Drawing.Point(4, 32);
+            this.tabTaskOCS.Name = "tabTaskOCS";
+            this.tabTaskOCS.Padding = new System.Windows.Forms.Padding(3);
+            this.tabTaskOCS.Size = new System.Drawing.Size(1320, 844);
+            this.tabTaskOCS.TabIndex = 0;
+            this.tabTaskOCS.Text = "Task OCS";
+            this.tabTaskOCS.UseVisualStyleBackColor = true;
+            //
+            // tabTaskCMFT
+            //
+            this.tabTaskCMFT.Location = new System.Drawing.Point(4, 32);
+            this.tabTaskCMFT.Name = "tabTaskCMFT";
+            this.tabTaskCMFT.Padding = new System.Windows.Forms.Padding(3);
+            this.tabTaskCMFT.Size = new System.Drawing.Size(1320, 844);
+            this.tabTaskCMFT.TabIndex = 1;
+            this.tabTaskCMFT.Text = "Task CMFT";
+            this.tabTaskCMFT.UseVisualStyleBackColor = true;
+            //
+            // tabTaskDCU
+            //
+            this.tabTaskDCU.Location = new System.Drawing.Point(4, 32);
+            this.tabTaskDCU.Name = "tabTaskDCU";
+            this.tabTaskDCU.Padding = new System.Windows.Forms.Padding(3);
+            this.tabTaskDCU.Size = new System.Drawing.Size(1320, 844);
+            this.tabTaskDCU.TabIndex = 2;
+            this.tabTaskDCU.Text = "Task DCU";
+            this.tabTaskDCU.UseVisualStyleBackColor = true;
+            //
+            // tabSendToDCU
+            //
+            this.tabSendToDCU.Location = new System.Drawing.Point(4, 32);
+            this.tabSendToDCU.Name = "tabSendToDCU";
+            this.tabSendToDCU.Padding = new System.Windows.Forms.Padding(3);
+            this.tabSendToDCU.Size = new System.Drawing.Size(1320, 844);
+            this.tabSendToDCU.TabIndex = 3;
+            this.tabSendToDCU.Text = "Send To DCU";
+            this.tabSendToDCU.UseVisualStyleBackColor = true;
+            //
             // UITest
-            // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            //
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(1328, 880);
-            this.Controls.Add(this.button4);
-            this.Controls.Add(this.button3);
-            this.Controls.Add(this.button2);
-            this.Controls.Add(this.button1);
-            this.Controls.Add(this.mainPanel);
+            this.Controls.Add(this.mainTabControl);
             this.Name = "UITest";
             this.Text = "DMD Service Test UI";
+            this.mainTabControl.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
 
         #endregion
 
-        private System.Windows.Forms.Panel mainPanel;
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Button button3;
-        private System.Windows.Forms.Button button4;
+        private System.Windows.Forms.TabControl mainTabControl;
+        private System.Windows.Forms.TabPage tabTaskOCS;
+        private System.Windows.Forms.TabPage tabTaskCMFT;
+        private System.Windows.Forms.TabPage tabTaskDCU;
+        private System.Windows.Forms.TabPage tabSendToDCU;
     }
 }

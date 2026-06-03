@@ -12,34 +12,23 @@ using TaskOCS;
 
 public class OCSClientPoller
 {
-
     private readonly string _procName = "OCSClientPoller";
     private readonly int _pollingIntervalMs = 1000;
 
     private readonly Dictionary<string, ushort[][]> _previousDataDict = new Dictionary<string, ushort[][]>();
     private readonly Dictionary<string, OCSPlatform[]> _platformDict = new Dictionary<string, OCSPlatform[]>();
- 
-    private readonly Action<int, int, string> _sendToTaskDCU;
 
+    private readonly Action<int, int, string> _sendToTaskDCU;
     private readonly Dictionary<string, ClientModbusConfig> _clients;
+
+    private CancellationTokenSource _tokenSource;
 
     public OCSClientPoller(Dictionary<string, ClientModbusConfig> clients, Action<int, int, string> sendToTaskDCU)
     {
         _clients = clients;
-        _sendToTaskDCU = sendToTaskDCU; 
+        _sendToTaskDCU = sendToTaskDCU;
     }
 
-
-  
-
-    public void StartPollingAllClients()
-    {
-        foreach (var client in _clients.Keys)
-        {
-            string clientName = client;
-            Task.Factory.StartNew(() => PollingLoop(clientName), TaskCreationOptions.LongRunning);
-        }
-    }
     public class ClientModbusConfig
     {
         public string IP { get; set; }
@@ -47,98 +36,55 @@ public class OCSClientPoller
         public byte SlaveId { get; set; } = 1;
         public List<ushort> StartAddresses { get; set; }
     }
-    
 
-    private void PollingLoop(string clientName)
+    public void StartPollingAllClients()
     {
-        var tokenSource = new CancellationTokenSource();
-        CancellationToken token = tokenSource.Token;
-        
-        var clientConfig = _clients[clientName]; 
-        string clientIP = clientConfig.IP;
-        int clientPort = clientConfig.Port;
-        List<ushort> startAddresses = clientConfig.StartAddresses;
+        _tokenSource = new CancellationTokenSource();
+        foreach (var client in _clients.Keys)
+        {
+            string clientName = client;
+            Task.Factory.StartNew(() => PollingLoop(clientName, _tokenSource.Token), TaskCreationOptions.LongRunning);
+        }
+    }
 
-        _previousDataDict[clientName] = new ushort[startAddresses.Count][];
-        _platformDict[clientName] = Enumerable.Range(0, startAddresses.Count)
+    public void Stop()
+    {
+        _tokenSource?.Cancel();
+    }
+
+    // ── 1. 連線與輪詢 ────────────────────────────────────────────
+    private void PollingLoop(string clientName, CancellationToken token)
+    {
+        var clientConfig = _clients[clientName];
+
+        _previousDataDict[clientName] = new ushort[clientConfig.StartAddresses.Count][];
+        _platformDict[clientName] = Enumerable.Range(0, clientConfig.StartAddresses.Count)
                                               .Select(_ => new OCSPlatform())
                                               .ToArray();
 
         while (!token.IsCancellationRequested)
         {
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-
             try
             {
                 using (var master = new ModbusTcpClient())
                 {
-                    master.Connect(clientIP, clientPort);
+                    master.Connect(clientConfig.IP, clientConfig.Port);
                     master.ReadTimeout = 1000;
 
-                    for (int groupIndex = 0; groupIndex < startAddresses.Count; groupIndex++)
+                    for (int groupIndex = 0; groupIndex < clientConfig.StartAddresses.Count; groupIndex++)
                     {
-                        ushort startAddress = startAddresses[groupIndex];
-                        ushort numRegisters = 38;  // 讀取完整的 38 個寄存器
+                        ushort startAddress = clientConfig.StartAddresses[groupIndex];
+                        ushort[] currentData = master.ReadInputRegisters(clientConfig.SlaveId, startAddress, 38);
 
-                        ushort[] currentData = master.ReadInputRegisters(clientConfig.SlaveId, startAddress, numRegisters);
+                        ASI.Lib.Log.DebugLog.Log(_procName, $"[{clientName}] 讀取地址:{startAddress}, 前3值:[{currentData[0]}, {currentData[1]}, {currentData[2]}]");
 
-                        // 記錄收到的資料
-                        ASI.Lib.Log.DebugLog.Log(_procName, $"[{clientName}] 成功讀取 Modbus 資料 - 地址:{startAddress}, 數量:{numRegisters}, 前3個值:[{currentData[0]}, {currentData[1]}, {currentData[2]}]");
+                        ProcessRegisterData(clientName, groupIndex, startAddress, currentData);
 
-                            byte[] byteArray = new byte[currentData.Length * 2];
-
-                            for (int i = 0; i < currentData.Length; i++)
-                            {
-                                byteArray[i * 2] = (byte)(currentData[i] >> 8);
-                                byteArray[i * 2 + 1] = (byte)(currentData[i] & 0xFF);
-                            }
-                            // 取出前次資料來進行變更比對
-                            var previousGroupData = _previousDataDict[clientName];
-                            if (previousGroupData[groupIndex] == null ||
-                                !AreArraysEqual(previousGroupData[groupIndex], currentData))
-                            {
-                                Console.WriteLine($"[Debug] 內容變動：GroupIndex={groupIndex}");
-                                Console.WriteLine($"[Debug] 舊資料: {string.Join(",", previousGroupData[groupIndex] ?? new ushort[0])}");
-                                Console.WriteLine($"[Debug] 新資料: {string.Join(",", currentData)}");
-                                previousGroupData[groupIndex] = (ushort[])currentData.Clone();
-
-                                var platform = _platformDict[clientName][groupIndex];
-                                platform.UpdateFromUShortArray(currentData);
-
-                                int special1 = DetermineTrainStatus(byteArray);
-                                int special2 = DetermineTrainStatus(byteArray);
-
-                               
-                                var oJsonObject = new TrainMSG(ASI.Wanda.DMD.Enum.Station.OCC)
-                                {
-                                    Start_Address = startAddress,
-                                    Type = "Train",
-                                    Command = "Update",
-                                    Platform_id = platform.PlatformID,
-                                    Arrive_time1 = platform.ArrivalTime1,
-                                    Depart_time1 = platform.DepartureTime1,
-                                    Destination1 = platform.DestinationNumber1,
-                                    Arrive_time2 = platform.ArrivalTime2,
-                                    Depart_time2 = platform.DepartureTime2,
-                                    Destination2 = platform.DestinationNumber2,
-                                    Special1 = special1,
-                                    Special2 = special2,
-                                };
-
-                                Console.WriteLine($"[Send] client={clientName}, groupIndex={groupIndex}, startAddr={startAddress}");
-                                var jsonString = ASI.Lib.Text.Parsing.Json.SerializeObject(oJsonObject);
-                                _sendToTaskDCU(2, 0, jsonString);
-
-                                // 写入数据库 (暫時註解，等資料庫表格建立後再啟用)
-                                // UpdateOCSData(platform);
-                            }
-          
-
-
-                            Thread.Sleep(20);
-                        }
+                        Thread.Sleep(20);
                     }
                 }
+            }
             catch (IOException ioEx)
             {
                 ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} IO 錯誤: {ioEx.Message}，嘗試重新連線...");
@@ -153,6 +99,77 @@ public class OCSClientPoller
         }
     }
 
+    // ── 2. 變更偵測 ──────────────────────────────────────────────
+    private void ProcessRegisterData(string clientName, int groupIndex, ushort startAddress, ushort[] currentData)
+    {
+        var previousGroupData = _previousDataDict[clientName];
+
+        if (previousGroupData[groupIndex] != null &&
+            AreArraysEqual(previousGroupData[groupIndex], currentData))
+        {
+            return; // 資料未變更，略過
+        }
+
+        Console.WriteLine($"[Debug] 內容變動：client={clientName}, GroupIndex={groupIndex}");
+        Console.WriteLine($"[Debug] 舊資料: {string.Join(",", previousGroupData[groupIndex] ?? new ushort[0])}");
+        Console.WriteLine($"[Debug] 新資料: {string.Join(",", currentData)}");
+
+        previousGroupData[groupIndex] = (ushort[])currentData.Clone();
+
+        var platform = _platformDict[clientName][groupIndex];
+        platform.UpdateFromUShortArray(currentData);
+
+        byte[] byteArray = ToByteArray(currentData);
+        int special1 = DetermineTrainStatus(byteArray, trainIndex: 1);
+        int special2 = DetermineTrainStatus(byteArray, trainIndex: 2);
+
+        SendUpdate(platform, startAddress, special1, special2);
+    }
+
+    // ── 3. 組裝訊息 ──────────────────────────────────────────────
+    private TrainMSG BuildTrainMessage(OCSPlatform platform, ushort startAddress, int special1, int special2)
+    {
+        return new TrainMSG(ASI.Wanda.DMD.Enum.Station.OCC)
+        {
+            Start_Address = startAddress,
+            Type = "Train",
+            Command = "Update",
+            Platform_id = platform.PlatformID,
+            Arrive_time1 = platform.ArrivalTime1,
+            Depart_time1 = platform.DepartureTime1,
+            Destination1 = platform.DestinationNumber1,
+            Arrive_time2 = platform.ArrivalTime2,
+            Depart_time2 = platform.DepartureTime2,
+            Destination2 = platform.DestinationNumber2,
+            Special1 = special1,
+            Special2 = special2,
+        };
+    }
+
+    // ── 4. 送出（MSMQ + DB）────────────────────────────────────
+    private void SendUpdate(OCSPlatform platform, ushort startAddress, int special1, int special2)
+    {
+        var msg = BuildTrainMessage(platform, startAddress, special1, special2);
+        var jsonString = ASI.Lib.Text.Parsing.Json.SerializeObject(msg);
+
+        Console.WriteLine($"[Send] platform_id={platform.PlatformID}, startAddr={startAddress}");
+        _sendToTaskDCU(2, 0, jsonString);
+
+        // 寫入資料庫（等 OCS_Data 資料表建立後啟用）
+        // UpdateOCSData(platform);
+    }
+
+    // ── 工具方法 ─────────────────────────────────────────────────
+    private static byte[] ToByteArray(ushort[] data)
+    {
+        byte[] byteArray = new byte[data.Length * 2];
+        for (int i = 0; i < data.Length; i++)
+        {
+            byteArray[i * 2]     = (byte)(data[i] >> 8);
+            byteArray[i * 2 + 1] = (byte)(data[i] & 0xFF);
+        }
+        return byteArray;
+    }
 
     private bool AreArraysEqual(ushort[] a, ushort[] b)
     {
@@ -165,13 +182,18 @@ public class OCSClientPoller
         return true;
     }
 
-
-    private int DetermineTrainStatus(byte[] data)
+    /// <summary>
+    /// 判斷列車異常狀態。trainIndex=1 檢查 Train1 範圍，trainIndex=2 檢查 Train2 範圍。
+    /// </summary>
+    private int DetermineTrainStatus(byte[] data, int trainIndex)
     {
-        if (data.Length <= 36) return 0;
+        // Train1 offset: 0–37，Train2 offset: 38–75
+        int offset = (trainIndex == 2) ? 38 : 0;
 
-        if (data[17] != 0 || data[19] != 0 || data[20] != 0 ||
-            data[33] != 36 || data[35] != 0 || data[36] != 0)
+        if (data.Length < offset + 37) return 0;
+
+        if (data[offset + 17] != 0 || data[offset + 19] != 0 || data[offset + 20] != 0 ||
+            data[offset + 33] != 36 || data[offset + 35] != 0 || data[offset + 36] != 0)
         {
             return 1;
         }
@@ -182,24 +204,19 @@ public class OCSClientPoller
     private void TryReconnect()
     {
         const int maxRetries = 3;
-        const int delayBetweenRetriesMs = 3000; // 3 秒
+        const int delayBetweenRetriesMs = 3000;
 
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
                 ASI.Lib.Log.ErrorLog.Log(_procName, $"重新連線中... 第 {attempt} 次嘗試");
-
-                // 模擬連線測試（如果有 ping 或心跳）
-
                 Thread.Sleep(delayBetweenRetriesMs);
-                
                 break;
             }
             catch (Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log(_procName, $"重新連線失敗（第 {attempt} 次）: {ex.Message}");
-
                 if (attempt == maxRetries)
                 {
                     ASI.Lib.Log.ErrorLog.Log(_procName, "已達最大重試次數，放棄重連");
@@ -207,46 +224,23 @@ public class OCSClientPoller
             }
         }
     }
-    private void TryReconnectUntilSuccess(string clientIP, int clientPort)
-    {
-        while (true)
-        {
-            try
-            {
-                using (var tcpClient = new TcpClient())
-                {
-                    tcpClient.Connect(clientIP, clientPort);
-                    ASI.Lib.Log.ErrorLog.Log(_procName, "重新連線成功！");
-                    break;
-                }
-            }
-            catch
-            {
-                ASI.Lib.Log.ErrorLog.Log(_procName, "重新連線失敗，3 秒後再試...");
-                Thread.Sleep(3000);
-            }
-        }
-    }
-
 
     /// <summary>
-    /// 将 OCSPlatform 数据写入数据库（自动判断 Insert 或 Update）
+    /// 將 OCSPlatform 資料寫入資料庫（自動判斷 Insert 或 Update）
     /// </summary>
     private void UpdateOCSData(OCS.Modbus.OCSPlatform platform)
     {
         try
         {
-            // 将 OCSPlatform 转换为 OCS_Data 数据库模型
             var ocsData = new ASI.Wanda.DMD.DB.Models.Train.OCS_Data
             {
                 number_of_platforms = platform.NumberOfPlatforms,
                 platform_id = platform.PlatformID,
                 arrival = platform.Arrival,
                 departure = platform.Departure,
-                skip_hold = platform.Skip | (platform.Hold << 8), // 合并 Skip 和 Hold
+                skip_hold = platform.Skip | (platform.Hold << 8),
                 number_of_journey_data = platform.NumberOfJourneyData,
 
-                // 列车1数据
                 validity_field = platform.ValidityField1,
                 train_unit_id = platform.TrainUnitID1,
                 service_number = platform.ServiceNumber1,
@@ -262,7 +256,6 @@ public class OCSClientPoller
                 line_operation_mode = platform.LineOperationMode1,
                 train_direction = platform.TrainDirection1,
 
-                // 列车2数据
                 validity_field2 = platform.ValidityField2,
                 train_unit_id2 = platform.TrainUnitID2,
                 service_number2 = platform.ServiceNumber2,
@@ -279,38 +272,17 @@ public class OCSClientPoller
                 train_direction2 = platform.TrainDirection2
             };
 
-            // 自动判断 Insert 或 Update
             int affectedRows = ASI.Wanda.DMD.DB.Tables.Train.ocsData.InsertOrUpdateOCSData(ocsData);
 
             if (affectedRows > 0)
-            {
-                ASI.Lib.Log.DebugLog.Log(_procName, $"成功写入 OCS_Data，platform_id = {platform.PlatformID}，影响行数 = {affectedRows}");
-            }
+                ASI.Lib.Log.DebugLog.Log(_procName, $"成功寫入 OCS_Data，platform_id = {platform.PlatformID}，影響行數 = {affectedRows}");
             else
-            {
-                ASI.Lib.Log.ErrorLog.Log(_procName, $"写入 OCS_Data 失败，platform_id = {platform.PlatformID}，影响行数 = 0");
-            }
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"寫入 OCS_Data 失敗，platform_id = {platform.PlatformID}，影響行數 = 0");
         }
-        catch (Exception updateException)
+        catch (Exception ex)
         {
-            ASI.Lib.Log.ErrorLog.Log(_procName, $"写入 OCS_Data 异常: {updateException.Message}");
-            ASI.Lib.Log.ErrorLog.Log(_procName, updateException);
+            ASI.Lib.Log.ErrorLog.Log(_procName, $"寫入 OCS_Data 異常: {ex.Message}");
+            ASI.Lib.Log.ErrorLog.Log(_procName, ex);
         }
     }
-    private void updateTrainMessage(ushort[] platform_id)
-    {
-        try
-        {
-            int intID = platform_id[1];//尚未與OCS確認id 的index
-
-            ASI.Wanda.DMD.DB.Tables.Train.trainMessage.UpdateTrain_MSG(intID);
-        }
-        catch (Exception)
-        {
-
-            throw;
-        }
-    }
-
-
 }

@@ -4,8 +4,6 @@ using ASI.Lib.Process;
 using OCS.Modbus;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -21,8 +19,7 @@ namespace ASI.Wanda.DMD.TaskOCS
     public class ProcTaskOCS : ProcBase
     {
         public string mOCSServerConnStr = "";
-        private OCSModbusReader ocsDataInstance; // 改為實例變數，以便在其他方法中使用
-        private OCSClientPoller poller; // 新增以便在結束時能正確清理
+        private OCSClientPoller poller;
         #region  Task開啟處理
 
         /// <summary>
@@ -85,7 +82,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             // 初始化 OCS 資料並處理可能的例外狀況
             try
             {
-                ocsDataInstance = InitializeOCSData();  // 修复：赋值给字段
+                InitializeOCSData();
             }
             catch (Exception ex)
             {
@@ -106,52 +103,28 @@ namespace ASI.Wanda.DMD.TaskOCS
         /// <summary>
         /// 初始化 OCS 資料及 Modbus 設定
         /// </summary>
-        /// <returns>回傳初始化後的 OCSData 物件</returns>
-        private OCSModbusReader InitializeOCSData()
+        private void InitializeOCSData()
         {
             try
             {
-                var ocsDataInstance = new OCSModbusReader();
-
-                // 從配置中獲取 TCP 客戶端 IP 地址  
                 var tcpClientIP = ConfigApp.Instance.GetConfigSetting("TcpClientIP");
-
-                // 從配置中獲取 TCP 客戶端埠號並將其解析為整數
                 var tcpClientPort = int.Parse(ConfigApp.Instance.GetConfigSetting("TcpClientPort"));
 
-                // 初始化 Modbus TCP 客戶端
-                ocsDataInstance._master = new ModbusTcpClient();
-                ocsDataInstance._master.ReadTimeout = ocsDataInstance.TransactionTimeout;
-
-                // 連接到 Modbus 伺服器
-                ocsDataInstance._master.Connect(tcpClientIP, tcpClientPort);
-
-                // 啟動背景執行緒持續讀取 Modbus 資料
-                // 測試配置：只讀取地址 0 的 1 個寄存器
                 var clients = new Dictionary<string, ClientModbusConfig>
                 {
-                    { "Client1", new ClientModbusConfig { IP = "10.107.26.99", StartAddresses = new List<ushort> { 0 } } }
+                    { "Client1", new ClientModbusConfig { IP = tcpClientIP, Port = tcpClientPort, StartAddresses = new List<ushort> { 0 } } }
                 };
 
-                this.poller = new OCSClientPoller(clients, SendToTaskDCU);  // 修复：赋值给字段
+                this.poller = new OCSClientPoller(clients, SendToTaskDCU);
                 this.poller.StartPollingAllClients();
-                return ocsDataInstance;
             }
-            catch (FormatException ex) 
+            catch (FormatException ex)
             {
-                // 捕捉並處理字串轉數字的格式錯誤
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, $"TCP 客戶端 Port 格式錯誤: {ex.Message}");
-                throw;
-            }
-            catch (SocketException ex)
-            {
-                // 捕捉並處理 TCP 連線的 Socket 錯誤 
-                ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 TCP 客戶端失敗: {ex.Message}");
                 throw;
             }
             catch (Exception ex)
             {
-                // 捕捉其他所有潛在的例外狀況
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, $"初始化 OCS 資料失敗: {ex.Message}");
                 throw;
             }
@@ -208,18 +181,10 @@ namespace ASI.Wanda.DMD.TaskOCS
             {
                 ASI.Lib.Log.DebugLog.Log(_mProcName, "正在停止 TaskOCS...");
 
-                // 关闭 Modbus 连接
-                if (ocsDataInstance?._master != null)
+                if (poller != null)
                 {
-                    try
-                    {
-                        ocsDataInstance._master.Close();
-                        ASI.Lib.Log.DebugLog.Log(_mProcName, "Modbus 连接已关闭");
-                    }
-                    catch (Exception ex)
-                    {
-                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"关闭 Modbus 连接时发生错误: {ex.Message}");
-                    }
+                    poller.Stop();
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, "OCSClientPoller 已停止");
                 }
 
                 ASI.Lib.Log.DebugLog.Log(_mProcName, "TaskOCS 已成功停止");

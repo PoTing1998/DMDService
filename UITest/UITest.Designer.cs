@@ -1,4 +1,4 @@
-namespace UITest
+﻿namespace UITest
 {
     partial class UITest
     {
@@ -28,7 +28,8 @@ namespace UITest
         /// </summary>
         private void InitializeComponent()
         {
-            this.mainTabControl = new System.Windows.Forms.TabControl();
+            this.tabOCSParser = new System.Windows.Forms.TabPage();
+        this.mainTabControl = new System.Windows.Forms.TabControl();
             this.tabTaskOCS = new System.Windows.Forms.TabPage();
             this.tabTaskCMFT = new System.Windows.Forms.TabPage();
             this.tabTaskDCU = new System.Windows.Forms.TabPage();
@@ -42,6 +43,7 @@ namespace UITest
             this.mainTabControl.Controls.Add(this.tabTaskCMFT);
             this.mainTabControl.Controls.Add(this.tabTaskDCU);
             this.mainTabControl.Controls.Add(this.tabSendToDCU);
+            this.mainTabControl.Controls.Add(this.tabOCSParser);
             this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTabControl.Font = new System.Drawing.Font("Microsoft JhengHei", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.mainTabControl.ItemSize = new System.Drawing.Size(120, 28);
@@ -93,6 +95,16 @@ namespace UITest
             this.tabSendToDCU.Text = "Send To DCU";
             this.tabSendToDCU.UseVisualStyleBackColor = true;
             //
+            // tabOCSParser
+            //
+            this.tabOCSParser.Location = new System.Drawing.Point(4, 32);
+            this.tabOCSParser.Name = "tabOCSParser";
+            this.tabOCSParser.Padding = new System.Windows.Forms.Padding(3);
+            this.tabOCSParser.Size = new System.Drawing.Size(1320, 844);
+            this.tabOCSParser.TabIndex = 4;
+            this.tabOCSParser.Text = "OCS 解析測試";
+            this.tabOCSParser.UseVisualStyleBackColor = true;
+            //
             // UITest
             //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
@@ -112,5 +124,6 @@ namespace UITest
         private System.Windows.Forms.TabPage tabTaskCMFT;
         private System.Windows.Forms.TabPage tabTaskDCU;
         private System.Windows.Forms.TabPage tabSendToDCU;
+        private System.Windows.Forms.TabPage tabOCSParser;
     }
 }

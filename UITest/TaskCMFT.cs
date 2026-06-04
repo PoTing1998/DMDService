@@ -95,6 +95,16 @@ namespace UITest
         #endregion
 
         #region Button Events
+        private void btnRefreshEquip_Click(object sender, EventArgs e)
+        {
+            LoadEquipStatusGrid();
+        }
+
+        private void btnRefreshPanel_Click(object sender, EventArgs e)
+        {
+            LoadPanelStatusGrid();
+        }
+
         private void button5_Click(object sender, EventArgs e)
         {
             if (_cmftService == null) return;

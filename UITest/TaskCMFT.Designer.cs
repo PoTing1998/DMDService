@@ -1,4 +1,4 @@
-namespace UITest
+﻿namespace UITest
 {
     partial class TaskCMFT
     {
@@ -50,8 +50,11 @@ namespace UITest
             this.label4 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.textBoxConnIP = new System.Windows.Forms.TextBox();
+            this.splitLeft = new System.Windows.Forms.SplitContainer();
             this.grpEquipStatus = new System.Windows.Forms.GroupBox();
+            this.btnRefreshEquip = new System.Windows.Forms.Button();
             this.grpPanelStatus = new System.Windows.Forms.GroupBox();
+            this.btnRefreshPanel = new System.Windows.Forms.Button();
             this.grpBlackList = new System.Windows.Forms.GroupBox();
             this.grpConnState = new System.Windows.Forms.GroupBox();
             this.grpSend = new System.Windows.Forms.GroupBox();
@@ -60,6 +63,10 @@ namespace UITest
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewPanel)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.groupBox3.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitLeft)).BeginInit();
+            this.splitLeft.Panel1.SuspendLayout();
+            this.splitLeft.Panel2.SuspendLayout();
+            this.splitLeft.SuspendLayout();
             this.grpEquipStatus.SuspendLayout();
             this.grpPanelStatus.SuspendLayout();
             this.grpBlackList.SuspendLayout();
@@ -181,11 +188,12 @@ namespace UITest
             this.dataGridViewPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.dataGridViewPanel.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridViewPanel.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridViewPanel.Location = new System.Drawing.Point(8, 22);
             this.dataGridViewPanel.Name = "dataGridViewPanel";
             this.dataGridViewPanel.RowTemplate.Height = 24;
-            this.dataGridViewPanel.Size = new System.Drawing.Size(284, 171);
+            this.dataGridViewPanel.Size = new System.Drawing.Size(284, 230);
             this.dataGridViewPanel.TabIndex = 0;
             // 
             // dataGridView1
@@ -195,11 +203,12 @@ namespace UITest
             this.dataGridView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView1.Location = new System.Drawing.Point(8, 22);
             this.dataGridView1.Name = "dataGridView1";
             this.dataGridView1.RowTemplate.Height = 24;
-            this.dataGridView1.Size = new System.Drawing.Size(284, 171);
+            this.dataGridView1.Size = new System.Drawing.Size(284, 170);
             this.dataGridView1.TabIndex = 0;
             // 
             // groupBox3
@@ -303,31 +312,76 @@ namespace UITest
             this.textBoxConnIP.TabIndex = 24;
             this.textBoxConnIP.Text = "10.107.26.99";
             // 
+            // splitLeft
+            // 
+            this.splitLeft.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.splitLeft.Location = new System.Drawing.Point(10, 82);
+            this.splitLeft.Name = "splitLeft";
+            this.splitLeft.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            // 
+            // splitLeft.Panel1
+            // 
+            this.splitLeft.Panel1.Controls.Add(this.grpEquipStatus);
+            // 
+            // splitLeft.Panel2
+            // 
+            this.splitLeft.Panel2.Controls.Add(this.grpPanelStatus);
+            this.splitLeft.Size = new System.Drawing.Size(300, 460);
+            this.splitLeft.SplitterDistance = 209;
+            this.splitLeft.TabIndex = 10;
+            // 
             // grpEquipStatus
             // 
-            this.grpEquipStatus.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left)));
+            this.grpEquipStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.grpEquipStatus.Controls.Add(this.dataGridView1);
+            this.grpEquipStatus.Controls.Add(this.btnRefreshEquip);
             this.grpEquipStatus.Font = new System.Drawing.Font("微軟正黑體", 9F);
-            this.grpEquipStatus.Location = new System.Drawing.Point(10, 82);
+            this.grpEquipStatus.Location = new System.Drawing.Point(0, 0);
             this.grpEquipStatus.Name = "grpEquipStatus";
-            this.grpEquipStatus.Size = new System.Drawing.Size(300, 201);
+            this.grpEquipStatus.Size = new System.Drawing.Size(300, 209);
             this.grpEquipStatus.TabIndex = 1;
             this.grpEquipStatus.TabStop = false;
             this.grpEquipStatus.Text = "設備狀態清單";
             // 
+            // btnRefreshEquip
+            // 
+            this.btnRefreshEquip.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnRefreshEquip.Location = new System.Drawing.Point(230, 0);
+            this.btnRefreshEquip.Name = "btnRefreshEquip";
+            this.btnRefreshEquip.Size = new System.Drawing.Size(64, 22);
+            this.btnRefreshEquip.TabIndex = 2;
+            this.btnRefreshEquip.Text = "重新載入";
+            this.btnRefreshEquip.UseVisualStyleBackColor = true;
+            this.btnRefreshEquip.Click += new System.EventHandler(this.btnRefreshEquip_Click);
+            // 
             // grpPanelStatus
             // 
-            this.grpPanelStatus.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left)));
+            this.grpPanelStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.grpPanelStatus.Controls.Add(this.dataGridViewPanel);
+            this.grpPanelStatus.Controls.Add(this.btnRefreshPanel);
             this.grpPanelStatus.Font = new System.Drawing.Font("微軟正黑體", 9F);
-            this.grpPanelStatus.Location = new System.Drawing.Point(10, 289);
+            this.grpPanelStatus.Location = new System.Drawing.Point(0, 0);
             this.grpPanelStatus.Name = "grpPanelStatus";
-            this.grpPanelStatus.Size = new System.Drawing.Size(300, 201);
+            this.grpPanelStatus.Size = new System.Drawing.Size(300, 247);
             this.grpPanelStatus.TabIndex = 2;
             this.grpPanelStatus.TabStop = false;
             this.grpPanelStatus.Text = "看板裝置清單";
+            // 
+            // btnRefreshPanel
+            // 
+            this.btnRefreshPanel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnRefreshPanel.Location = new System.Drawing.Point(230, 0);
+            this.btnRefreshPanel.Name = "btnRefreshPanel";
+            this.btnRefreshPanel.Size = new System.Drawing.Size(64, 22);
+            this.btnRefreshPanel.TabIndex = 2;
+            this.btnRefreshPanel.Text = "重新載入";
+            this.btnRefreshPanel.UseVisualStyleBackColor = true;
+            this.btnRefreshPanel.Click += new System.EventHandler(this.btnRefreshPanel_Click);
             // 
             // grpBlackList
             // 
@@ -335,7 +389,7 @@ namespace UITest
             this.grpBlackList.Controls.Add(this.blackListText);
             this.grpBlackList.Controls.Add(this.blackListClear);
             this.grpBlackList.Font = new System.Drawing.Font("微軟正黑體", 9F);
-            this.grpBlackList.Location = new System.Drawing.Point(10, 496);
+            this.grpBlackList.Location = new System.Drawing.Point(10, 554);
             this.grpBlackList.Name = "grpBlackList";
             this.grpBlackList.Size = new System.Drawing.Size(300, 200);
             this.grpBlackList.TabIndex = 3;
@@ -400,8 +454,7 @@ namespace UITest
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.Controls.Add(this.groupBox3);
-            this.Controls.Add(this.grpEquipStatus);
-            this.Controls.Add(this.grpPanelStatus);
+            this.Controls.Add(this.splitLeft);
             this.Controls.Add(this.grpBlackList);
             this.Controls.Add(this.grpConnState);
             this.Controls.Add(this.grpSend);
@@ -413,6 +466,10 @@ namespace UITest
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
+            this.splitLeft.Panel1.ResumeLayout(false);
+            this.splitLeft.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitLeft)).EndInit();
+            this.splitLeft.ResumeLayout(false);
             this.grpEquipStatus.ResumeLayout(false);
             this.grpPanelStatus.ResumeLayout(false);
             this.grpBlackList.ResumeLayout(false);
@@ -448,6 +505,9 @@ namespace UITest
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox textBoxConnIP;
+        private System.Windows.Forms.SplitContainer splitLeft;
+        private System.Windows.Forms.Button btnRefreshEquip;
+        private System.Windows.Forms.Button btnRefreshPanel;
         private System.Windows.Forms.GroupBox grpEquipStatus;
         private System.Windows.Forms.GroupBox grpPanelStatus;
         private System.Windows.Forms.GroupBox grpBlackList;

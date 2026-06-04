@@ -72,6 +72,18 @@
     <Compile Include="SendToDCU.Designer.cs">
       <DependentUpon>SendToDCU.cs</DependentUpon>
     </Compile>
+    <Compile Include="OCSParserTest.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="OCSParserTest.Designer.cs">
+      <DependentUpon>OCSParserTest.cs</DependentUpon>
+    </Compile>
+    <Compile Include="RegisterInputDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RegisterInputDialog.Designer.cs">
+      <DependentUpon>RegisterInputDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="UITest.cs">
       <SubType>Form</SubType>
     </Compile>

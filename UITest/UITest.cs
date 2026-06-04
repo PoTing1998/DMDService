@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -18,8 +18,9 @@ namespace UITest
         private TaskCMFT taskCMFTControl;
         private TaskDCU taskDCUControl;
         private SendToDCU sendToDCUControl;
+        private OCSParserTest ocsParserControl;
 
-        private bool[] tabLoaded = new bool[4];
+        private bool[] tabLoaded = new bool[5];
 
         public UITest()
         {
@@ -40,6 +41,7 @@ namespace UITest
             taskCMFTControl = new TaskCMFT(cmftMessageService);
             taskDCUControl = new TaskDCU();
             sendToDCUControl = new SendToDCU(dmdMessageService);
+            ocsParserControl = new OCSParserTest();
 
             // Default: load SendToDCU tab
             mainTabControl.SelectedTab = tabSendToDCU;
@@ -70,6 +72,9 @@ namespace UITest
                     break;
                 case 3:
                     LoadControlIntoTab(tabSendToDCU, sendToDCUControl, 3);
+                    break;
+                case 4:
+                    LoadControlIntoTab(tabOCSParser, ocsParserControl, 4);
                     break;
             }
         }

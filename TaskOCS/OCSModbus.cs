@@ -31,7 +31,8 @@ namespace OCS.Modbus
 
         public ushort[] ReadData(ushort startAddress, ushort numRegisters)
         {
-            return _master.ReadHoldingRegisters(_slaveId, startAddress, numRegisters);
+            // OCS 規格（OCS-COM-004 Rev.D Section 8.1/8.2）使用 Input Register（FC04）
+            return _master.ReadInputRegisters(_slaveId, startAddress, numRegisters);
         }
     }
 
@@ -178,6 +179,35 @@ namespace OCS.Modbus
             TestTrain2             = b[73];
             TrainDirection2        = b[74];
             Spare4                 = b[75];
+        }
+
+        /// <summary>
+        /// 將所有解析後的欄位格式化為 log 字串
+        /// </summary>
+        public string ToLogString()
+        {
+            return
+                $"[Header] NumberOfPlatforms={NumberOfPlatforms}, PlatformID={PlatformID}, " +
+                $"PreArrival={PreArrival}, Arrival={Arrival}, PreDeparture={PreDeparture}, Departure={Departure}, " +
+                $"Skip={Skip}, Hold={Hold}, NumberOfJourneyData={NumberOfJourneyData}\n" +
+
+                $"[Journey1] ValidityField={ValidityField1}, NumberOfCars={NumberOfCars1}, " +
+                $"TrainUnitID={TrainUnitID1}, ServiceNumber={ServiceNumber1}, TripNumber={TripNumber1}, " +
+                $"Destination={DestinationNumber1}, ArrivalTime={ArrivalTime1}, DepartureTime={DepartureTime1}, " +
+                $"DelayAtArrival={DelayAtArrival1}, DelayAtDeparture={DelayAtDeparture1}, " +
+                $"CancelledTrain={CancelledTrain1}, NextTrainWillNotStop={NextTrainWillNotStop1}, " +
+                $"TrainEndOfService={TrainEndOfService1}, TrainWillNotOpenDoor={TrainWillNotOpenDoor1}, " +
+                $"LastTrainOfDay={LastTrainOfTheOperatingDay1}, TrainNotInService={TrainNotInService1}, " +
+                $"LineOperationMode={LineOperationMode1}, TestTrain={TestTrain1}, TrainDirection={TrainDirection1}\n" +
+
+                $"[Journey2] ValidityField={ValidityField2}, NumberOfCars={NumberOfCars2}, " +
+                $"TrainUnitID={TrainUnitID2}, ServiceNumber={ServiceNumber2}, TripNumber={TripNumber2}, " +
+                $"Destination={DestinationNumber2}, ArrivalTime={ArrivalTime2}, DepartureTime={DepartureTime2}, " +
+                $"DelayAtArrival={DelayAtArrival2}, DelayAtDeparture={DelayAtDeparture2}, " +
+                $"CancelledTrain={CancelledTrain2}, NextTrainWillNotStop={NextTrainWillNotStop2}, " +
+                $"TrainEndOfService={TrainEndOfService2}, TrainWillNotOpenDoor={TrainWillNotOpenDoor2}, " +
+                $"LastTrainOfDay={LastTrainOfTheOperatingDay2}, TrainNotInService={TrainNotInService2}, " +
+                $"LineOperationMode={LineOperationMode2}, TestTrain={TestTrain2}, TrainDirection={TrainDirection2}";
         }
 
         /// <summary>Little-Endian 16-bit unsigned integer</summary>

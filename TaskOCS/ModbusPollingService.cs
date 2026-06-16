@@ -39,6 +39,12 @@ public class OCSClientPoller
 
     public void StartPollingAllClients()
     {
+        if (_tokenSource != null && !_tokenSource.IsCancellationRequested)
+        {
+            ASI.Lib.Log.ErrorLog.Log(_procName, "StartPollingAllClients 已在執行中，忽略重複呼叫");
+            return;
+        }
+
         _tokenSource = new CancellationTokenSource();
         foreach (var client in _clients.Keys)
         {
@@ -69,8 +75,8 @@ public class OCSClientPoller
             {
                 using (var master = new ModbusTcpClient())
                 {
-                    master.Connect(clientConfig.IP, clientConfig.Port);
                     master.ReadTimeout = 1000;
+                    master.Connect(clientConfig.IP, clientConfig.Port);
 
                     for (int groupIndex = 0; groupIndex < clientConfig.StartAddresses.Count; groupIndex++)
                     {
@@ -81,21 +87,33 @@ public class OCSClientPoller
 
                         ProcessRegisterData(clientName, groupIndex, startAddress, currentData);
 
-                        Thread.Sleep(20);
+                        token.WaitHandle.WaitOne(20); // 可被取消中斷的短暫等待
                     }
                 }
+            }
+            catch (TimeoutException timeoutEx)
+            {
+                // Connect() 逾時（5秒內無回應）
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} 連線逾時: {timeoutEx.Message}，嘗試重新連線...");
+                TryReconnect(token);
+            }
+            catch (System.Net.Sockets.SocketException sockEx)
+            {
+                // TcpClient.Connect() 失敗時拋出 SocketException（非 IOException）
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} Socket 連線失敗: {sockEx.Message}，嘗試重新連線...");
+                TryReconnect(token);
             }
             catch (IOException ioEx)
             {
                 ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} IO 錯誤: {ioEx.Message}，嘗試重新連線...");
-                TryReconnect();
+                TryReconnect(token);
             }
             catch (Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} 錯誤: {ex.Message}");
+                ASI.Lib.Log.ErrorLog.Log(_procName, $"{timestamp} 錯誤: {ex}");
             }
 
-            Thread.Sleep(_pollingIntervalMs);
+            token.WaitHandle.WaitOne(_pollingIntervalMs); // 可被取消中斷的輪詢等待
         }
     }
 
@@ -110,14 +128,15 @@ public class OCSClientPoller
             return; // 資料未變更，略過
         }
 
-        Console.WriteLine($"[Debug] 內容變動：client={clientName}, GroupIndex={groupIndex}");
-        Console.WriteLine($"[Debug] 舊資料: {string.Join(",", previousGroupData[groupIndex] ?? new ushort[0])}");
-        Console.WriteLine($"[Debug] 新資料: {string.Join(",", currentData)}");
+        ASI.Lib.Log.DebugLog.Log(_procName, $"內容變動：client={clientName}, GroupIndex={groupIndex}");
+        ASI.Lib.Log.DebugLog.Log(_procName, $"舊資料: {string.Join(",", previousGroupData[groupIndex] ?? new ushort[0])}");
+        ASI.Lib.Log.DebugLog.Log(_procName, $"新資料: {string.Join(",", currentData)}");
 
         previousGroupData[groupIndex] = (ushort[])currentData.Clone();
 
         var platform = _platformDict[clientName][groupIndex];
         platform.UpdateFromUShortArray(currentData);
+        ASI.Lib.Log.DebugLog.Log(_procName, $"解析結果:\n{platform.ToLogString()}");
 
         byte[] byteArray = ToByteArray(currentData);
         int special1 = DetermineTrainStatus(byteArray, trainIndex: 1);
@@ -152,7 +171,7 @@ public class OCSClientPoller
         var msg = BuildTrainMessage(platform, startAddress, special1, special2);
         var jsonString = ASI.Lib.Text.Parsing.Json.SerializeObject(msg);
 
-        Console.WriteLine($"[Send] platform_id={platform.PlatformID}, startAddr={startAddress}");
+        ASI.Lib.Log.DebugLog.Log(_procName, $"送出更新: platform_id={platform.PlatformID}, startAddr={startAddress}");
         _sendToTaskDCU(2, 0, jsonString);
 
         // 寫入資料庫（等 OCS_Data 資料表建立後啟用）
@@ -187,8 +206,14 @@ public class OCSClientPoller
     /// </summary>
     private int DetermineTrainStatus(byte[] data, int trainIndex)
     {
-        // Train1 offset: 0–37，Train2 offset: 38–75
-        int offset = (trainIndex == 2) ? 38 : 0;
+        // byte layout: Header(0–11) + Journey1(12–43) + Journey2(44–75)
+        //
+        // offset 是用來讓 (offset + index) 對應到正確的絕對 byte 位置：
+        //   Train1: offset=0，data[0+17]=data[17]=ServiceNumber1高位元組 等
+        //   Train2: offset=32，data[32+17]=data[49]=ServiceNumber2高位元組 等
+        //
+        // 原始 Train2 offset=38 是錯誤的，會指向 ArrivalTime2/DepartureTime2/TestTrain2 等不相關欄位
+        int offset = (trainIndex == 2) ? 32 : 0;
 
         if (data.Length < offset + 37) return 0;
 
@@ -201,28 +226,12 @@ public class OCSClientPoller
         return 0;
     }
 
-    private void TryReconnect()
+    private void TryReconnect(CancellationToken token)
     {
-        const int maxRetries = 3;
-        const int delayBetweenRetriesMs = 3000;
-
-        for (int attempt = 1; attempt <= maxRetries; attempt++)
-        {
-            try
-            {
-                ASI.Lib.Log.ErrorLog.Log(_procName, $"重新連線中... 第 {attempt} 次嘗試");
-                Thread.Sleep(delayBetweenRetriesMs);
-                break;
-            }
-            catch (Exception ex)
-            {
-                ASI.Lib.Log.ErrorLog.Log(_procName, $"重新連線失敗（第 {attempt} 次）: {ex.Message}");
-                if (attempt == maxRetries)
-                {
-                    ASI.Lib.Log.ErrorLog.Log(_procName, "已達最大重試次數，放棄重連");
-                }
-            }
-        }
+        // IO 錯誤後等待一段時間，下一輪 PollingLoop 迭代會自動重新建立連線
+        const int delayBeforeRetryMs = 3000;
+        ASI.Lib.Log.ErrorLog.Log(_procName, $"等待 {delayBeforeRetryMs}ms 後重新連線...");
+        token.WaitHandle.WaitOne(delayBeforeRetryMs); // 可被取消中斷
     }
 
     /// <summary>

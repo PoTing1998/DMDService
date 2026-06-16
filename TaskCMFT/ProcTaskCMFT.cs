@@ -147,8 +147,9 @@ namespace ASI.Wanda.DMD.TaskCMFT
         /// <param name="source"></param>
         private void CMFT_API_DisconnectedEvent(string source)
         {
-            System.DateTime  time = DateTime.Now;
-            ASI.Lib.Log.ErrorLog.Log("CMFT_API","斷線" + time.ToString());
+            System.DateTime time = DateTime.Now;
+            ASI.Lib.Log.ErrorLog.Log("CMFT_API", "斷線" + time.ToString());
+            mIsConnectedToCMFT = false; // 更新連線狀態，讓 ProcTimerEvent 觸發重連
         }
 
         /// <summary>
@@ -179,6 +180,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         HandleCommandMessage(CMFTServerMessage, sByteArray, sJsonObjectName, iMsgID, sJsonData, CMFTHelper); //處理訊息
                         var Rs_Ack = HandleAckMessage(CMFTServerMessage); // 回復ACK
                         mCMFT_API.Send(Rs_Ack);
+                        ASI.Lib.Log.DebugLog.Log(_mProcName, $"已送出 ACK 給 CMFT，MessageID={CMFTServerMessage.MessageID}");
                         break;
                     case ASI.Wanda.CMFT.Message.Message.eMessageType.Response:
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從CMFT來的訊息不應有Response，MessageType:{CMFTServerMessage.MessageType}");
@@ -273,39 +275,44 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 {
                     if (mSGFromTaskDCU.MessageType == 1)
                     {
-                        //DMD內部通訊定義:Ack   
-                        //從TaskDCU過來不應該有Ack   
-                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從TaskDCU來的訊息不應有DMD內部通訊定義:Ack，MessageType:{mSGFromTaskDCU.MessageType}"); ;
+                        //DMD內部通訊定義:Ack
+                        //從TaskDCU過來不應該有Ack
+                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"從TaskDCU來的訊息不應有DMD內部通訊定義:Ack，MessageType:{mSGFromTaskDCU.MessageType}，JsonData:{mSGFromTaskDCU.JsonData}");
                     }
                     else if (mSGFromTaskDCU.MessageType == 2)
                     {
-                        //DMD內部通訊定義:Change/Command   
+                        //DMD內部通訊定義:Change/Command
                         string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskDCU.JsonData, "JsonObjectName");
-                        sLog = $"sJsonObjectName = {sJsonObjectName}";
+                        sLog = $"收到 TaskDCU Command，JsonObjectName={sJsonObjectName}，JsonData={mSGFromTaskDCU.JsonData}";
                         ASI.Lib.Log.DebugLog.Log(_mProcName, sLog);
                     }
                     else if (mSGFromTaskDCU.MessageType == 3)
                     {
-                        //DMD內部通訊定義:Response  
+                        //DMD內部通訊定義:Response
                         string sJsonObjectName = ASI.Lib.Text.Parsing.Json.GetValue(mSGFromTaskDCU.JsonData, "JsonObjectName");
-                        sLog = $"sJsonObjectName = {sJsonObjectName}";
+                        sLog = $"收到 TaskDCU Response，JsonObjectName={sJsonObjectName}，JsonData={mSGFromTaskDCU.JsonData}";
                         ASI.Lib.Log.DebugLog.Log(_mProcName, sLog);
-                        //將訊息傳給CMFT   
-                        var oJsonObject = (ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage)ASI.Wanda.DMD.Message.Helper.GetJsonObject(mSGFromTaskDCU.JsonData);
-                        //組封包   
-                        var Res_SendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
-                        Res_SendPreRecordMessage.seatID = oJsonObject.seatID;
-                        Res_SendPreRecordMessage.msg_id = oJsonObject.msg_id;
-                        Res_SendPreRecordMessage.failed_target = oJsonObject.failed_target;
 
-                        //組成給DCU的封包   
-                        var MSG = new CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Response, mSGFromTaskDCU.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(Res_SendPreRecordMessage));
-                        mCMFT_API.Send(MSG); 
-                        ASI.Lib.Log.DebugLog.Log("RES_SendPreRecordMSGToDCU", MSG.JsonContent);
+                        // 依 JsonObjectName 決定如何處理回應，避免強制 cast 造成 InvalidCastException
+                        var rawObject = ASI.Wanda.DMD.Message.Helper.GetJsonObject(mSGFromTaskDCU.JsonData);
+                        if (rawObject is ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage oPreRecord)
+                        {
+                            var resMsg = new ASI.Wanda.DMD.JsonObject.DCU.FromDCU.Res_SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
+                            resMsg.seatID = oPreRecord.seatID;
+                            resMsg.msg_id = oPreRecord.msg_id;
+                            resMsg.failed_target = oPreRecord.failed_target;
+                            var MSG = new CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Response, mSGFromTaskDCU.MessageID, ASI.Lib.Text.Parsing.Json.SerializeObject(resMsg));
+                            mCMFT_API.Send(MSG);
+                            ASI.Lib.Log.DebugLog.Log(_mProcName, $"已送出 Response 給 CMFT（Res_SendPreRecordMessage），MessageID={mSGFromTaskDCU.MessageID}，JsonContent={MSG.JsonContent}");
+                        }
+                        else
+                        {
+                            ASI.Lib.Log.ErrorLog.Log(_mProcName, $"無法處理的 Response 類型，JsonObjectName={sJsonObjectName}");
+                        }
                     }
                     else
                     {
-                        //無此種訊息類別   
+                        //無此種訊息類別
                         ASI.Lib.Log.ErrorLog.Log(_mProcName, $"無此種訊息類別，MessageType:{mSGFromTaskDCU.MessageType}");
                     }
                 }
@@ -314,7 +321,7 @@ namespace ASI.Wanda.DMD.TaskCMFT
             {
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
             }
-          
+
             return -1;
         }
         /// <summary>

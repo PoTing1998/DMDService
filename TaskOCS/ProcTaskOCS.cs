@@ -168,7 +168,7 @@ namespace ASI.Wanda.DMD.TaskOCS
             }
             catch (System.Exception ex)
             {
-                ASI.Lib.Log.ErrorLog.Log("FromTaskCMFT", ex);
+                ASI.Lib.Log.ErrorLog.Log("TaskOCS", ex);
             }
         }
 

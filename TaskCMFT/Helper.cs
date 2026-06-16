@@ -285,12 +285,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         item.send_time
                     );
                 }
-                ///選擇並分類同一車站的數據 
+                ASI.Lib.Log.DebugLog.Log("UpdateDMDPlayList", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DB.Tables.DMD.dmdPlayList>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmd_playlist", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList>();
             }
@@ -359,11 +358,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
+                ASI.Lib.Log.DebugLog.Log("UpdataDMDPreRecordMessage", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DMD.DB.Tables.DMD.dmdPreRecordMessage>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況 
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdPreRecordMessage", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage>();
             }
@@ -430,11 +429,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
+                ASI.Lib.Log.DebugLog.Log("UpdataDMDInstantMessage", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DMD.DB.Tables.DMD.dmdInstantMessage>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況 
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdInstantMessage", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage>();
             }
@@ -475,11 +474,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
+                ASI.Lib.Log.DebugLog.Log("UpdataConfig", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DMD.DB.Tables.System.sysConfig>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況   
                 ASI.Lib.Log.ErrorLog.Log("Error updating sysConfig", updateException);
                 return Enumerable.Empty<DB.Tables.System.sysConfig>();
             }
@@ -528,11 +527,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
+                ASI.Lib.Log.DebugLog.Log("UpSchedule", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DMD.DB.Tables.DMD.dmdSchedule>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況 
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdSchedule", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule>();
             }
@@ -579,11 +578,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
+                ASI.Lib.Log.DebugLog.Log("UpDMDSchedulePlaylist", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DMD.DB.Tables.DMD.dmdSchedulePlayList>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況 
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdSchedulePlayList", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList>();
             }
@@ -627,11 +626,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
+                ASI.Lib.Log.DebugLog.Log("UpDateDMDPowerSetting", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DMD.DB.Tables.DMD.dmdPowerSetting>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況 
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdPowerSetting", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting>();
             }
@@ -695,11 +694,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
+                ASI.Lib.Log.DebugLog.Log("UpDateDMDTrainMessage", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DMD.DB.Tables.DMD.dmdTrainMessage>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況  
                 ASI.Lib.Log.ErrorLog.Log("Error updating DMDTrainMessage", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdTrainMessage>();
             }
@@ -736,11 +735,11 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     );
                 }
 
+                ASI.Lib.Log.DebugLog.Log("UpDateDMDGroupTarget", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DMD.DB.Tables.DMD.dmdGroupTarget>();
             }
             catch (Exception updateException)
             {
-                ///記錄例外狀況  
                 ASI.Lib.Log.ErrorLog.Log("Error updating dmdGroupTarget", updateException);
                 return Enumerable.Empty<ASI.Wanda.DMD.DB.Tables.DMD.dmdGroupTarget>();
             }

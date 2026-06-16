@@ -17,12 +17,21 @@ namespace TaskOCS
         public int WriteTimeout { get; set; } = 1000;
 
         /// <summary>
-        /// 連接到 Modbus TCP 伺服器
+        /// 連接到 Modbus TCP 伺服器（含 5 秒連線 timeout）
         /// </summary>
         public void Connect(string ipAddress, int port)
         {
             _tcpClient = new TcpClient();
-            _tcpClient.Connect(ipAddress, port);
+
+            // TcpClient.Connect() 本身無 timeout，改用非同步方式限制等待時間
+            var connectTask = _tcpClient.ConnectAsync(ipAddress, port);
+            if (!connectTask.Wait(TimeSpan.FromSeconds(5)))
+            {
+                _tcpClient.Close();
+                _tcpClient = null;
+                throw new TimeoutException($"連線逾時（IP={ipAddress}, Port={port}）");
+            }
+
             _stream = _tcpClient.GetStream();
             _stream.ReadTimeout = ReadTimeout;
             _stream.WriteTimeout = WriteTimeout;
@@ -122,6 +131,8 @@ namespace TaskOCS
             
             // 取得資料長度
             int length = (header[4] << 8) | header[5];
+            if (length < 2)
+                throw new Exception($"MBAP Length 欄位異常（值={length}），最小應為 2（Unit ID + Function Code）");
 
             // 讀取剩餘的資料 (PDU)
             byte[] pdu = new byte[length - 1]; // length 包含 Unit ID，已在 header 中
@@ -147,9 +158,10 @@ namespace TaskOCS
         /// </summary>
         private ushort[] ParseResponse(byte[] response, ushort expectedCount)
         {
-            // 檢查回應長度
-            if (response.Length < 9)
-                throw new Exception("回應封包長度不足");
+            // 檢查回應長度（MBAP 7 bytes + FunctionCode 1 byte + ByteCount 1 byte + 資料）
+            int expectedLength = 9 + expectedCount * 2;
+            if (response.Length < expectedLength)
+                throw new Exception($"回應封包長度不足：預期 {expectedLength} bytes，實際 {response.Length} bytes");
 
             byte functionCode = response[7];
 

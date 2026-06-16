@@ -70,6 +70,8 @@ namespace UITest
             this.label5 = new System.Windows.Forms.Label();
             this.cboStation = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
+            this.cboArea = new System.Windows.Forms.ComboBox();
+            this.labelArea = new System.Windows.Forms.Label();
             this.cboMessageType = new System.Windows.Forms.ComboBox();
             this.labelMessageType = new System.Windows.Forms.Label();
             this.cboPriority = new System.Windows.Forms.ComboBox();
@@ -79,8 +81,8 @@ namespace UITest
             this.cboMoveMode = new System.Windows.Forms.ComboBox();
             this.labelMoveMode = new System.Windows.Forms.Label();
             this.groupBoxLog = new System.Windows.Forms.GroupBox();
-            this.btnClearLog = new System.Windows.Forms.Button();
             this.btnExportLog = new System.Windows.Forms.Button();
+            this.btnClearLog = new System.Windows.Forms.Button();
             this.txtLog = new System.Windows.Forms.TextBox();
             this.groupBoxConnection.SuspendLayout();
             this.groupBoxDatabase.SuspendLayout();
@@ -269,7 +271,7 @@ namespace UITest
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(250, 68);
+            this.label10.Location = new System.Drawing.Point(236, 68);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(48, 12);
             this.label10.TabIndex = 2;
@@ -377,6 +379,8 @@ namespace UITest
             this.groupBoxMessage.Controls.Add(this.label5);
             this.groupBoxMessage.Controls.Add(this.cboStation);
             this.groupBoxMessage.Controls.Add(this.label4);
+            this.groupBoxMessage.Controls.Add(this.cboArea);
+            this.groupBoxMessage.Controls.Add(this.labelArea);
             this.groupBoxMessage.Controls.Add(this.cboMessageType);
             this.groupBoxMessage.Controls.Add(this.labelMessageType);
             this.groupBoxMessage.Controls.Add(this.cboPriority);
@@ -387,7 +391,7 @@ namespace UITest
             this.groupBoxMessage.Controls.Add(this.labelMoveMode);
             this.groupBoxMessage.Location = new System.Drawing.Point(15, 235);
             this.groupBoxMessage.Name = "groupBoxMessage";
-            this.groupBoxMessage.Size = new System.Drawing.Size(730, 389);
+            this.groupBoxMessage.Size = new System.Drawing.Size(720, 389);
             this.groupBoxMessage.TabIndex = 2;
             this.groupBoxMessage.TabStop = false;
             this.groupBoxMessage.Text = "訊息設定";
@@ -396,7 +400,7 @@ namespace UITest
             // 
             this.btnSend.Enabled = false;
             this.btnSend.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Bold);
-            this.btnSend.Location = new System.Drawing.Point(550, 230);
+            this.btnSend.Location = new System.Drawing.Point(550, 260);
             this.btnSend.Name = "btnSend";
             this.btnSend.Size = new System.Drawing.Size(160, 35);
             this.btnSend.TabIndex = 11;
@@ -406,7 +410,7 @@ namespace UITest
             // 
             // btnRefreshTargetDU
             // 
-            this.btnRefreshTargetDU.Location = new System.Drawing.Point(650, 178);
+            this.btnRefreshTargetDU.Location = new System.Drawing.Point(650, 208);
             this.btnRefreshTargetDU.Name = "btnRefreshTargetDU";
             this.btnRefreshTargetDU.Size = new System.Drawing.Size(60, 24);
             this.btnRefreshTargetDU.TabIndex = 10;
@@ -420,9 +424,9 @@ namespace UITest
             this.clbTargetDU.FullRowSelect = true;
             this.clbTargetDU.GridLines = true;
             this.clbTargetDU.HideSelection = false;
-            this.clbTargetDU.Location = new System.Drawing.Point(120, 230);
+            this.clbTargetDU.Location = new System.Drawing.Point(120, 260);
             this.clbTargetDU.Name = "clbTargetDU";
-            this.clbTargetDU.Size = new System.Drawing.Size(400, 136);
+            this.clbTargetDU.Size = new System.Drawing.Size(412, 123);
             this.clbTargetDU.TabIndex = 9;
             this.clbTargetDU.UseCompatibleStateImageBehavior = false;
             this.clbTargetDU.View = System.Windows.Forms.View.Details;
@@ -431,7 +435,7 @@ namespace UITest
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(20, 230);
+            this.label7.Location = new System.Drawing.Point(20, 260);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(56, 12);
             this.label7.TabIndex = 8;
@@ -439,7 +443,7 @@ namespace UITest
             // 
             // btnRefreshMessageID
             // 
-            this.btnRefreshMessageID.Location = new System.Drawing.Point(650, 113);
+            this.btnRefreshMessageID.Location = new System.Drawing.Point(650, 143);
             this.btnRefreshMessageID.Name = "btnRefreshMessageID";
             this.btnRefreshMessageID.Size = new System.Drawing.Size(60, 24);
             this.btnRefreshMessageID.TabIndex = 8;
@@ -451,7 +455,7 @@ namespace UITest
             // 
             this.cboMessageIDEn.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboMessageIDEn.FormattingEnabled = true;
-            this.cboMessageIDEn.Location = new System.Drawing.Point(130, 175);
+            this.cboMessageIDEn.Location = new System.Drawing.Point(130, 205);
             this.cboMessageIDEn.Name = "cboMessageIDEn";
             this.cboMessageIDEn.Size = new System.Drawing.Size(500, 20);
             this.cboMessageIDEn.TabIndex = 9;
@@ -460,7 +464,7 @@ namespace UITest
             // label6En
             // 
             this.label6En.AutoSize = true;
-            this.label6En.Location = new System.Drawing.Point(20, 178);
+            this.label6En.Location = new System.Drawing.Point(20, 208);
             this.label6En.Name = "label6En";
             this.label6En.Size = new System.Drawing.Size(56, 12);
             this.label6En.TabIndex = 10;
@@ -470,7 +474,7 @@ namespace UITest
             // 
             this.cboMessageID.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboMessageID.FormattingEnabled = true;
-            this.cboMessageID.Location = new System.Drawing.Point(130, 110);
+            this.cboMessageID.Location = new System.Drawing.Point(130, 140);
             this.cboMessageID.Name = "cboMessageID";
             this.cboMessageID.Size = new System.Drawing.Size(500, 20);
             this.cboMessageID.TabIndex = 7;
@@ -479,7 +483,7 @@ namespace UITest
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(20, 113);
+            this.label6.Location = new System.Drawing.Point(20, 143);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(56, 12);
             this.label6.TabIndex = 6;
@@ -487,7 +491,7 @@ namespace UITest
             // 
             // txtSeatID
             // 
-            this.txtSeatID.Location = new System.Drawing.Point(130, 75);
+            this.txtSeatID.Location = new System.Drawing.Point(130, 105);
             this.txtSeatID.Name = "txtSeatID";
             this.txtSeatID.Size = new System.Drawing.Size(200, 22);
             this.txtSeatID.TabIndex = 5;
@@ -496,7 +500,7 @@ namespace UITest
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(20, 78);
+            this.label5.Location = new System.Drawing.Point(20, 108);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(42, 12);
             this.label5.TabIndex = 4;
@@ -521,6 +525,25 @@ namespace UITest
             this.label4.TabIndex = 2;
             this.label4.Text = "車站:";
             // 
+            // cboArea
+            // 
+            this.cboArea.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboArea.FormattingEnabled = true;
+            this.cboArea.Location = new System.Drawing.Point(480, 60);
+            this.cboArea.Name = "cboArea";
+            this.cboArea.Size = new System.Drawing.Size(150, 20);
+            this.cboArea.TabIndex = 21;
+            this.cboArea.SelectedIndexChanged += new System.EventHandler(this.cboArea_SelectedIndexChanged);
+            // 
+            // labelArea
+            // 
+            this.labelArea.AutoSize = true;
+            this.labelArea.Location = new System.Drawing.Point(410, 63);
+            this.labelArea.Name = "labelArea";
+            this.labelArea.Size = new System.Drawing.Size(32, 12);
+            this.labelArea.TabIndex = 20;
+            this.labelArea.Text = "區域:";
+            // 
             // cboMessageType
             // 
             this.cboMessageType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -531,70 +554,70 @@ namespace UITest
             this.cboMessageType.TabIndex = 1;
             // 
             // labelMessageType
-            //
+            // 
             this.labelMessageType.AutoSize = true;
             this.labelMessageType.Location = new System.Drawing.Point(20, 33);
             this.labelMessageType.Name = "labelMessageType";
             this.labelMessageType.Size = new System.Drawing.Size(56, 12);
             this.labelMessageType.TabIndex = 0;
             this.labelMessageType.Text = "訊息類型:";
-            //
+            // 
             // cboPriority
-            //
+            // 
             this.cboPriority.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboPriority.FormattingEnabled = true;
-            this.cboPriority.Location = new System.Drawing.Point(130, 205);
+            this.cboPriority.Location = new System.Drawing.Point(130, 235);
             this.cboPriority.Name = "cboPriority";
             this.cboPriority.Size = new System.Drawing.Size(100, 20);
             this.cboPriority.TabIndex = 11;
-            //
+            // 
             // labelPriority
-            //
+            // 
             this.labelPriority.AutoSize = true;
-            this.labelPriority.Location = new System.Drawing.Point(20, 208);
+            this.labelPriority.Location = new System.Drawing.Point(20, 238);
             this.labelPriority.Name = "labelPriority";
             this.labelPriority.Size = new System.Drawing.Size(56, 12);
             this.labelPriority.TabIndex = 10;
             this.labelPriority.Text = "優先等級:";
-            //
+            // 
             // cboMoveSpeed
-            //
+            // 
             this.cboMoveSpeed.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboMoveSpeed.FormattingEnabled = true;
-            this.cboMoveSpeed.Location = new System.Drawing.Point(340, 205);
+            this.cboMoveSpeed.Location = new System.Drawing.Point(340, 235);
             this.cboMoveSpeed.Name = "cboMoveSpeed";
             this.cboMoveSpeed.Size = new System.Drawing.Size(100, 20);
             this.cboMoveSpeed.TabIndex = 13;
-            //
+            // 
             // labelMoveSpeed
-            //
+            // 
             this.labelMoveSpeed.AutoSize = true;
-            this.labelMoveSpeed.Location = new System.Drawing.Point(270, 208);
+            this.labelMoveSpeed.Location = new System.Drawing.Point(270, 238);
             this.labelMoveSpeed.Name = "labelMoveSpeed";
             this.labelMoveSpeed.Size = new System.Drawing.Size(56, 12);
             this.labelMoveSpeed.TabIndex = 12;
             this.labelMoveSpeed.Text = "移動速度:";
-            //
+            // 
             // cboMoveMode
-            //
+            // 
             this.cboMoveMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cboMoveMode.FormattingEnabled = true;
-            this.cboMoveMode.Location = new System.Drawing.Point(530, 205);
+            this.cboMoveMode.Location = new System.Drawing.Point(530, 235);
             this.cboMoveMode.Name = "cboMoveMode";
             this.cboMoveMode.Size = new System.Drawing.Size(100, 20);
             this.cboMoveMode.TabIndex = 15;
-            //
+            // 
             // labelMoveMode
-            //
+            // 
             this.labelMoveMode.AutoSize = true;
-            this.labelMoveMode.Location = new System.Drawing.Point(460, 208);
+            this.labelMoveMode.Location = new System.Drawing.Point(460, 238);
             this.labelMoveMode.Name = "labelMoveMode";
             this.labelMoveMode.Size = new System.Drawing.Size(56, 12);
             this.labelMoveMode.TabIndex = 14;
             this.labelMoveMode.Text = "移動方式:";
-            //
+            // 
             // groupBoxLog
-            //
+            // 
             this.groupBoxLog.Controls.Add(this.btnExportLog);
             this.groupBoxLog.Controls.Add(this.btnClearLog);
             this.groupBoxLog.Controls.Add(this.txtLog);
@@ -605,28 +628,28 @@ namespace UITest
             this.groupBoxLog.TabStop = false;
             this.groupBoxLog.Text = "日誌";
             // 
-            // btnClearLog
-            //
-            this.btnClearLog.Location = new System.Drawing.Point(477, 27);
-            this.btnClearLog.Name = "btnClearLog";
-            this.btnClearLog.Size = new System.Drawing.Size(80, 25);
-            this.btnClearLog.TabIndex = 1;
-            this.btnClearLog.Text = "清除";
-            this.btnClearLog.UseVisualStyleBackColor = true;
-            this.btnClearLog.Click += new System.EventHandler(this.btnClearLog_Click);
-            //
             // btnExportLog
-            //
-            this.btnExportLog.Location = new System.Drawing.Point(477, 57);
+            // 
+            this.btnExportLog.Location = new System.Drawing.Point(130, 722);
             this.btnExportLog.Name = "btnExportLog";
             this.btnExportLog.Size = new System.Drawing.Size(80, 25);
             this.btnExportLog.TabIndex = 2;
             this.btnExportLog.Text = "匯出";
             this.btnExportLog.UseVisualStyleBackColor = true;
             this.btnExportLog.Click += new System.EventHandler(this.btnExportLog_Click);
-            //
+            // 
+            // btnClearLog
+            // 
+            this.btnClearLog.Location = new System.Drawing.Point(44, 723);
+            this.btnClearLog.Name = "btnClearLog";
+            this.btnClearLog.Size = new System.Drawing.Size(80, 25);
+            this.btnClearLog.TabIndex = 1;
+            this.btnClearLog.Text = "清除";
+            this.btnClearLog.UseVisualStyleBackColor = true;
+            this.btnClearLog.Click += new System.EventHandler(this.btnClearLog_Click);
+            // 
             // txtLog
-            //
+            // 
             this.txtLog.BackColor = System.Drawing.Color.Black;
             this.txtLog.Font = new System.Drawing.Font("Consolas", 9F);
             this.txtLog.ForeColor = System.Drawing.Color.Lime;
@@ -635,7 +658,7 @@ namespace UITest
             this.txtLog.Name = "txtLog";
             this.txtLog.ReadOnly = true;
             this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtLog.Size = new System.Drawing.Size(410, 707);
+            this.txtLog.Size = new System.Drawing.Size(405, 683);
             this.txtLog.TabIndex = 0;
             // 
             // SendToDCU
@@ -691,6 +714,8 @@ namespace UITest
         private System.Windows.Forms.ComboBox cboMessageType;
         private System.Windows.Forms.ComboBox cboStation;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.ComboBox cboArea;
+        private System.Windows.Forms.Label labelArea;
         private System.Windows.Forms.TextBox txtSeatID;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.ComboBox cboMessageID;

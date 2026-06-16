@@ -39,10 +39,10 @@
             //
             // mainTabControl
             //
+            this.mainTabControl.Controls.Add(this.tabSendToDCU);
             this.mainTabControl.Controls.Add(this.tabTaskOCS);
             this.mainTabControl.Controls.Add(this.tabTaskCMFT);
             this.mainTabControl.Controls.Add(this.tabTaskDCU);
-            this.mainTabControl.Controls.Add(this.tabSendToDCU);
             this.mainTabControl.Controls.Add(this.tabOCSParser);
             this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTabControl.Font = new System.Drawing.Font("Microsoft JhengHei", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
@@ -92,7 +92,7 @@
             this.tabSendToDCU.Padding = new System.Windows.Forms.Padding(3);
             this.tabSendToDCU.Size = new System.Drawing.Size(1320, 844);
             this.tabSendToDCU.TabIndex = 3;
-            this.tabSendToDCU.Text = "Send To DCU";
+            this.tabSendToDCU.Text = "降級營運模式";
             this.tabSendToDCU.UseVisualStyleBackColor = true;
             //
             // tabOCSParser

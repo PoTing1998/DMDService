@@ -51,6 +51,9 @@ namespace UITest
             });
             cboStation.SelectedIndex = 0;
 
+            cboArea.Items.Add("全部");
+            cboArea.SelectedIndex = 0;
+
             cboPriority.Items.AddRange(new object[] { "1", "2", "3", "4", "5" });
             cboPriority.SelectedIndex = 2;
 
@@ -127,7 +130,8 @@ namespace UITest
                 {
                     LoadPreRecordMessages();
                     string selectedStation = cboStation.SelectedItem?.ToString();
-                    LoadTargetDevices(selectedStation);
+                    PopulateAreaFilter(selectedStation);
+                    LoadTargetDevices(selectedStation, "全部");
                 }
             }
             catch (Exception ex)
@@ -208,14 +212,26 @@ namespace UITest
         {
             AppendLog("正在重新載入目標看板...");
             string selectedStation = cboStation.SelectedItem?.ToString();
-            LoadTargetDevices(selectedStation);
+            string selectedArea = cboArea.SelectedItem?.ToString();
+            LoadTargetDevices(selectedStation, selectedArea);
         }
 
         private void cboStation_SelectedIndexChanged(object sender, EventArgs e)
         {
             string selectedStation = cboStation.SelectedItem?.ToString();
             if (!string.IsNullOrEmpty(selectedStation))
-                LoadTargetDevices(selectedStation);
+            {
+                PopulateAreaFilter(selectedStation);
+                LoadTargetDevices(selectedStation, "全部");
+            }
+        }
+
+        private void cboArea_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string selectedStation = cboStation.SelectedItem?.ToString();
+            string selectedArea = cboArea.SelectedItem?.ToString();
+            if (!string.IsNullOrEmpty(selectedStation))
+                LoadTargetDevices(selectedStation, selectedArea);
         }
 
         private void cboMessageType_SelectedIndexChanged(object sender, EventArgs e)
@@ -346,11 +362,16 @@ namespace UITest
             }
         }
 
-        private void LoadTargetDevices(string stationFilter)
+        private void LoadTargetDevices(string stationFilter, string areaFilter = null)
         {
             if (_messageService == null) return;
 
             var devices = _messageService.GetTargetDevices(stationFilter);
+
+            // 依區域篩選
+            if (!string.IsNullOrEmpty(areaFilter) && areaFilter != "全部")
+                devices = devices.Where(d => d.AreaId == areaFilter).ToList();
+
             clbTargetDU.Items.Clear();
 
             foreach (var device in devices)
@@ -363,10 +384,33 @@ namespace UITest
                 clbTargetDU.Items.Add(item);
             }
 
-            if (!string.IsNullOrEmpty(stationFilter))
-                AppendLog($"✓ 已載入 {devices.Count} 個目標看板 (車站: {stationFilter})");
-            else
-                AppendLog($"✓ 已載入 {devices.Count} 個目標看板");
+            string log = $"✓ 已載入 {devices.Count} 個目標看板";
+            if (!string.IsNullOrEmpty(stationFilter) && stationFilter != "全部")
+                log += $" (車站: {stationFilter}";
+            if (!string.IsNullOrEmpty(areaFilter) && areaFilter != "全部")
+                log += $", 區域: {areaFilter}";
+            if (log.Contains("(")) log += ")";
+            AppendLog(log);
+        }
+
+        private void PopulateAreaFilter(string stationFilter)
+        {
+            if (_messageService == null) return;
+
+            var devices = _messageService.GetTargetDevices(stationFilter);
+            var areas = devices.Select(d => d.AreaId)
+                               .Where(a => !string.IsNullOrEmpty(a))
+                               .Distinct()
+                               .OrderBy(a => a)
+                               .ToList();
+
+            cboArea.SelectedIndexChanged -= cboArea_SelectedIndexChanged;
+            cboArea.Items.Clear();
+            cboArea.Items.Add("全部");
+            foreach (var area in areas)
+                cboArea.Items.Add(area);
+            cboArea.SelectedIndex = 0;
+            cboArea.SelectedIndexChanged += cboArea_SelectedIndexChanged;
         }
         #endregion
 

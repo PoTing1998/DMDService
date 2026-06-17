@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <add key="Host_Name" value="DMDServer" />
+  <add key="DMD_DB_IP" value="10.107.26.99" />
+  <add key="DMD_DB_Port" value="5432" />
+  <add key="DMD_DB_Name" value="DMDDB" />
+  <add key="Current_User_ID" value="DMD Server" />
+  <add key="TcpClientIP" value="10.107.26.1" />
+  <add key="TcpClientPort" value="502" />
+  <add key="slaveAddress" value="0" />
+  <add key="numberOfPoints" value="38" />
+</configuration>

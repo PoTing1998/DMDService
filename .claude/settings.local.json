@@ -28,7 +28,10 @@
       "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\Desktop\\\\工具和软件\\\\DMDService\\\\CMFTSimulator\\\\CMFTSimulatorGUI.csproj\")",
       "Bash(where nuget:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File DownloadDependencies.ps1)",
-      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" DMDService.sln /p:Configuration=Debug /t:Rebuild /v:minimal /nologo)"
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" DMDService.sln /p:Configuration=Debug /t:Rebuild /v:minimal /nologo)",
+      "Bash(find \"/c/Program Files/Microsoft Visual Studio/2022\" -iname \"MSBuild.exe\" 2>/dev/null | head -5)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Professional/MSBuild/Current/Bin/MSBuild.exe\" UITest/UITest.csproj /p:Configuration=Debug /v:minimal /nologo)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Professional\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Users\\\\06006800\\\\source\\\\repos\\\\DMDService\\\\UITest\\\\UITest.csproj\" /p:Configuration=Debug /v:minimal /nologo)"
     ],
     "deny": [],
     "ask": []

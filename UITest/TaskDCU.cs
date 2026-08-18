@@ -411,9 +411,18 @@ namespace UITest
             var ObjectName = ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage);
             //組成給DCU的封包
             var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, oMessage.MessageID, ObjectName);
+
+            using (var dlg = new JsonEditDialog("傳送內容（可修改後再送出）", MSG.JsonContent))
+            {
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                MSG.JsonContent = dlg.JsonText;
+            }
+
             var RESLUT = mDMD_API.Send(MSG);
             ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCU", MSG.JsonContent);
-            MessageBox.Show("傳送:" + RESLUT.ToString());
+            MessageBox.Show("傳送內容:" + Environment.NewLine + MSG.JsonContent + Environment.NewLine + Environment.NewLine + "傳送結果:" + RESLUT.ToString());
         }
 
         private void button2_Click(object sender, EventArgs e)

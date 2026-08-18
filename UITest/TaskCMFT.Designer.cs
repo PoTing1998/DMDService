@@ -140,9 +140,10 @@
             this.blackListClear.TabIndex = 1;
             this.blackListClear.Text = "清除";
             this.blackListClear.UseVisualStyleBackColor = true;
-            // 
+            this.blackListClear.Click += new System.EventHandler(this.blackListClear_Click);
+            //
             // button7
-            // 
+            //
             this.button7.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button7.Location = new System.Drawing.Point(430, 0);
             this.button7.Name = "button7";
@@ -150,9 +151,10 @@
             this.button7.TabIndex = 1;
             this.button7.Text = "清除";
             this.button7.UseVisualStyleBackColor = true;
-            // 
+            this.button7.Click += new System.EventHandler(this.button7_Click);
+            //
             // button4
-            // 
+            //
             this.button4.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button4.Location = new System.Drawing.Point(430, 0);
             this.button4.Name = "button4";
@@ -160,9 +162,10 @@
             this.button4.TabIndex = 1;
             this.button4.Text = "清除";
             this.button4.UseVisualStyleBackColor = true;
-            // 
+            this.button4.Click += new System.EventHandler(this.button4_Click);
+            //
             // button1
-            // 
+            //
             this.button1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button1.Location = new System.Drawing.Point(414, 0);
             this.button1.Name = "button1";
@@ -170,9 +173,10 @@
             this.button1.TabIndex = 1;
             this.button1.Text = "清除";
             this.button1.UseVisualStyleBackColor = true;
-            // 
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            //
             // button3
-            // 
+            //
             this.button3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button3.Location = new System.Drawing.Point(414, 0);
             this.button3.Name = "button3";
@@ -180,7 +184,8 @@
             this.button3.TabIndex = 1;
             this.button3.Text = "清除";
             this.button3.UseVisualStyleBackColor = true;
-            // 
+            this.button3.Click += new System.EventHandler(this.button3_Click);
+            //
             // dataGridViewPanel
             // 
             this.dataGridViewPanel.AllowUserToDeleteRows = false;

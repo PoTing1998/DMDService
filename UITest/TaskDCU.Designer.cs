@@ -162,6 +162,7 @@
             this.testBtn.TabIndex = 56;
             this.testBtn.Text = "傳送測試";
             this.testBtn.UseVisualStyleBackColor = true;
+            this.testBtn.Click += new System.EventHandler(this.testBtn_Click);
             // 
             // stationListCB
             // 

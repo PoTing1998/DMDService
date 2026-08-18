@@ -129,6 +129,31 @@ namespace UITest
             _cmftService.SyncPlayList();
             _cmftService.SyncPreRecordMessages();
         }
+
+        private void blackListClear_Click(object sender, EventArgs e)
+        {
+            blackListText.Clear();
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            connetText.Clear();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            sendDataText.Clear();
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            resText.Clear();
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            ReceDataTextDCU.Clear();
+        }
         #endregion
 
         #region Helper Methods

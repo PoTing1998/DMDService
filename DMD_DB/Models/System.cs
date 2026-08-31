@@ -337,6 +337,15 @@ namespace ASI.Wanda.DMD.DB.Models.System
         }
 
         /// <summary>  
+        /// 設備類型        
+        /// </summary> 
+        public string equip_type
+        {
+            get;
+            set;
+        }
+
+        /// <summary>  
         /// 地區編號        
         /// </summary> 
         public string region_id
@@ -391,18 +400,18 @@ namespace ASI.Wanda.DMD.DB.Models.System
         }
 
         /// <summary>  
-        /// 設備類型        
+        /// 設備狀態        
         /// </summary> 
-        public string equip_type
+        public bool equip_status
         {
             get;
             set;
         }
 
-        /// <summary>  
-        /// 設備狀態        
-        /// </summary> 
-        public bool equip_status
+        /// <summary>
+        /// 是否顯示於總覽
+        /// </summary>
+        public bool is_overview
         {
             get;
             set;

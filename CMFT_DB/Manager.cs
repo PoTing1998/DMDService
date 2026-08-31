@@ -65,6 +65,23 @@ namespace ASI.Wanda.CMFT.DB
         /// <param name="Passward">連接資料庫的使用者密碼</param>
         /// <param name="currentUserID">ins_user/upd_user欄位的名稱</param>
         /// <returns></returns>
+        /// <summary>
+        /// 開啟一個 CMFT 資料庫的交易範圍，範圍內所有 Table 操作都會自動沿用同一筆交易。
+        /// 沒有呼叫 Complete() 就離開 using 會自動 Rollback。
+        /// </summary>
+        /// <example>
+        /// using (var scope = Manager.BeginTransaction())
+        /// {
+        ///     dmdGroup.InsertGroup(...);
+        ///     dmdGroupTarget.InsertGroupTarget(...);
+        ///     scope.Complete();
+        /// }
+        /// </example>
+        static public ASI.Wanda.DB.DbTransactionScope BeginTransaction()
+        {
+            return ASI.Wanda.DB.DbTransactionScope.Begin(new ASI.Wanda.CMFT.DB.Tables.CmftTableOptions());
+        }
+
         static public bool Initializer(string connIP, string connPort, string databaseName, string userID, string passward, string currentUserID)
         { 
             //設定連接資料庫字串所需參數

@@ -71,13 +71,13 @@ namespace ASI.Wanda.DMD.DB.Tables.System
 
             Update(
                 equip.equip_id
+              , equip.equip_type
               , equip.region_id
               , equip.region_name
               , equip.place_name
               , equip.area_name
               , equip.system_id
               , equip.system_name
-              , equip.equip_type
               , equip_status
               );
 

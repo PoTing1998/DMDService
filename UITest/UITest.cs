@@ -59,24 +59,21 @@ namespace UITest
 
         private void mainTabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
-            switch (mainTabControl.SelectedIndex)
-            {
-                case 0:
-                    LoadControlIntoTab(tabTaskOCS, taskOCSControl, 0);
-                    break;
-                case 1:
-                    LoadControlIntoTab(tabTaskCMFT, taskCMFTControl, 1);
-                    break;
-                case 2:
-                    LoadControlIntoTab(tabTaskDCU, taskDCUControl, 2);
-                    break;
-                case 3:
-                    LoadControlIntoTab(tabSendToDCU, sendToDCUControl, 3);
-                    break;
-                case 4:
-                    LoadControlIntoTab(tabOCSParser, ocsParserControl, 4);
-                    break;
-            }
+            // 以 TabPage 物件比對，不要用 SelectedIndex。
+            // 分頁在 Designer 中的加入順序若被調整，索引就會對不上，
+            // 造成點了某個分頁卻載入別的 UserControl（分頁看起來是空白的）。
+            var tab = mainTabControl.SelectedTab;
+
+            if (tab == tabTaskOCS)
+                LoadControlIntoTab(tabTaskOCS, taskOCSControl, 0);
+            else if (tab == tabTaskCMFT)
+                LoadControlIntoTab(tabTaskCMFT, taskCMFTControl, 1);
+            else if (tab == tabTaskDCU)
+                LoadControlIntoTab(tabTaskDCU, taskDCUControl, 2);
+            else if (tab == tabSendToDCU)
+                LoadControlIntoTab(tabSendToDCU, sendToDCUControl, 3);
+            else if (tab == tabOCSParser)
+                LoadControlIntoTab(tabOCSParser, ocsParserControl, 4);
         }
     }
 }

@@ -65,6 +65,23 @@ namespace ASI.Wanda.DCU.DB
         static public Action ErrorHandle;
         #endregion
 
+        /// <summary>
+        /// 開啟一個 DCU 資料庫的交易範圍，範圍內所有 Table 操作都會自動沿用同一筆交易。
+        /// 沒有呼叫 Complete() 就離開 using 會自動 Rollback。
+        /// </summary>
+        /// <example>
+        /// using (var scope = Manager.BeginTransaction())
+        /// {
+        ///     dmdGroup.InsertGroup(...);
+        ///     dmdGroupTarget.InsertGroupTarget(...);
+        ///     scope.Complete();
+        /// }
+        /// </example>
+        static public ASI.Wanda.DB.DbTransactionScope BeginTransaction()
+        {
+            return ASI.Wanda.DB.DbTransactionScope.Begin(new ASI.Wanda.DCU.DB.Tables.DcuTableOptions());
+        }
+
         static public bool Initializer(string Host, string connPort, string Database, string userID, string Password, string currentUserID)
         {
             //設定連接資料庫字串所需參數

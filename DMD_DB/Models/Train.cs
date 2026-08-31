@@ -32,7 +32,7 @@ namespace ASI.Wanda.DMD.DB.Models.Train
         }
 
     
-        public DateTime upd_time
+        public string upd_time
         {
             get;
             set;
@@ -232,14 +232,14 @@ namespace ASI.Wanda.DMD.DB.Models.Train
             set;
         }
 
-        public string upd_user
+        public string ins_user
         {
             get;
             set;
         }
 
 
-        public DateTime upd_time
+        public string ins_time
         {
             get;
             set;
@@ -298,12 +298,12 @@ namespace ASI.Wanda.DMD.DB.Models.Train
             set;
         }
 
-        public string upd_user
+        public string ins_user
         {
             get;
             set;
         }
-        public DateTime upd_time
+        public string ins_time
         {
             get;
             set;

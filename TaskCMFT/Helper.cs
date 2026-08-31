@@ -265,25 +265,29 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     })
                     .ToList();
                 ///刪除原本的資料
-                convertedList.ForEach(item =>
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(
-                        item.station_id, item.area_id, item.device_id);
-                });
+                    convertedList.ForEach(item =>
+                    {
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.DeletePlayingItem(
+                            item.station_id, item.area_id, item.device_id);
+                    });
                 
-                ///遍歷轉換後的列表，進行更新操作
-                foreach (var item in convertedList)
-                {
-                    ///MSGtype  0 =預錄  1= 及時 
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.InsertPlayingItem(
-                        item.playlist_id,
-                        item.station_id,
-                        item.area_id,
-                        item.device_id,
-                        item.message_id,
-                        item.message_type,
-                        item.send_time
-                    );
+                    ///遍歷轉換後的列表，進行更新操作
+                    foreach (var item in convertedList)
+                    {
+                        ///MSGtype  0 =預錄  1= 及時 
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdPlayList.InsertPlayingItem(
+                            item.playlist_id,
+                            item.station_id,
+                            item.area_id,
+                            item.device_id,
+                            item.message_id,
+                            item.message_type,
+                            item.send_time
+                        );
+                    }
+                    scope.Complete();
                 }
                 ASI.Lib.Log.DebugLog.Log("UpdateDMDPlayList", $"同步完成，共 {convertedList.Count} 筆");
                 return convertedList.Cast<DB.Tables.DMD.dmdPlayList>();
@@ -329,33 +333,37 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time,
                     })
                     .ToList();
-                convertedList.ForEach(item =>
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage.DeletePreRecordMessage(
-                       item.message_id
-                    );
-                });
-                ///遍歷轉換後的列表，進行更新操作
-                foreach (var item in convertedList)
-                {
-                    ///MSGtype  0 =預錄  1= 及時 
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage.InsertPreRecordMessage(
-                        item.message_id,
-                        item.message_name,
-                        item.message_type,
-                        item.message_priority,
-                        item.move_mode,
-                        item.move_speed,
-                        item.Interval,
-                        item.message_content,
-                        item.font_type,
-                        item.font_size,
-                        item.font_color,
-                        item.message_content_en,
-                        item.font_type_en,
-                        item.font_size_en,
-                        item.font_color_en
-                    );
+                    convertedList.ForEach(item =>
+                    {
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage.DeletePreRecordMessage(
+                           item.message_id
+                        );
+                    });
+                    ///遍歷轉換後的列表，進行更新操作
+                    foreach (var item in convertedList)
+                    {
+                        ///MSGtype  0 =預錄  1= 及時 
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdPreRecordMessage.InsertPreRecordMessage(
+                            item.message_id,
+                            item.message_name,
+                            item.message_type,
+                            item.message_priority,
+                            item.move_mode,
+                            item.move_speed,
+                            item.Interval,
+                            item.message_content,
+                            item.font_type,
+                            item.font_size,
+                            item.font_color,
+                            item.message_content_en,
+                            item.font_type_en,
+                            item.font_size_en,
+                            item.font_color_en
+                        );
+                    }
+                    scope.Complete();
                 }
 
                 ASI.Lib.Log.DebugLog.Log("UpdataDMDPreRecordMessage", $"同步完成，共 {convertedList.Count} 筆");
@@ -401,32 +409,36 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time,
                     })
                     .ToList();
-                convertedList.ForEach(item =>
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.DeleteInstantMessages(
-                       item.message_id
-                    );
-                });
-                ///遍歷轉換後的列表，進行更新操作
-                foreach (var item in convertedList)
-                {
-                    ///MSGtype  0 =預錄  1= 及時 
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.InsertInstantMessages(
-                        item.message_id,
-                        item.message_type,
-                        item.message_priority,
-                        item.move_mode,
-                        item.move_speed,
-                        item.Interval,
-                        item.message_content,
-                        item.font_type,
-                        item.font_size,
-                        item.font_color,
-                        item.message_content_en,
-                        item.font_type_en,
-                        item.font_size_en,
-                        item.font_color_en
-                    );
+                    convertedList.ForEach(item =>
+                    {
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.DeleteInstantMessages(
+                           item.message_id
+                        );
+                    });
+                    ///遍歷轉換後的列表，進行更新操作
+                    foreach (var item in convertedList)
+                    {
+                        ///MSGtype  0 =預錄  1= 及時 
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdInstantMessage.InsertInstantMessages(
+                            item.message_id,
+                            item.message_type,
+                            item.message_priority,
+                            item.move_mode,
+                            item.move_speed,
+                            item.Interval,
+                            item.message_content,
+                            item.font_type,
+                            item.font_size,
+                            item.font_color,
+                            item.message_content_en,
+                            item.font_type_en,
+                            item.font_size_en,
+                            item.font_color_en
+                        );
+                    }
+                    scope.Complete();
                 }
 
                 ASI.Lib.Log.DebugLog.Log("UpdataDMDInstantMessage", $"同步完成，共 {convertedList.Count} 筆");
@@ -463,15 +475,19 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     })
                     .ToList();
                 ///遍歷轉換後的列表，進行更新操作  
-                foreach (var item in convertedList)
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    DB.Tables.System.sysConfig.UpdataSystemConfig(
-                       item.config_name,
-                       item.config_value,
-                       item.config_description,
-                       item.system_id,
-                       item.remark
-                    );
+                    foreach (var item in convertedList)
+                    {
+                        DB.Tables.System.sysConfig.UpdataSystemConfig(
+                           item.config_name,
+                           item.config_value,
+                           item.config_description,
+                           item.system_id,
+                           item.remark
+                        );
+                    }
+                    scope.Complete();
                 }
 
                 ASI.Lib.Log.DebugLog.Log("UpdataConfig", $"同步完成，共 {convertedList.Count} 筆");
@@ -508,23 +524,27 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time,
                     })
                     .ToList();
-                convertedList.ForEach(item =>
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule.DeleteSchedule(
-                       item.schedule_id
-                    );
-                });
-                ///遍歷轉換後的列表，進行更新操作 
-                foreach (var item in convertedList)
-                {
-                    ///MSGtype  0 =預錄  1= 及時 
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule.InsertSchedule(
-                       item.schedule_id,
-                       item.schedule_name,
-                       item.is_enable,
-                       item.start_date,
-                       item.end_date
-                    );
+                    convertedList.ForEach(item =>
+                    {
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule.DeleteSchedule(
+                           item.schedule_id
+                        );
+                    });
+                    ///遍歷轉換後的列表，進行更新操作 
+                    foreach (var item in convertedList)
+                    {
+                        ///MSGtype  0 =預錄  1= 及時 
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedule.InsertSchedule(
+                           item.schedule_id,
+                           item.schedule_name,
+                           item.is_enable,
+                           item.start_date,
+                           item.end_date
+                        );
+                    }
+                    scope.Complete();
                 }
 
                 ASI.Lib.Log.DebugLog.Log("UpSchedule", $"同步完成，共 {convertedList.Count} 筆");
@@ -560,22 +580,26 @@ namespace ASI.Wanda.DMD.TaskCMFT
                         upd_time = item.upd_time,
                     })
                     .ToList();
-                convertedList.ForEach(item =>
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.DeleteSchedulePlayListItems(
-                       item.schedule_id
-                    );
-                });
-                ///遍歷轉換後的列表，進行更新操作 
-                foreach (var item in convertedList)
-                {
-                    ///MSGtype  0 =預錄  1= 及時  
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.InsertSchedulePlayListItem(
-                       item.schedule_id,
-                       item.message_id,
-                       item.station_id,
-                       item.device_id
-                    );
+                    convertedList.ForEach(item =>
+                    {
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.DeleteSchedulePlayListItems(
+                           item.schedule_id
+                        );
+                    });
+                    ///遍歷轉換後的列表，進行更新操作 
+                    foreach (var item in convertedList)
+                    {
+                        ///MSGtype  0 =預錄  1= 及時  
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdSchedulePlayList.InsertSchedulePlayListItem(
+                           item.schedule_id,
+                           item.message_id,
+                           item.station_id,
+                           item.device_id
+                        );
+                    }
+                    scope.Complete();
                 }
 
                 ASI.Lib.Log.DebugLog.Log("UpDMDSchedulePlaylist", $"同步完成，共 {convertedList.Count} 筆");
@@ -613,17 +637,21 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     })
                     .ToList();
                 ///遍歷轉換後的列表，進行更新操作
-                foreach (var item in convertedList)
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    ///MSGtype  0 =預錄  1= 及時  
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting.UpdatePowerSetting(
-                       item.station_id,
-                       item.eco_mode,
-                       item.eco_time,
-                       item.not_eco_day,
-                       item.auto_play_time,
-                       item.auto_eco_time
-                    );
+                    foreach (var item in convertedList)
+                    {
+                        ///MSGtype  0 =預錄  1= 及時  
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdPowerSetting.UpdatePowerSetting(
+                           item.station_id,
+                           item.eco_mode,
+                           item.eco_time,
+                           item.not_eco_day,
+                           item.auto_play_time,
+                           item.auto_eco_time
+                        );
+                    }
+                    scope.Complete();
                 }
 
                 ASI.Lib.Log.DebugLog.Log("UpDateDMDPowerSetting", $"同步完成，共 {convertedList.Count} 筆");
@@ -671,27 +699,31 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     })
                     .ToList();
                 ///遍歷轉換後的列表，進行更新操作
-                foreach (var item in convertedList)
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    ///MSGtype  0 =預錄  1= 及時  
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdTrainMessage.UpdateTrainMessages(
-                       item.message_id,
-                       item.message_type,
-                       item.message_subtype,
-                       item.message_priority,
-                       item.move_mode,
-                       item.move_speed,
-                       item.display_times,
-                       item.countdown_display_Interval,
-                       item.message_content,
-                       item.font_type,
-                       item.font_size,
-                       item.font_color,
-                       item.message_content_en,
-                       item.font_type_en,
-                       item.font_size_en,
-                       item.font_color_en
-                    );
+                    foreach (var item in convertedList)
+                    {
+                        ///MSGtype  0 =預錄  1= 及時  
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdTrainMessage.UpdateTrainMessages(
+                           item.message_id,
+                           item.message_type,
+                           item.message_subtype,
+                           item.message_priority,
+                           item.move_mode,
+                           item.move_speed,
+                           item.display_times,
+                           item.countdown_display_Interval,
+                           item.message_content,
+                           item.font_type,
+                           item.font_size,
+                           item.font_color,
+                           item.message_content_en,
+                           item.font_type_en,
+                           item.font_size_en,
+                           item.font_color_en
+                        );
+                    }
+                    scope.Complete();
                 }
 
                 ASI.Lib.Log.DebugLog.Log("UpDateDMDTrainMessage", $"同步完成，共 {convertedList.Count} 筆");
@@ -724,15 +756,19 @@ namespace ASI.Wanda.DMD.TaskCMFT
                     })
                     .ToList();
                 ///遍歷轉換後的列表，進行更新操作
-                foreach (var item in convertedList)
+                using (var scope = ASI.Wanda.DMD.DB.Manager.BeginTransaction())
                 {
-                    ///MSGtype  0 =預錄  1= 及時  
-                    ASI.Wanda.DMD.DB.Tables.DMD.dmdGroupTarget.InsertGroupTarget(
-                       item.group_id,
-                       item.station_id,
-                       item.area_id,
-                       item.device_id
-                    );
+                    foreach (var item in convertedList)
+                    {
+                        ///MSGtype  0 =預錄  1= 及時  
+                        ASI.Wanda.DMD.DB.Tables.DMD.dmdGroupTarget.InsertGroupTarget(
+                           item.group_id,
+                           item.station_id,
+                           item.area_id,
+                           item.device_id
+                        );
+                    }
+                    scope.Complete();
                 }
 
                 ASI.Lib.Log.DebugLog.Log("UpDateDMDGroupTarget", $"同步完成，共 {convertedList.Count} 筆");

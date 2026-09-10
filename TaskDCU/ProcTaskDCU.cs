@@ -27,6 +27,17 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// 儲存已連接的客戶端
         /// </summary>
         private List<string> connectedClients = new List<string>();
+        /// <summary>
+        /// 車站代碼 -> 已連線的 DCU 客戶端 (IP:port)，來源為 station_conf.dcu_ip 反查
+        /// </summary>
+        private Dictionary<string, string> mStationClients =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>
+        /// connectedClients / mStationClients 的同步鎖。
+        /// 這兩個集合會被 socket 事件緒與訊息處理緒同時存取，
+        /// 鎖內只做記憶體操作，DB 查詢與 Send 一律留在鎖外。
+        /// </summary>
+        private readonly object mClientsLock = new object();
         public class DeviceInfo
         {
             public string StationID { get; set; }
@@ -156,10 +167,115 @@ namespace ASI.Wanda.DMD.TaskDCU
 
         private void DMD_API_DisconnectedEvent(string clientInfo)
         {
-            // 從列表中移除已斷開的客戶端
-            connectedClients.Remove(clientInfo);
+            List<string> staleStations;
+
+            lock (mClientsLock)
+            {
+                // 從列表中移除已斷開的客戶端
+                connectedClients.Remove(clientInfo);
+
+                // 一併移除車站對照，避免送到已斷線的目標
+                staleStations = mStationClients
+                                .Where(x => string.Equals(x.Value, clientInfo, StringComparison.OrdinalIgnoreCase))
+                                .Select(x => x.Key)
+                                .ToList();
+                foreach (var stationID in staleStations)
+                {
+                    mStationClients.Remove(stationID);
+                }
+            }
+
+            // 寫檔的 log 放到鎖外
+            foreach (var stationID in staleStations)
+            {
+                ASI.Lib.Log.DebugLog.Log(_mProcName, $"車站 [{stationID}] 的連線已移除");
+            }
+
             ASI.Lib.Log.DebugLog.Log(_mProcName, $"客戶端已斷開連接: {clientInfo}");
 
+        }
+
+        /// <summary>
+        /// 取得指定車站目前的連線目標 (IP:port)，供 DMD_API.Send(message, target) 使用。
+        /// 先查連線時建立的對照，查不到再以 station_conf.dcu_ip 比對已連線清單。
+        /// </summary>
+        /// <param name="stationID">車站代碼，例如 "LG08A"</param>
+        /// <returns>連線目標字串；該站尚未連線時回傳 null</returns>
+        private string ResolveClientTarget(string stationID)
+        {
+            string cached;
+
+            // 第一段：鎖內，純記憶體查對照
+            lock (mClientsLock)
+            {
+                if (mStationClients.TryGetValue(stationID, out cached))
+                    return cached;
+            }
+
+            // 第二段：鎖外，查 DB（慢動作，鎖住會卡到 socket 事件緒）
+            var dcuIP = ASI.Wanda.DMD.DB.Tables.Train.stationConf.GetDcuIP(stationID);
+            if (string.IsNullOrEmpty(dcuIP))
+            {
+                ASI.Lib.Log.DebugLog.Log(_mProcName, $"車站 [{stationID}] 在 station_conf 查無 dcu_ip");
+                return null;
+            }
+
+            // 第三段：鎖內，比對已連線清單並寫回對照
+            string match;
+            lock (mClientsLock)
+            {
+                // 查 DB 這段期間，ConnectedEvent 可能已經建立對照
+                if (mStationClients.TryGetValue(stationID, out cached))
+                    return cached;
+
+                // Server 模式下客戶端的來源 port 是動態的，只能以 IP 前綴比對
+                match = connectedClients.FirstOrDefault(
+                            c => !string.IsNullOrEmpty(c) &&
+                                 string.Equals(c.Split(':')[0].Trim(), dcuIP, StringComparison.OrdinalIgnoreCase));
+
+                if (match != null)
+                    mStationClients[stationID] = match;
+            }
+
+            if (match == null)
+                ASI.Lib.Log.DebugLog.Log(_mProcName, $"車站 [{stationID}] 的 DCU ({dcuIP}) 目前未連線");
+
+            return match;
+        }
+
+        /// <summary>
+        /// 將依車站分群的訊息分別送往各站的 DCU。
+        /// </summary>
+        /// <param name="messagesByStation">車站代碼 -&gt; 訊息物件</param>
+        /// <param name="messageTypeName">訊息類型名稱，僅供記錄使用</param>
+        /// <returns>成功送出的車站數</returns>
+        private int SendByStation(Dictionary<string, ASI.Wanda.DMD.Message.Message> messagesByStation, string messageTypeName)
+        {
+            var successCount = 0;
+
+            if (messagesByStation == null || messagesByStation.Count == 0)
+            {
+                ASI.Lib.Log.DebugLog.Log(_mProcName, $"{messageTypeName} 沒有可分送的車站目標");
+                return 0;
+            }
+
+            foreach (var item in messagesByStation)
+            {
+                var target = ResolveClientTarget(item.Key);
+                if (string.IsNullOrEmpty(target))
+                {
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, $"{messageTypeName} 略過車站 [{item.Key}]：找不到可用連線");
+                    continue;
+                }
+
+                var result = mDMD_API.Send(item.Value, target);
+                ASI.Lib.Log.DebugLog.Log(_mProcName, $"{messageTypeName} 送往車站 [{item.Key}] ({target}) 結果: {result}");
+                if (result == 0)
+                    successCount++;
+            }
+
+            ASI.Lib.Log.DebugLog.Log(_mProcName, $"{messageTypeName} 分送完成，成功 {successCount}/{messagesByStation.Count} 站");
+            return successCount;
         }
 
         /// <summary>
@@ -299,14 +415,13 @@ namespace ASI.Wanda.DMD.TaskDCU
                     switch (sJsonObjectName)
                     {
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMsg: //預錄訊息 
-                            message = Helper.SendPreRecordMSGToDCU(mSGFromTaskCMFT);
-                            result = mDMD_API.Send((Message.Message)message);
-                            ASI.Lib.Log.DebugLog.Log("預錄訊息 傳送結果", result.ToString());
+                            // 依 target_du 的車站分群，各站以 station_conf.dcu_ip 對應的連線分別送出
+                            result = SendByStation(Helper.SendPreRecordMSGToDCUByStation(mSGFromTaskCMFT), "預錄訊息");
+                            ASI.Lib.Log.DebugLog.Log("預錄訊息 傳送結果", $"成功車站數:{result}");
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendInstantMsg:  //即時訊息 
-                            message = Helper.SendInstantMSGToDCU(mSGFromTaskCMFT);
-                            result = mDMD_API.Send((Message.Message)message);
-                            ASI.Lib.Log.DebugLog.Log("即時訊息 傳送結果", result.ToString());
+                            result = SendByStation(Helper.SendInstantMSGToDCUByStation(mSGFromTaskCMFT), "即時訊息");
+                            ASI.Lib.Log.DebugLog.Log("即時訊息 傳送結果", $"成功車站數:{result}");
                             break;
                         case ASI.Wanda.DMD.TaskDCU.Constants.SendPreRecordMessageSetting: //預錄訊息設定  
                             message = Helper.SendPreRecordMessageSetting(mSGFromTaskCMFT);
@@ -420,8 +535,33 @@ namespace ASI.Wanda.DMD.TaskDCU
         private void DMD_API_ConnectedEvent(string clientInfo)
         {
             // 添加已連接的客戶端到列表
-            connectedClients.Add(clientInfo);
+            lock (mClientsLock)
+            {
+                connectedClients.Add(clientInfo);
+            }
             ASI.Lib.Log.DebugLog.Log(_mProcName, $"客戶端連接成功: {clientInfo}");
+
+            // 以來源 IP 反查 station_conf.dcu_ip，建立車站與連線的對照
+            try
+            {
+                // DB 查詢在鎖外
+                var stationID = ASI.Wanda.DMD.DB.Tables.Train.stationConf.GetStationIdByDcuIp(clientInfo);
+                if (string.IsNullOrEmpty(stationID))
+                {
+                    ASI.Lib.Log.DebugLog.Log(_mProcName, $"客戶端 {clientInfo} 在 station_conf 中查無對應車站，將無法依車站分送");
+                    return;
+                }
+
+                lock (mClientsLock)
+                {
+                    mStationClients[stationID] = clientInfo;
+                }
+                ASI.Lib.Log.DebugLog.Log(_mProcName, $"客戶端 {clientInfo} 對應車站 [{stationID}]");
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
+            }
         }
 
         private void DisconnectExistingDMDAPI()  //斷線   

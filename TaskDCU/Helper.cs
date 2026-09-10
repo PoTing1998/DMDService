@@ -80,7 +80,115 @@ namespace ASI.Wanda.DMD.TaskDCU
             return filteredList;
         }
 
+        /// <summary>
+        /// 依 target_du 的車站前綴 (StationID_AreaID_DeviceID) 將目標設備分群。
+        /// 一則訊息的 target_du 可能同時包含多站，需分別送往各站的 DCU。
+        /// </summary>
+        /// <param name="targetDuList">目標設備列表</param>
+        /// <returns>車站代碼 -&gt; 該站的目標設備列表</returns>
+        private Dictionary<string, List<string>> GroupTargetDuByStation(List<string> targetDuList)
+        {
+            var groups = new Dictionary<string, List<string>>();
+
+            if (targetDuList == null || targetDuList.Count == 0)
+            {
+                ASI.Lib.Log.DebugLog.Log("DCUHelper", "target_du 列表為空，無法分群");
+                return groups;
+            }
+
+            foreach (var targetDu in targetDuList)
+            {
+                if (string.IsNullOrWhiteSpace(targetDu))
+                    continue;
+
+                var parts = targetDu.Split('_');
+                if (parts.Length < 3)
+                {
+                    ASI.Lib.Log.DebugLog.Log("DCUHelper", $"target_du 格式不正確，已略過: [{targetDu}]");
+                    continue;
+                }
+
+                var stationID = parts[0];
+                if (!groups.ContainsKey(stationID))
+                    groups.Add(stationID, new List<string>());
+
+                groups[stationID].Add(targetDu);
+            }
+
+            ASI.Lib.Log.DebugLog.Log("DCUHelper",
+                $"target_du 共 {targetDuList.Count} 筆，分群後涵蓋 {groups.Count} 個車站: {string.Join(", ", groups.Keys)}");
+
+            return groups;
+        }
+
         #region 傳給DCU 的Method
+
+        /// <summary>
+        /// 將預錄訊息依車站分群後，產生要送往各站 DCU 的訊息。
+        /// 與 <see cref="SendPreRecordMSGToDCU"/> 的差異：不以 STATION_ID 篩選，
+        /// 而是把每一站的 target_du 各自包成一則訊息，由呼叫端依 dcu_ip 分送。
+        /// </summary>
+        /// <param name="DMDServerMessage">來自 TaskCMFT 的訊息物件</param>
+        /// <returns>車站代碼 -&gt; 該站的訊息物件</returns>
+        public Dictionary<string, ASI.Wanda.DMD.Message.Message> SendPreRecordMSGToDCUByStation(MSGFromTaskCMFT DMDServerMessage)
+        {
+            var result = new Dictionary<string, ASI.Wanda.DMD.Message.Message>();
+
+            var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage)
+                              ASI.Wanda.DMD.Message.Helper.GetJsonObject(DMDServerMessage.JsonData);
+
+            foreach (var group in GroupTargetDuByStation(oJOFromCMFT.target_du))
+            {
+                // station 欄位為「訊息發送來源」，維持原本的 OCC 不變
+                var sendPreRecordMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendPreRecordMessage(ASI.Wanda.DMD.Enum.Station.OCC);
+                sendPreRecordMessage.seatID = oJOFromCMFT.seatID;
+                sendPreRecordMessage.msg_id = oJOFromCMFT.msg_id;
+                sendPreRecordMessage.target_du = group.Value;
+
+                var message = new ASI.Wanda.DMD.Message.Message(
+                                  ASI.Wanda.DMD.Message.Message.eMessageType.Command,
+                                  DMDServerMessage.MessageID,
+                                  ASI.Lib.Text.Parsing.Json.SerializeObject(sendPreRecordMessage));
+
+                ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCUByStation", $"[{group.Key}] {message.JsonContent}");
+                result.Add(group.Key, message);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// 將即時訊息依車站分群後，產生要送往各站 DCU 的訊息。
+        /// </summary>
+        /// <param name="DMDServerMessage">來自 TaskCMFT 的訊息物件</param>
+        /// <returns>車站代碼 -&gt; 該站的訊息物件</returns>
+        public Dictionary<string, ASI.Wanda.DMD.Message.Message> SendInstantMSGToDCUByStation(MSGFromTaskCMFT DMDServerMessage)
+        {
+            var result = new Dictionary<string, ASI.Wanda.DMD.Message.Message>();
+
+            var oJOFromCMFT = (ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendInstantMessage)
+                              ASI.Wanda.DMD.Message.Helper.GetJsonObject(DMDServerMessage.JsonData);
+
+            foreach (var group in GroupTargetDuByStation(oJOFromCMFT.target_du))
+            {
+                // station 欄位為「訊息發送來源」，維持原本的 OCC 不變
+                var sendInstantMessage = new ASI.Wanda.DMD.JsonObject.DCU.FromDMD.SendInstantMessage(ASI.Wanda.DMD.Enum.Station.OCC);
+                sendInstantMessage.seatID = oJOFromCMFT.seatID;
+                sendInstantMessage.msg_id = oJOFromCMFT.msg_id;
+                sendInstantMessage.target_du = group.Value;
+
+                var message = new ASI.Wanda.DMD.Message.Message(
+                                  ASI.Wanda.DMD.Message.Message.eMessageType.Command,
+                                  DMDServerMessage.MessageID,
+                                  ASI.Lib.Text.Parsing.Json.SerializeObject(sendInstantMessage));
+
+                ASI.Lib.Log.DebugLog.Log("SendInstantMSGToDCUByStation", $"[{group.Key}] {message.JsonContent}");
+                result.Add(group.Key, message);
+            }
+
+            return result;
+        }
+
 
         /// <summary>
         /// 將預錄訊息傳送給 DCU 伺服器

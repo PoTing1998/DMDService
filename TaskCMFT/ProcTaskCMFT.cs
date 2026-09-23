@@ -1,10 +1,13 @@
-﻿using ASI.Lib.Config;
+﻿using ASI.Lib.Comm.Socket.Admin;
+using ASI.Lib.Config;
 using ASI.Lib.DB;
 using ASI.Lib.Log;
 using ASI.Lib.Process;
 using ASI.Wanda.DMD.ProcMsg;
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ASI.Wanda.DMD.TaskCMFT
 {
@@ -28,6 +31,31 @@ namespace ASI.Wanda.DMD.TaskCMFT
         private bool mIsConnectedToCMFT = false;
 
         public string mCMFTServerConnStr = "";
+
+        /// <summary>
+        /// 記錄連入 CMFT Socket Server 的 Client，供 UITest「Socket 連線監控」查詢
+        /// </summary>
+        private readonly SocketClientTracker mSocketTracker = new SocketClientTracker("CMFT");
+
+        /// <summary>
+        /// 本機管理通道 (預設 127.0.0.1:18000)
+        /// </summary>
+        private SocketAdminServer mSocketAdmin = null;
+
+        /// <summary>
+        /// 定時送 Heartbeat 給 CMFT 並檢查逾時
+        /// </summary>
+        private System.Threading.Timer mHeartbeatTimer = null;
+        private int mHeartbeatBusy = 0;
+
+        /// <summary>Heartbeat 間隔秒數 (Config: CMFT_Heartbeat_Interval，預設 7，0 = 不送)</summary>
+        private int mHeartbeatIntervalSec = 7;
+
+        /// <summary>超過此秒數沒收到 CMFT 任何資料視為斷線 (Config: CMFT_Heartbeat_Timeout，預設 60，0 = 不檢查)</summary>
+        private int mHeartbeatTimeoutSec = 60;
+
+        /// <summary>預期連入的 CMFT IP (Config: CMFT_Client_IP)，空白 = 不檢查</summary>
+        private string mCMFTClientIP = "";
         /// <summary>
         /// 處理CMFT模組執行程序所收到之訊息
         /// </summary>
@@ -66,17 +94,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
             {
                 try
                 {
-                    if (mIsConnectedToCMFT)
-                    {
-                        //若原本為連線，則檢查目前連線狀態
-                        //超過60秒未收到DMD傳送的訊息則判定為離線
-                        string sStatusValue = true.ToString();
-                        if (System.DateTime.Now.Subtract(LastHeartbeatTime).TotalSeconds > 60)
-                        {
-                            sStatusValue = false.ToString();
-                        }
-                    }
-                    else
+                    // 連線逾時檢查改由 HeartbeatTick 處理 (每個 Heartbeat 週期檢查一次)
+                    if (!mIsConnectedToCMFT)
                     {
                         //嘗試重新連線 
                          ConnToCMFTServer();
@@ -112,23 +131,26 @@ namespace ASI.Wanda.DMD.TaskCMFT
             string sCMFT_DBIP = ConfigApp.Instance.GetConfigSetting("CMFT_DB_IP");
             string sCMFT_DBPort = ConfigApp.Instance.GetConfigSetting("CMFT_DB_Port");
             string sCMFT_DBName = ConfigApp.Instance.GetConfigSetting("CMFT_DB_Name");
-            string sUserID = "postgres";
-            string sPassword = "postgres";
+            // 帳密由 Config 讀取，未設定時沿用 postgres/postgres
+            string sDMD_DBUserID = ConfigApp.Instance.GetConfigSetting("DMD_DB_userID", "postgres");
+            string sDMD_DBPassword = ConfigApp.Instance.GetConfigSetting("DMD_DB_Passward", "postgres");
+            string sCMFT_DBUserID = ConfigApp.Instance.GetConfigSetting("CMFT_DB_userID", "postgres");
+            string sCMFT_DBPassword = ConfigApp.Instance.GetConfigSetting("CMFT_DB_Passward", "postgres");
             string sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
 
             try
             {
                 //"Server='localhost'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";
                 // 嘗試初始化 DMD 資料庫連線
-                if (!ASI.Wanda.DMD.DB.Manager.Initializer(sDMD_DBIP, sDMD_DBPort, sDMD_DBName, sUserID, sPassword, sCurrentUserID))
+                if (!ASI.Wanda.DMD.DB.Manager.Initializer(sDMD_DBIP, sDMD_DBPort, sDMD_DBName, sDMD_DBUserID, sDMD_DBPassword, sCurrentUserID))
                 {
-                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"DMD資料庫連線失敗!{sDMD_DBIP}:{sDMD_DBPort};userid={sUserID}");
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"DMD資料庫連線失敗!{sDMD_DBIP}:{sDMD_DBPort};userid={sDMD_DBUserID}");
                     return -1; // 返回錯誤代碼
                 }
                 // 嘗試初始化 CMFT 資料庫連線
-                if (!ASI.Wanda.CMFT.DB.Manager.Initializer(sCMFT_DBIP, sCMFT_DBPort, sCMFT_DBName, sUserID, sPassword, sCurrentUserID))
+                if (!ASI.Wanda.CMFT.DB.Manager.Initializer(sCMFT_DBIP, sCMFT_DBPort, sCMFT_DBName, sCMFT_DBUserID, sCMFT_DBPassword, sCurrentUserID))
                 {
-                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"CMFT資料庫連線失敗!{sCMFT_DBIP}:{sCMFT_DBPort};userid={sUserID}");
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"CMFT資料庫連線失敗!{sCMFT_DBIP}:{sCMFT_DBPort};userid={sCMFT_DBUserID}");
                     return -1; // 返回錯誤代碼
                 }
             }
@@ -138,6 +160,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 return -1; // 返回錯誤代碼
             }
             ConnToCMFTServer();
+            StartSocketAdmin();
+            StartHeartbeat();
 
             return base.StartTask(pComputer, pProcName);
         }
@@ -148,8 +172,49 @@ namespace ASI.Wanda.DMD.TaskCMFT
         private void CMFT_API_DisconnectedEvent(string source)
         {
             System.DateTime time = DateTime.Now;
-            ASI.Lib.Log.ErrorLog.Log("CMFT_API", "斷線" + time.ToString());
-            mIsConnectedToCMFT = false; // 更新連線狀態，讓 ProcTimerEvent 觸發重連
+            ASI.Lib.Log.ErrorLog.Log("CMFT_API", $"斷線 {source} {time}");
+            mSocketTracker.OnDisconnected(source);
+
+            // Server 模式下 DisconnectedEvent 代表「某一個 Client 離線」，Server 本身仍在監聽。
+            // 若在此設為 false，ProcTimerEvent 會整個重建 Server，把其他 Client 全部斷掉
+            // （包含從管理介面踢除單一 Client 時），因此只有 Client 模式才觸發重連。
+            if (!IsCMFTServerMode())
+            {
+                mIsConnectedToCMFT = false; // 更新連線狀態，讓 ProcTimerEvent 觸發重連
+            }
+        }
+
+        private bool IsCMFTServerMode()
+        {
+            return mCMFTServerConnStr != null &&
+                   mCMFTServerConnStr.IndexOf("Type=Server", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private void CMFT_API_ConnectedEvent(string source)
+        {
+            ASI.Lib.Log.DebugLog.Log(_mProcName, $"CMFT Client 連線: {source}");
+            mSocketTracker.OnConnected(source);
+
+            if (!string.IsNullOrEmpty(mCMFTClientIP))
+            {
+                string sIP = SocketClientTracker.GetIp(source);
+                if (string.Equals(sIP, mCMFTClientIP, StringComparison.OrdinalIgnoreCase))
+                {
+                    mSocketTracker.SetNote(source, "CMFT");
+                }
+                else
+                {
+                    // 只記錄警告不拒絕，避免 CMFT 換備援機時被擋掉
+                    mSocketTracker.SetNote(source, "非預期來源");
+                    mSocketTracker.AddEvent("Error", source, $"連入來源不是設定的 CMFT_Client_IP ({mCMFTClientIP})");
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"CMFT Socket 有非預期來源連入: {source}，預期為 {mCMFTClientIP}");
+                }
+            }
+        }
+
+        private void CMFT_API_ClientDataReceivedEvent(string source, int length)
+        {
+            mSocketTracker.OnReceived(source, length);
         }
 
         /// <summary>
@@ -158,6 +223,8 @@ namespace ASI.Wanda.DMD.TaskCMFT
         /// <param name="DMDServerMessage"></param> 
         private void CMFT_API_ReceivedEvent(ASI.Wanda.CMFT.Message.Message CMFTServerMessage)
         {
+            // 收到 CMFT 任何訊息 (含 Heartbeat) 都算連線正常
+            LastHeartbeatTime = System.DateTime.Now;
             try
             {
                 string sRcvTime = System.DateTime.Now.ToString("HH:mm:ss.fff");
@@ -255,6 +322,16 @@ namespace ASI.Wanda.DMD.TaskCMFT
         /// </summary>
         public override void StopTask()
         {
+            if (mHeartbeatTimer != null)
+            {
+                mHeartbeatTimer.Dispose();
+                mHeartbeatTimer = null;
+            }
+            if (mSocketAdmin != null)
+            {
+                mSocketAdmin.Stop();
+                mSocketAdmin = null;
+            }
             if (mCMFT_API != null)
             {
                 mCMFT_API.Dispose();
@@ -335,18 +412,25 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 {
                     mCMFT_API.ReceivedEvent -= CMFT_API_ReceivedEvent; 
                     mCMFT_API.DisconnectedEvent -= CMFT_API_DisconnectedEvent;
+                    mCMFT_API.ConnectedEvent -= CMFT_API_ConnectedEvent;
+                    mCMFT_API.ClientDataReceivedEvent -= CMFT_API_ClientDataReceivedEvent;
                     mCMFT_API.Dispose();
                     ASI.Lib.Log.DebugLog.Log(_mProcName, "Existing CMFT_API disconnected and disposed.");
+                    mSocketTracker.ClearClients("CMFT Socket 重新建立");
                 }
 
                 mCMFT_API = new ASI.Wanda.CMFT.CMFT_API();
                 mCMFT_API.ReceivedEvent += CMFT_API_ReceivedEvent;
                 mCMFT_API.DisconnectedEvent += CMFT_API_DisconnectedEvent;
+                mCMFT_API.ConnectedEvent += CMFT_API_ConnectedEvent;
+                mCMFT_API.ClientDataReceivedEvent += CMFT_API_ClientDataReceivedEvent;
                 mCMFTServerConnStr = ConfigApp.Instance.GetConfigSetting("CMFT_Server");
                 int iResult = mCMFT_API.Initial(mCMFTServerConnStr, "CMFT");
                 if (iResult == 0)
                 {
                     mIsConnectedToCMFT = true;
+                    LastHeartbeatTime = System.DateTime.Now;
+                    mSocketTracker.AddEvent("Info", null, $"CMFT Socket 開啟成功 {mCMFTServerConnStr}");
                     ASI.Lib.Log.DebugLog.Log(_mProcName, $"與CMFT Server連線成功");
                     //連線成功時，重新計算最後一次收到DMD的時間  
                     LastHeartbeatTime = System.DateTime.Now;
@@ -354,12 +438,179 @@ namespace ASI.Wanda.DMD.TaskCMFT
                 else
                 {
                     mIsConnectedToCMFT = false;
+                    mSocketTracker.AddEvent("Error", null, $"CMFT Socket 開啟失敗 {mCMFTServerConnStr}，回傳碼 {iResult}");
                     ASI.Lib.Log.DebugLog.Log(_mProcName, $"與CMFT Server連線失敗，DMD_Server:{mCMFTServerConnStr}");
                 }
             }
             catch (System.Exception ex)
             {
                 ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
+            }
+        }
+
+        #endregion
+
+        #region Socket 連線監控 / 管理通道
+
+        /// <summary>
+        /// 讀取 Heartbeat 設定並啟動計時器
+        /// </summary>
+        private void StartHeartbeat()
+        {
+            int iValue;
+            if (int.TryParse(ConfigApp.Instance.GetConfigSetting("CMFT_Heartbeat_Interval"), out iValue) && iValue >= 0)
+                mHeartbeatIntervalSec = iValue;
+            if (int.TryParse(ConfigApp.Instance.GetConfigSetting("CMFT_Heartbeat_Timeout"), out iValue) && iValue >= 0)
+                mHeartbeatTimeoutSec = iValue;
+            mCMFTClientIP = ConfigApp.Instance.GetConfigSetting("CMFT_Client_IP", "");
+
+            // 只做逾時檢查時仍需計時器，間隔用 5 秒
+            int iPeriodSec = mHeartbeatIntervalSec > 0 ? mHeartbeatIntervalSec : 5;
+            if (mHeartbeatIntervalSec == 0 && mHeartbeatTimeoutSec == 0)
+            {
+                ASI.Lib.Log.DebugLog.Log(_mProcName, "CMFT Heartbeat 與逾時檢查皆已停用");
+                return;
+            }
+
+            mHeartbeatTimer = new System.Threading.Timer(HeartbeatTick, null, iPeriodSec * 1000, iPeriodSec * 1000);
+            ASI.Lib.Log.DebugLog.Log(_mProcName,
+                $"CMFT Heartbeat 啟動：間隔 {mHeartbeatIntervalSec} 秒，逾時 {mHeartbeatTimeoutSec} 秒，預期來源 IP [{mCMFTClientIP}]");
+        }
+
+        private void HeartbeatTick(object state)
+        {
+            // 前一次還沒跑完就跳過
+            if (System.Threading.Interlocked.Exchange(ref mHeartbeatBusy, 1) == 1) return;
+            try
+            {
+                var api = mCMFT_API;
+                if (api == null) return;
+
+                bool bServerMode = IsCMFTServerMode();
+                bool bHasPeer = bServerMode ? api.GetClientEndpoints().Count > 0 : api.IsConnect;
+                if (!bHasPeer) return;
+
+                // 1. 送 Heartbeat (Server 模式會送給所有連入的 CMFT)
+                if (mHeartbeatIntervalSec > 0)
+                {
+                    var msg = new ASI.Wanda.CMFT.Message.Message(ASI.Wanda.CMFT.Message.Message.eMessageType.Heartbeat, 0, "連線中");
+                    int iRtn = api.Send(msg);
+                    if (iRtn != 0)
+                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"送出 CMFT Heartbeat 失敗，回傳碼 {iRtn}");
+                }
+
+                // 2. 逾時檢查
+                if (mHeartbeatTimeoutSec <= 0) return;
+                var now = System.DateTime.Now;
+
+                if (bServerMode)
+                {
+                    // 各連線分別判斷，逾時就斷開，讓 CMFT 重新連入
+                    foreach (var client in mSocketTracker.GetClients())
+                    {
+                        var last = client.LastReceivedAt ?? client.ConnectedAt;
+                        if ((now - last).TotalSeconds <= mHeartbeatTimeoutSec) continue;
+
+                        string sLog = $"超過 {mHeartbeatTimeoutSec} 秒未收到 CMFT 資料，自動斷線 (最後收到 {last:HH:mm:ss})";
+                        mSocketTracker.AddEvent("Kick", client.Endpoint, sLog);
+                        ASI.Lib.Log.ErrorLog.Log(_mProcName, $"{client.Endpoint} {sLog}");
+                        api.DisconnectClient(client.Endpoint);
+                    }
+                }
+                else if (mIsConnectedToCMFT && (now - LastHeartbeatTime).TotalSeconds > mHeartbeatTimeoutSec)
+                {
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"超過 {mHeartbeatTimeoutSec} 秒未收到 CMFT 資料，判定離線，下次定時檢查時重新連線");
+                    mIsConnectedToCMFT = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
+            }
+            finally
+            {
+                System.Threading.Interlocked.Exchange(ref mHeartbeatBusy, 0);
+            }
+        }
+
+        /// <summary>
+        /// 開啟本機管理通道，設定：Socket_Admin_IP (預設 127.0.0.1)、Socket_Admin_CMFT_Port (預設 18000)
+        /// </summary>
+        private void StartSocketAdmin()
+        {
+            try
+            {
+                string sIP = ConfigApp.Instance.GetConfigSetting("Socket_Admin_IP");
+                int iPort;
+                if (!int.TryParse(ConfigApp.Instance.GetConfigSetting("Socket_Admin_CMFT_Port"), out iPort) || iPort <= 0)
+                {
+                    iPort = SocketAdminServer.DefaultCmftPort;
+                }
+
+                mSocketAdmin = new SocketAdminServer(_mProcName, mSocketTracker, new CmftSocketAdminHandler(this));
+                mSocketAdmin.Start(sIP, iPort);
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
+            }
+        }
+
+        /// <summary>
+        /// 管理通道對 CMFT_API 的實際操作
+        /// </summary>
+        private class CmftSocketAdminHandler : ISocketAdminHandler
+        {
+            private readonly ProcTaskCMFT mOwner;
+
+            public CmftSocketAdminHandler(ProcTaskCMFT owner)
+            {
+                mOwner = owner;
+            }
+
+            public bool IsServerOpen
+            {
+                get
+                {
+                    var api = mOwner.mCMFT_API;
+                    return api != null && api.IsConnect;
+                }
+            }
+
+            public string ListenConnStr
+            {
+                get { return mOwner.mCMFTServerConnStr; }
+            }
+
+            public IList<string> GetSocketEndpoints()
+            {
+                var api = mOwner.mCMFT_API;
+                return api == null ? new List<string>() : api.GetClientEndpoints();
+            }
+
+            public int Kick(string endpoint)
+            {
+                var api = mOwner.mCMFT_API;
+                return api == null ? -4 : api.DisconnectClient(endpoint);
+            }
+
+            public int SendTo(string endpoint, int messageType, int messageId, string jsonContent)
+            {
+                var api = mOwner.mCMFT_API;
+                if (api == null) return -3;
+                if (!api.GetClientEndpoints().Contains(endpoint, StringComparer.OrdinalIgnoreCase)) return -5; // 找不到該 Client
+
+                var msg = new ASI.Wanda.CMFT.Message.Message(
+                    (ASI.Wanda.CMFT.Message.Message.eMessageType)messageType,
+                    messageId,
+                    string.IsNullOrEmpty(jsonContent) ? null : jsonContent);
+                return api.Send(msg, endpoint);
+            }
+
+            public IList<SocketStationDef> GetStationDefinitions()
+            {
+                // CMFT 沒有固定的站點清單
+                return null;
             }
         }
 

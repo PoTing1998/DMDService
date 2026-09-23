@@ -46,7 +46,7 @@ namespace ASI.Wanda.DMD.DB
         {
             get;
             private set;
-        } = "Server='10.107.26.55'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";
+        } = "Server='localhost'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";
         static public string CurrentUserID
         {
             get;

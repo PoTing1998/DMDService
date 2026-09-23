@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# DMDService publish output (tools\Publish.ps1)
+/Publish/
+/Publish_*.zip

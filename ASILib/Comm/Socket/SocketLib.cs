@@ -604,6 +604,74 @@ namespace ASI.Lib.Comm.Socket
             }
         }
 
+        /// <summary>
+        /// 取得目前已連線 Client (IP:Port) 的複本，可安全在其他執行緒列舉（Server 端專用）。
+        /// </summary>
+        public System.Collections.Generic.List<string> GetClientEndpoints()
+        {
+            lock (this.m_LockedControlSocket)
+            {
+                return new System.Collections.Generic.List<string>(this.m_ClientListIDs.Values);
+            }
+        }
+
+        /// <summary>
+        /// 強制斷開指定的 Client（Server 端專用），會觸發 DisconnectedEvent。
+        /// </summary>
+        /// <param name="endpoint">Client 的 IP:Port</param>
+        /// <returns>0：成功；-1：例外錯誤；-2：非 Server 模式；-3：找不到該 Client</returns>
+        public int DisconnectClient(string endpoint)
+        {
+            try
+            {
+                if (this.m_Type != 1)
+                {
+                    return -2;
+                }
+
+                lock (this.m_LockedControlSocket)
+                {
+                    int iClientID = -1;
+                    foreach (var oPair in this.m_ClientListIDs)
+                    {
+                        if (string.Equals(oPair.Value, endpoint, System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            iClientID = oPair.Key;
+                            break;
+                        }
+                    }
+
+                    if (iClientID < 0)
+                    {
+                        return -3;
+                    }
+
+                    try
+                    {
+                        System.Net.Sockets.Socket oSocket = this.m_ClientLists[this.m_ClientListIDs[iClientID]];
+                        if (oSocket != null)
+                        {
+                            oSocket.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+                        }
+                    }
+                    catch
+                    {
+                        // Socket 可能已經失效，仍繼續移除
+                    }
+
+                    // 關閉 Socket、移出清單並觸發 DisconnectedEvent
+                    this.RemoveSocketByID(iClientID);
+                }
+
+                return 0;
+            }
+            catch (System.Exception ex)
+            {
+                this.OnErrorEvent(ex);
+                return -1;
+            }
+        }
+
         #endregion
 
 
@@ -1004,17 +1072,19 @@ namespace ASI.Lib.Comm.Socket
             {
                 try
                 {
+                    // 不需重連時在鎖外等待。原本在 lock 內 Sleep 後立刻 continue 重新取得鎖，
+                    // 其他需要 m_LockedControlSocket 的執行緒 (IsConnect、Accept、斷線處理、連線監控) 會長時間搶不到鎖。
+                    if (!bNeedReconn)
+                    {
+                        System.Threading.Thread.Sleep(100);
+                        continue;
+                    }
+
                     lock (this.m_LockedControlSocket)
                     {
                         if (!this.m_IsStart)
                         {
                             break;
-                        }
-
-                        if (!bNeedReconn)
-                        {
-                            System.Threading.Thread.Sleep(100);
-                            continue;
                         }
 
                         sConnectionName = this.m_IPAddressString + ":" + this.m_Port;

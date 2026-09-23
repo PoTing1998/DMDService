@@ -1,29 +1,66 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <configuration>
+  <!-- ===== 主機 ===== -->
   <add key="Host_Name" value="DMDServer" />
-  <add key="DMD_DB_IP" value="10.107.26.99" />
+  <add key="STATION_ID" value="OCC" />
+  <add key="Current_User_ID" value="DMD Server" />
+
+  <!-- ===== 資料庫 (OCC DMD Server 1 : 10.104.26.11) ===== -->
+  <add key="DMD_DB_IP" value="10.104.26.11" />
   <add key="DMD_DB_Port" value="5432" />
   <add key="DMD_DB_Name" value="DMDDB" />
-  <add key="CMFT_DB_IP" value="10.107.26.99" />
+  <add key="CMFT_DB_IP" value="10.107.26.11" />
   <add key="CMFT_DB_Port" value="5432" />
   <add key="CMFT_DB_Name" value="CMFTDB" />
   <add key="CMFT_DB_userID" value="postgres" />
   <add key="CMFT_DB_Passward" value="postgres" />
-  <add key="Current_User_ID" value="DMD Server" />
+  <add key="DMD_DB_userID" value="postgres" />
+  <add key="DMD_DB_Passward" value="postgres" />
+
+  <!-- ===== 服務 ===== -->
   <add key="tasktime" value="tasktime;192.168.145.147;6022" />
-  <add key="Socket_Server_IP" value="10.107.26.99" />
-  <add key="Socket_Server_Port" value="5000" />
-  <add key="DCU_Server" value="IP=10.107.26.99;Port=2000;Type=Server" />
-  <add key="CMFT_Server" value="IP=10.107.26.99;Port=8000;Type=Server" />
+  <add key="DCU_Server"  value="IP=10.104.26.11;Port=6000;Type=Server" />
+  <add key="CMFT_Server" value="IP=10.104.26.11;Port=7000;Type=Server" />
+  <add key="CMFT_Client_IP" value="10.107.26.11" />
+  <add key="CMFT_Heartbeat_Interval" value="7" />
+  <add key="CMFT_Heartbeat_Timeout" value="60" />
+
+
+  <add key="Socket_Admin_IP" value="127.0.0.1" />
+  <add key="Socket_Admin_CMFT_Port" value="18000" />
+  <add key="Socket_Admin_DCU_Port" value="18001" />
+
   <add key="Process" value="TaskCMFT" />
   <add key="Process" value="TaskOCS" />
   <add key="Process" value="TaskDCU" />
+
+  <!-- ===== OCS (Modbus) ===== -->
   <add key="TcpClientIP" value="10.107.26.1" />
   <add key="TcpClientPort" value="502" />
   <add key="slaveAddress" value="0" />
   <add key="numberOfPoints" value="38" />
-  <add key ="PlatformClient1" value ="10.104.26.200" />
-  <add key ="PlatformClient2" value ="10.104.26.210" />
-  <add key ="PlatformClient3" value ="10.104.26.220" />
+
+  <!-- ===== OCC 月台顯示端 ===== -->
+  <add key="PlatformClient1" value="10.104.26.200" />
+  <add key="PlatformClient2" value="10.104.26.210" />
+  <add key="PlatformClient3" value="10.104.26.220" />
+
+  <!-- ===== 系統節點 ===== -->
+  <add key="DMD_Server_1" value="10.104.26.11" />
+  <add key="DMD_Server_2" value="10.104.26.12" />
+  <add key="DMD_Disk_Array" value="10.104.26.10" />
+  <add key="DMD_Witness_PC" value="10.107.101.101" />
+  <add key="DMD_Server_BOCC" value="10.104.29.10" />
+
+  <!-- ===== 各車站 DCU IP (key = DCU_車站代碼) ===== -->
+  <add key="DCU_LG01" value="10.104.17.20" />
+  <add key="DCU_LG02" value="10.104.18.20" />
+  <add key="DCU_LG03" value="10.104.19.20" />
+  <add key="DCU_LG04" value="10.104.20.20" />
+  <add key="DCU_LG05" value="10.104.21.20" />
+  <add key="DCU_LG06" value="10.104.22.20" />
+  <add key="DCU_LG07" value="10.104.23.20" />
+  <add key="DCU_LG08" value="10.104.24.20" />
+  <add key="DCU_LG08A" value="10.104.25.20" />
 
 </configuration>

@@ -1,4 +1,5 @@
-﻿using ASI.Lib.Config;
+﻿using ASI.Lib.Comm.Socket.Admin;
+using ASI.Lib.Config;
 using ASI.Lib.DB;
 using ASI.Lib.Log;
 using ASI.Lib.Process;
@@ -38,6 +39,16 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// 鎖內只做記憶體操作，DB 查詢與 Send 一律留在鎖外。
         /// </summary>
         private readonly object mClientsLock = new object();
+
+        /// <summary>
+        /// 記錄連入 DCU Socket Server 的 Client，供 UITest「Socket 連線監控」查詢
+        /// </summary>
+        private readonly SocketClientTracker mSocketTracker = new SocketClientTracker("DCU");
+
+        /// <summary>
+        /// 本機管理通道 (預設 127.0.0.1:18001)
+        /// </summary>
+        private SocketAdminServer mSocketAdmin = null;
         public class DeviceInfo
         {
             public string StationID { get; set; }
@@ -94,14 +105,23 @@ namespace ASI.Wanda.DMD.TaskDCU
             mTimerTick = 30;
             _mProcName = "TaskDCU";
 
-            // 讀取當前車站 ID
+            // 讀取本機站所代碼。
+            // OCC / BOCC 為全線集中式主機，服務所有車站，沒有「單一車站」的概念，
+            // 未設定時一律視同 OCC (不對 target_du 做車站篩選)，不再擋住啟動。
             mCurrentStationID = ConfigApp.Instance.GetConfigSetting("STATION_ID");
             if (string.IsNullOrEmpty(mCurrentStationID))
             {
-                ASI.Lib.Log.ErrorLog.Log(_mProcName, "未設定 STATION_ID，無法啟動 TaskDCU");
-                return -1;
+                mCurrentStationID = DCUHelper.CentralStationID;
+                ASI.Lib.Log.DebugLog.Log(_mProcName,
+                    $"未設定 STATION_ID，視同集中式主機 [{mCurrentStationID}]，不對 target_du 做車站篩選");
             }
-            ASI.Lib.Log.DebugLog.Log(_mProcName, $"當前車站 ID: {mCurrentStationID}");
+            else
+            {
+                ASI.Lib.Log.DebugLog.Log(_mProcName,
+                    DCUHelper.IsCentralStation(mCurrentStationID)
+                        ? $"本機站所: {mCurrentStationID} (集中式主機，不做車站篩選)"
+                        : $"本機車站: {mCurrentStationID} (僅處理該站的 target_du)");
+            }
 
             // DMD Database Configuration
             string sDMD_DBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
@@ -112,22 +132,25 @@ namespace ASI.Wanda.DMD.TaskDCU
             string sCMFT_DBIP = ConfigApp.Instance.GetConfigSetting("CMFT_DB_IP");
             string sCMFT_DBPort = ConfigApp.Instance.GetConfigSetting("CMFT_DB_Port");
             string sCMFT_DBName = ConfigApp.Instance.GetConfigSetting("CMFT_DB_Name");
-            string sUserID = "postgres";
-            string sPassword = "postgres";
+            // 帳密由 Config 讀取，未設定時沿用 postgres/postgres
+            string sDMD_DBUserID = ConfigApp.Instance.GetConfigSetting("DMD_DB_userID", "postgres");
+            string sDMD_DBPassword = ConfigApp.Instance.GetConfigSetting("DMD_DB_Passward", "postgres");
+            string sCMFT_DBUserID = ConfigApp.Instance.GetConfigSetting("CMFT_DB_userID", "postgres");
+            string sCMFT_DBPassword = ConfigApp.Instance.GetConfigSetting("CMFT_DB_Passward", "postgres");
             string sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
             try
             {
                 //"Server='localhost'; Port='5432'; Database='DMDDB'; User Id='postgres'; Password='postgres'";
                 // 嘗試初始化 DMD 資料庫連線
-                if (!ASI.Wanda.DMD.DB.Manager.Initializer(sDMD_DBIP, sDMD_DBPort, sDMD_DBName, sUserID, sPassword, sCurrentUserID))
+                if (!ASI.Wanda.DMD.DB.Manager.Initializer(sDMD_DBIP, sDMD_DBPort, sDMD_DBName, sDMD_DBUserID, sDMD_DBPassword, sCurrentUserID))
                 {
-                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"DMD資料庫連線失敗!{sDMD_DBIP}:{sDMD_DBPort};userid={sUserID}");
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"DMD資料庫連線失敗!{sDMD_DBIP}:{sDMD_DBPort};userid={sDMD_DBUserID}");
                     return -1; // 返回錯誤代碼
                 }
                 // 嘗試初始化 CMFT 資料庫連線
-                if (!ASI.Wanda.CMFT.DB.Manager.Initializer(sCMFT_DBIP, sCMFT_DBPort, sCMFT_DBName, sUserID, sPassword, sCurrentUserID))
+                if (!ASI.Wanda.CMFT.DB.Manager.Initializer(sCMFT_DBIP, sCMFT_DBPort, sCMFT_DBName, sCMFT_DBUserID, sCMFT_DBPassword, sCurrentUserID))
                 {
-                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"CMFT資料庫連線失敗!{sCMFT_DBIP}:{sCMFT_DBPort};userid={sUserID}");
+                    ASI.Lib.Log.ErrorLog.Log(_mProcName, $"CMFT資料庫連線失敗!{sCMFT_DBIP}:{sCMFT_DBPort};userid={sCMFT_DBUserID}");
                     return -1; // 返回錯誤代碼
                 }
             }
@@ -137,6 +160,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                 return -1; // 返回錯誤代碼
             }
             ConnectToDCUServer();
+            StartSocketAdmin();
             return base.StartTask(pComputer, pProcName);
         }
         /// <summary>
@@ -145,6 +169,11 @@ namespace ASI.Wanda.DMD.TaskDCU
         public override void StopTask()
         {
             ASI.Lib.Log.DebugLog.Log(_mProcName, "正在嘗試停止 TaskDCU...");
+            if (mSocketAdmin != null)
+            {
+                mSocketAdmin.Stop();
+                mSocketAdmin = null;
+            }
             if (mDMD_API != null)
             {
                 try
@@ -167,6 +196,7 @@ namespace ASI.Wanda.DMD.TaskDCU
 
         private void DMD_API_DisconnectedEvent(string clientInfo)
         {
+            mSocketTracker.OnDisconnected(clientInfo);
             List<string> staleStations;
 
             lock (mClientsLock)
@@ -507,17 +537,20 @@ namespace ASI.Wanda.DMD.TaskDCU
                 mDMD_API.ReceivedEvent += DMD_API_ReceivedEvent;
                 mDMD_API.DisconnectedEvent += DMD_API_DisconnectedEvent;
                 mDMD_API.ErrorEvent += DMD_API_ErrorEvent;
+                mDMD_API.ClientDataReceivedEvent += DMD_API_ClientDataReceivedEvent;
                 mDMDServerConnStr = ConfigApp.Instance.GetConfigSetting("DCU_Server");
 
                 int iResult = mDMD_API.Initial(mDMDServerConnStr);
                 if (iResult == 0)
                 {
                     mIsConnectedToDCU = true;
+                    mSocketTracker.AddEvent("Info", null, $"DCU Socket 開啟成功 {mDMDServerConnStr}");
                     ASI.Lib.Log.DebugLog.Log(_mProcName, "與DCU Server的Socket開啟成功");
                 }
                 else
                 {
                     mIsConnectedToDCU = false;
+                    mSocketTracker.AddEvent("Error", null, $"DCU Socket 開啟失敗 {mDMDServerConnStr}，回傳碼 {iResult}");
                     ASI.Lib.Log.DebugLog.Log(_mProcName, $"與DCU Server的Socket開啟失敗，DMD_Server: {mDMDServerConnStr}");
                 }
             }
@@ -535,6 +568,7 @@ namespace ASI.Wanda.DMD.TaskDCU
         private void DMD_API_ConnectedEvent(string clientInfo)
         {
             // 添加已連接的客戶端到列表
+            mSocketTracker.OnConnected(clientInfo);
             lock (mClientsLock)
             {
                 connectedClients.Add(clientInfo);
@@ -556,6 +590,7 @@ namespace ASI.Wanda.DMD.TaskDCU
                 {
                     mStationClients[stationID] = clientInfo;
                 }
+                mSocketTracker.SetNote(clientInfo, stationID);
                 ASI.Lib.Log.DebugLog.Log(_mProcName, $"客戶端 {clientInfo} 對應車站 [{stationID}]");
             }
             catch (Exception ex)
@@ -571,6 +606,8 @@ namespace ASI.Wanda.DMD.TaskDCU
                 mDMD_API.ReceivedEvent -= DMD_API_ReceivedEvent;
                 mDMD_API.DisconnectedEvent -= DMD_API_DisconnectedEvent;
                 mDMD_API.ErrorEvent -= DMD_API_ErrorEvent;
+                mDMD_API.ConnectedEvent -= DMD_API_ConnectedEvent;
+                mDMD_API.ClientDataReceivedEvent -= DMD_API_ClientDataReceivedEvent;
                 try
                 {
                     mDMD_API.Dispose();
@@ -583,8 +620,118 @@ namespace ASI.Wanda.DMD.TaskDCU
                 finally
                 {
                     mDMD_API = null;
+                    mSocketTracker.ClearClients("DCU Socket 關閉");
                 }
             }
         }
+
+        #region Socket 連線監控 / 管理通道
+
+        private void DMD_API_ClientDataReceivedEvent(string source, int length)
+        {
+            mSocketTracker.OnReceived(source, length);
+        }
+
+        /// <summary>
+        /// 開啟本機管理通道，設定：Socket_Admin_IP (預設 127.0.0.1)、Socket_Admin_DCU_Port (預設 18001)
+        /// </summary>
+        private void StartSocketAdmin()
+        {
+            try
+            {
+                string sIP = ConfigApp.Instance.GetConfigSetting("Socket_Admin_IP");
+                int iPort;
+                if (!int.TryParse(ConfigApp.Instance.GetConfigSetting("Socket_Admin_DCU_Port"), out iPort) || iPort <= 0)
+                {
+                    iPort = SocketAdminServer.DefaultDcuPort;
+                }
+
+                mSocketAdmin = new SocketAdminServer(_mProcName, mSocketTracker, new DcuSocketAdminHandler(this));
+                mSocketAdmin.Start(sIP, iPort);
+            }
+            catch (Exception ex)
+            {
+                ASI.Lib.Log.ErrorLog.Log(_mProcName, ex);
+            }
+        }
+
+        /// <summary>
+        /// 管理通道對 DMD_API (DCU Socket Server) 的實際操作
+        /// </summary>
+        private class DcuSocketAdminHandler : ISocketAdminHandler
+        {
+            private readonly ProcTaskDCU mOwner;
+
+            public DcuSocketAdminHandler(ProcTaskDCU owner)
+            {
+                mOwner = owner;
+            }
+
+            public bool IsServerOpen
+            {
+                get
+                {
+                    var api = mOwner.mDMD_API;
+                    return api != null && api.IsConnect;
+                }
+            }
+
+            public string ListenConnStr
+            {
+                get { return mOwner.mDMDServerConnStr; }
+            }
+
+            public IList<string> GetSocketEndpoints()
+            {
+                var api = mOwner.mDMD_API;
+                return api == null ? new List<string>() : api.GetClientEndpoints();
+            }
+
+            public int Kick(string endpoint)
+            {
+                var api = mOwner.mDMD_API;
+                // 斷線後會觸發 DMD_API_DisconnectedEvent，一併清掉車站對照
+                return api == null ? -4 : api.DisconnectClient(endpoint);
+            }
+
+            public int SendTo(string endpoint, int messageType, int messageId, string jsonContent)
+            {
+                var api = mOwner.mDMD_API;
+                if (api == null) return -3;
+                if (!api.GetClientEndpoints().Contains(endpoint, StringComparer.OrdinalIgnoreCase)) return -5; // 找不到該 Client
+
+                var msg = new ASI.Wanda.DMD.Message.Message(
+                    (ASI.Wanda.DMD.Message.Message.eMessageType)messageType,
+                    messageId,
+                    string.IsNullOrEmpty(jsonContent) ? null : jsonContent);
+                return api.Send(msg, endpoint);
+            }
+
+            private List<SocketStationDef> mStationCache;
+            private DateTime mStationCacheTime = DateTime.MinValue;
+
+            /// <summary>
+            /// 應連入的 DCU 車站 = station_conf 中啟用且有 dcu_ip 的車站 (萬大線 LG01 ~ LG08A 共 9 站)。
+            /// 管理介面每幾秒查一次，這裡快取 30 秒避免一直打 DB。
+            /// </summary>
+            public IList<SocketStationDef> GetStationDefinitions()
+            {
+                if (mStationCache != null && (DateTime.Now - mStationCacheTime).TotalSeconds < 30)
+                    return mStationCache;
+
+                mStationCache = ASI.Wanda.DMD.DB.Tables.Train.stationConf.GetDcuStations()
+                    .Select(x => new SocketStationDef
+                    {
+                        StationId = x.station_id,
+                        Name = x.chinese,
+                        Ip = x.dcu_ip.Trim()
+                    })
+                    .ToList();
+                mStationCacheTime = DateTime.Now;
+                return mStationCache;
+            }
+        }
+
+        #endregion
     }
 }

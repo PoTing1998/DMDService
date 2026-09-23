@@ -57,6 +57,46 @@ namespace ASI.Wanda.DMD
         /// </summary>
         public event ErrorEventHandler ErrorEvent;
 
+        public delegate void ClientDataReceivedEventHandler(string source, int length);
+        /// <summary>
+        /// 收到原始資料時觸發（尚未組成完整訊息），source 為 IP:Port，供連線監控使用
+        /// </summary>
+        public event ClientDataReceivedEventHandler ClientDataReceivedEvent;
+
+        /// <summary>
+        /// Socket 是否開啟中（Server：監聽中；Client：已連線）
+        /// </summary>
+        public bool IsConnect
+        {
+            get
+            {
+                var oSocket = mSocket;
+                return oSocket != null && oSocket.IsConnect;
+            }
+        }
+
+        /// <summary>
+        /// 取得目前已連線 Client (IP:Port) 的清單（Server端專用）
+        /// </summary>
+        public System.Collections.Generic.List<string> GetClientEndpoints()
+        {
+            var oSocket = mSocket;
+            if (oSocket == null) return new System.Collections.Generic.List<string>();
+            return oSocket.GetClientEndpoints();
+        }
+
+        /// <summary>
+        /// 強制斷開指定 Client（Server端專用），會觸發 DisconnectedEvent
+        /// </summary>
+        /// <param name="endpoint">Client 的 IP:Port</param>
+        /// <returns>0：成功；-1：例外錯誤；-2：非 Server 模式；-3：找不到該 Client；-4：Socket 未建立</returns>
+        public int DisconnectClient(string endpoint)
+        {
+            var oSocket = mSocket;
+            if (oSocket == null) return -4;
+            return oSocket.DisconnectClient(endpoint);
+        }
+
         /// <summary>
         /// API初始化
         /// </summary>
@@ -156,8 +196,7 @@ namespace ASI.Wanda.DMD
 
             try
             {
-                //if (mSocket != null && mSocket.IsConnect)
-                if (mSocket != null )
+                if (mSocket != null && mSocket.IsConnect)
                 { 
                     arrSendBytes = ASI.Wanda.DMD.Message.Helper.Pack(DMDmessage);
                     if (arrSendBytes != null)
@@ -361,6 +400,7 @@ namespace ASI.Wanda.DMD
             {
                 if (dataBytes != null)
                 {
+                    ClientDataReceivedEvent?.Invoke(source, dataBytes.Length);
                     lock (mByteMessage)
                     {
                         mByteMessage.InputMessage(dataBytes);

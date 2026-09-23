@@ -19,8 +19,9 @@ namespace UITest
         private TaskDCU taskDCUControl;
         private SendToDCU sendToDCUControl;
         private OCSParserTest ocsParserControl;
+        private SocketMonitor socketMonitorControl;
 
-        private bool[] tabLoaded = new bool[5];
+        private bool[] tabLoaded = new bool[6];
 
         public UITest()
         {
@@ -42,6 +43,7 @@ namespace UITest
             taskDCUControl = new TaskDCU();
             sendToDCUControl = new SendToDCU(dmdMessageService);
             ocsParserControl = new OCSParserTest();
+            socketMonitorControl = new SocketMonitor();
 
             // Default: load SendToDCU tab
             mainTabControl.SelectedTab = tabSendToDCU;
@@ -74,6 +76,8 @@ namespace UITest
                 LoadControlIntoTab(tabSendToDCU, sendToDCUControl, 3);
             else if (tab == tabOCSParser)
                 LoadControlIntoTab(tabOCSParser, ocsParserControl, 4);
+            else if (tab == tabSocketMonitor)
+                LoadControlIntoTab(tabSocketMonitor, socketMonitorControl, 5);
         }
     }
 }

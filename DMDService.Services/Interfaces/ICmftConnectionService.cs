@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace DMDService.Services.Interfaces
 {
@@ -8,6 +8,10 @@ namespace DMDService.Services.Interfaces
         event Action<ASI.Wanda.CMFT.Message.Message> MessageReceived;
 
         bool IsConnected { get; }
+
+        /// <summary>最近一次連線失敗的實際錯誤訊息（成功時為 null）</summary>
+        string LastError { get; }
+
         int Connect(string ip, string port, string type);
         void Disconnect();
         int Send(ASI.Wanda.CMFT.Message.Message message);

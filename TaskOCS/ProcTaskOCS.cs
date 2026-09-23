@@ -140,8 +140,8 @@ namespace ASI.Wanda.DMD.TaskOCS
             var sDBIP = ConfigApp.Instance.GetConfigSetting("DMD_DB_IP");
             var sDBPort = ConfigApp.Instance.GetConfigSetting("DMD_DB_Port");
             var sDBName = ConfigApp.Instance.GetConfigSetting("DMD_DB_Name");
-            var sUserID = "postgres";
-            var sPassword = "postgres";
+            var sUserID = ConfigApp.Instance.GetConfigSetting("DMD_DB_userID", "postgres");
+            var sPassword = ConfigApp.Instance.GetConfigSetting("DMD_DB_Passward", "postgres");
             var sCurrentUserID = ConfigApp.Instance.GetConfigSetting("Current_User_ID");
             try
             {

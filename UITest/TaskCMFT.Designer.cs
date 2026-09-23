@@ -307,7 +307,7 @@
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(53, 16);
             this.label3.TabIndex = 25;
-            this.label3.Text = "CMFT IP";
+            this.label3.Text = "本機IP";
             // 
             // textBoxConnIP
             // 
@@ -315,7 +315,7 @@
             this.textBoxConnIP.Name = "textBoxConnIP";
             this.textBoxConnIP.Size = new System.Drawing.Size(110, 23);
             this.textBoxConnIP.TabIndex = 24;
-            this.textBoxConnIP.Text = "10.107.26.99";
+            this.textBoxConnIP.Text = "0.0.0.0";
             // 
             // splitLeft
             // 

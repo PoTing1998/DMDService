@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +34,8 @@ namespace DMDService.Services.Services
         }
 
         #region Connection
+
+        public string LastError => _connectionService.LastError;
 
         public int Connect(string ip, string port, string type)
         {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using DMDService.Services.Interfaces;
@@ -113,7 +113,15 @@ namespace UITest
             if (result != 0)
             {
                 string message = GetConnectionResultMessage(result);
-                MessageBox.Show(message);
+                string detail = _cmftService.LastError;
+
+                if (!string.IsNullOrEmpty(detail))
+                    message += Environment.NewLine + Environment.NewLine + detail;
+
+                MessageBox.Show(message,
+                    $"CMFT 連線失敗 (錯誤碼: {result})",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
             else
             {

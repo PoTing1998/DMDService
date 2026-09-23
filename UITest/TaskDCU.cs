@@ -382,6 +382,12 @@ namespace UITest
 
         private void testBtn_Click(object sender, EventArgs e)
         {
+            if (mDMD_API == null || !mDMD_API.IsConnect)
+            {
+                MessageBox.Show("尚未建立連線，請先點擊「Initial」開啟 Socket 後再送出。");
+                return;
+            }
+
             ASI.Wanda.CMFT.Message.Message oMessage = new ASI.Wanda.CMFT.Message.Message();
             oMessage.MessageID = GenerateUniqueMessageID();
             oMessage.MessageType = ASI.Wanda.CMFT.Message.Message.eMessageType.Command;
@@ -422,7 +428,15 @@ namespace UITest
 
             var RESLUT = mDMD_API.Send(MSG);
             ASI.Lib.Log.DebugLog.Log("SendPreRecordMSGToDCU", MSG.JsonContent);
-            MessageBox.Show("傳送內容:" + Environment.NewLine + MSG.JsonContent + Environment.NewLine + Environment.NewLine + "傳送結果:" + RESLUT.ToString());
+
+            if (RESLUT == 0)
+            {
+                MessageBox.Show("傳送內容:" + Environment.NewLine + MSG.JsonContent + Environment.NewLine + Environment.NewLine + "傳送結果: 成功");
+            }
+            else
+            {
+                HandleSendFailure(RESLUT);
+            }
         }
 
         private void button2_Click(object sender, EventArgs e)
@@ -501,6 +515,12 @@ namespace UITest
 
         private void button3_Click(object sender, EventArgs e)
         {
+            if (mDMD_API == null || !mDMD_API.IsConnect)
+            {
+                MessageBox.Show("尚未建立連線，請先點擊「Initial」開啟 Socket 後再送出。");
+                return;
+            }
+
             ASI.Wanda.CMFT.Message.Message oMessage = new ASI.Wanda.CMFT.Message.Message();
             oMessage.MessageID = GenerateUniqueMessageID();
             oMessage.MessageType = ASI.Wanda.CMFT.Message.Message.eMessageType.Command;
@@ -533,7 +553,20 @@ namespace UITest
             var MSG = new ASI.Wanda.DMD.Message.Message(ASI.Wanda.DMD.Message.Message.eMessageType.Command, oMessage.MessageID, ObjectName);
             var RESLUT = mDMD_API.Send(MSG);
             ASI.Lib.Log.DebugLog.Log("SendPowerTimeSettingToDCU", MSG.JsonContent);
-            MessageBox.Show("傳送:" + RESLUT.ToString());
+
+            if (RESLUT == 0)
+            {
+                MessageBox.Show("傳送成功");
+            }
+            else
+            {
+                HandleSendFailure(RESLUT);
+            }
+        }
+
+        private void textBoxConnIP_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

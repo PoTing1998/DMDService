@@ -160,6 +160,15 @@ namespace ASI.Lib.Config
             return GetConfig(pKey);
         }
 
+        /// <summary>
+        /// 取得設定值，未設定或空白時回傳預設值
+        /// </summary>
+        public string GetConfigSetting(string pKey, string pDefault)
+        {
+            string sValue = GetConfig(pKey);
+            return string.IsNullOrWhiteSpace(sValue) ? pDefault : sValue.Trim();
+        }
+
         public List<string> GetConfigSettings(string pKey)
         {
             List<string> rets = new List<string>();

@@ -84,6 +84,12 @@
     <Compile Include="OCSParserTest.Designer.cs">
       <DependentUpon>OCSParserTest.cs</DependentUpon>
     </Compile>
+    <Compile Include="SocketMonitor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SocketMonitor.Designer.cs">
+      <DependentUpon>SocketMonitor.cs</DependentUpon>
+    </Compile>
     <Compile Include="RegisterInputDialog.cs">
       <SubType>Form</SubType>
     </Compile>

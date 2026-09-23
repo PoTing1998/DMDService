@@ -78,9 +78,9 @@
             this.groupBox1.Controls.Add(this.label8);
             this.groupBox1.Controls.Add(this.textBox3);
             this.groupBox1.Controls.Add(this.button2);
-            this.groupBox1.Location = new System.Drawing.Point(303, 19);
+            this.groupBox1.Location = new System.Drawing.Point(443, 19);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(245, 110);
+            this.groupBox1.Size = new System.Drawing.Size(313, 110);
             this.groupBox1.TabIndex = 57;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "設定";
@@ -223,23 +223,23 @@
             this.groupBox3.Controls.Add(this.buttonInit);
             this.groupBox3.Location = new System.Drawing.Point(27, 19);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(245, 110);
+            this.groupBox3.Size = new System.Drawing.Size(313, 110);
             this.groupBox3.TabIndex = 50;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "設定";
             // 
             // textBoxTYPE
             // 
-            this.textBoxTYPE.Location = new System.Drawing.Point(175, 41);
+            this.textBoxTYPE.Location = new System.Drawing.Point(216, 41);
             this.textBoxTYPE.Name = "textBoxTYPE";
-            this.textBoxTYPE.Size = new System.Drawing.Size(61, 22);
+            this.textBoxTYPE.Size = new System.Drawing.Size(73, 22);
             this.textBoxTYPE.TabIndex = 30;
             this.textBoxTYPE.Text = "Server";
             // 
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(173, 21);
+            this.label5.Location = new System.Drawing.Point(214, 21);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(29, 12);
             this.label5.TabIndex = 29;
@@ -256,16 +256,16 @@
             // 
             // textBoxConnPort
             // 
-            this.textBoxConnPort.Location = new System.Drawing.Point(100, 41);
+            this.textBoxConnPort.Location = new System.Drawing.Point(119, 41);
             this.textBoxConnPort.Name = "textBoxConnPort";
-            this.textBoxConnPort.Size = new System.Drawing.Size(61, 22);
+            this.textBoxConnPort.Size = new System.Drawing.Size(73, 22);
             this.textBoxConnPort.TabIndex = 27;
             this.textBoxConnPort.Text = "8000";
             // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(98, 21);
+            this.label4.Location = new System.Drawing.Point(117, 21);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(24, 12);
             this.label4.TabIndex = 26;
@@ -284,9 +284,10 @@
             // 
             this.textBoxConnIP.Location = new System.Drawing.Point(8, 41);
             this.textBoxConnIP.Name = "textBoxConnIP";
-            this.textBoxConnIP.Size = new System.Drawing.Size(75, 22);
+            this.textBoxConnIP.Size = new System.Drawing.Size(87, 22);
             this.textBoxConnIP.TabIndex = 24;
-            this.textBoxConnIP.Text = "10.107.26.99";
+            this.textBoxConnIP.Text = "10.104.26.11";
+            this.textBoxConnIP.TextChanged += new System.EventHandler(this.textBoxConnIP_TextChanged);
             // 
             // buttonInit
             // 

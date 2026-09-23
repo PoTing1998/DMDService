@@ -115,6 +115,21 @@ namespace ASI.Wanda.DMD.DB.Tables.Train
         }
 
         /// <summary>
+        /// 取得所有啟用且已設定 dcu_ip 的車站 (依 station_id 排序)，同一站多路線時只取第一筆。
+        /// 供 TaskDCU 的 Socket 連線監控列出「應連入的 DCU 車站」。
+        /// </summary>
+        static public List<station_conf> GetDcuStations()
+        {
+            return SelectAll()
+                .Where(IsInUse)
+                .Where(x => !string.IsNullOrWhiteSpace(x.dcu_ip))
+                .GroupBy(x => x.station_id)
+                .Select(g => g.First())
+                .OrderBy(x => x.station_id, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        /// <summary>
         /// 判斷該筆設定是否啟用。in_use 未設定時視為啟用，
         /// 僅在明確標示停用 (N / 0 / F) 時排除。
         /// </summary>

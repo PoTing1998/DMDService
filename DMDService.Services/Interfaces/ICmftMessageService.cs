@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using DMDService.Services.Models;
 
@@ -31,6 +31,9 @@ namespace DMDService.Services.Interfaces
         int Connect(string ip, string port, string type);
         void Disconnect();
         bool IsConnected { get; }
+
+        /// <summary>最近一次連線失敗的實際錯誤訊息（成功時為 null）</summary>
+        string LastError { get; }
 
         // === 資料庫 ===
         bool InitializeDatabases(string dmdIp, string dmdPort, string dmdDb, string dmdUser, string dmdPass,

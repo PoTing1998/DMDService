@@ -34,6 +34,7 @@
             this.tabTaskCMFT = new System.Windows.Forms.TabPage();
             this.tabTaskDCU = new System.Windows.Forms.TabPage();
             this.tabSendToDCU = new System.Windows.Forms.TabPage();
+            this.tabSocketMonitor = new System.Windows.Forms.TabPage();
             this.mainTabControl.SuspendLayout();
             this.SuspendLayout();
             //
@@ -44,6 +45,7 @@
             this.mainTabControl.Controls.Add(this.tabTaskCMFT);
             this.mainTabControl.Controls.Add(this.tabTaskDCU);
             this.mainTabControl.Controls.Add(this.tabOCSParser);
+            this.mainTabControl.Controls.Add(this.tabSocketMonitor);
             this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTabControl.Font = new System.Drawing.Font("Microsoft JhengHei", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.mainTabControl.ItemSize = new System.Drawing.Size(120, 28);
@@ -105,6 +107,16 @@
             this.tabOCSParser.Text = "OCS 解析測試";
             this.tabOCSParser.UseVisualStyleBackColor = true;
             //
+            // tabSocketMonitor
+            //
+            this.tabSocketMonitor.Location = new System.Drawing.Point(4, 32);
+            this.tabSocketMonitor.Name = "tabSocketMonitor";
+            this.tabSocketMonitor.Padding = new System.Windows.Forms.Padding(3);
+            this.tabSocketMonitor.Size = new System.Drawing.Size(1320, 844);
+            this.tabSocketMonitor.TabIndex = 5;
+            this.tabSocketMonitor.Text = "Socket 連線監控";
+            this.tabSocketMonitor.UseVisualStyleBackColor = true;
+            //
             // UITest
             //
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
@@ -125,5 +137,6 @@
         private System.Windows.Forms.TabPage tabTaskDCU;
         private System.Windows.Forms.TabPage tabSendToDCU;
         private System.Windows.Forms.TabPage tabOCSParser;
+        private System.Windows.Forms.TabPage tabSocketMonitor;
     }
 }

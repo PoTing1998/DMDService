@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DMDService.Services.Interfaces;
 
 namespace DMDService.Services.Services
@@ -12,10 +12,14 @@ namespace DMDService.Services.Services
 
         public bool IsConnected { get; private set; }
 
+        public string LastError { get; private set; }
+
         public int Connect(string ip, string port, string type)
         {
             try
             {
+                LastError = null;
+
                 if (_cmftApi != null)
                 {
                     _cmftApi.ReceivedEvent -= OnReceivedEvent;
@@ -35,14 +39,21 @@ namespace DMDService.Services.Services
                 }
                 else
                 {
+                    IsConnected = false;
+                    LastError = _cmftApi.LastError?.Message;
+
                     string message = GetConnectionResultMessage(result);
-                    RaiseLog($"✗ CMFT 連線失敗: {message} (錯誤碼: {result})");
+                    string detail = string.IsNullOrEmpty(LastError) ? "" : $" - {LastError}";
+                    RaiseLog($"✗ CMFT 連線失敗: {message} (錯誤碼: {result}){detail}");
                 }
 
                 return result;
             }
             catch (Exception ex)
             {
+                IsConnected = false;
+                LastError = ex.Message;
+                ASI.Lib.Log.ErrorLog.Log("CmftConnectionService.Connect", ex);
                 RaiseLog($"CMFT 連線錯誤: {ex.Message}");
                 return -1;
             }

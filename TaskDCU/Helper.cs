@@ -22,6 +22,28 @@ namespace ASI.Wanda.DMD.TaskDCU
 
     public class DCUHelper
     {
+        /// <summary>
+        /// 集中式主機 (行控中心) 的站所代碼，作為未設定 STATION_ID 時的預設值。
+        /// </summary>
+        public const string CentralStationID = "OCC";
+
+        /// <summary>
+        /// 備援行控中心的站所代碼。
+        /// </summary>
+        public const string BackupCentralStationID = "BOCC";
+
+        /// <summary>
+        /// 判斷站所代碼是否為集中式主機 (OCC / BOCC)。
+        /// 集中式主機服務全線所有車站，不應對 target_du 做單一車站篩選。
+        /// 空字串同樣視為集中式主機。
+        /// </summary>
+        public static bool IsCentralStation(string stationID)
+        {
+            return string.IsNullOrWhiteSpace(stationID)
+                || string.Equals(stationID.Trim(), CentralStationID, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(stationID.Trim(), BackupCentralStationID, StringComparison.OrdinalIgnoreCase);
+        }
+
         private string _currentStationID;
 
         public DCUHelper()
@@ -50,10 +72,11 @@ namespace ASI.Wanda.DMD.TaskDCU
         /// <returns>篩選後屬於當前車站的設備列表</returns>
         private List<string> FilterTargetDuForCurrentStation(List<string> targetDuList)
         {
-            if (string.IsNullOrEmpty(_currentStationID))
+            if (IsCentralStation(_currentStationID))
             {
-                // 如果沒有設定當前車站 ID，返回所有目標
-                ASI.Lib.Log.DebugLog.Log("DCUHelper", "未設定當前車站 ID，不進行篩選");
+                // OCC / BOCC 服務全線所有車站，或未設定站所代碼時，一律不篩選
+                ASI.Lib.Log.DebugLog.Log("DCUHelper",
+                    $"站所 [{(string.IsNullOrWhiteSpace(_currentStationID) ? "(未設定)" : _currentStationID)}] 為集中式主機，不進行車站篩選");
                 return targetDuList;
             }
 

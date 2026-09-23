@@ -76,6 +76,7 @@
     <Compile Include="Comm\SerialPort\SerialPortLib.cs" />
     <Compile Include="Comm\SNMP\SnmpLib.cs" />
     <Compile Include="Comm\SNMP\SnmpLib2.cs" />
+    <Compile Include="Comm\Socket\SocketAdmin.cs" />
     <Compile Include="Comm\Socket\SocketLib.cs" />
     <Compile Include="Comm\Socket\SocketNode.cs" />
     <Compile Include="Config\ConfigApp.cs" />

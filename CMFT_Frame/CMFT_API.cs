@@ -32,12 +32,48 @@ namespace ASI.Wanda.CMFT
             {
                 if (mSocket != null)
                 {
-                    return ClientIDList;
+                    return new System.Collections.Generic.Dictionary<int, string>(mSocket.ClientIDList);
                 }
 
                 return new System.Collections.Generic.Dictionary<int, string>();
             }
         }
+
+        /// <summary>
+        /// 是否為 Socket Server 模式
+        /// </summary>
+        public bool IsServer
+        {
+            get { return mSocket != null && mSocket.Type == "Server"; }
+        }
+
+        /// <summary>
+        /// 取得目前已連線 Client (IP:Port) 的清單（Server端專用）
+        /// </summary>
+        public System.Collections.Generic.List<string> GetClientEndpoints()
+        {
+            var oSocket = mSocket;
+            if (oSocket == null) return new System.Collections.Generic.List<string>();
+            return oSocket.GetClientEndpoints();
+        }
+
+        /// <summary>
+        /// 強制斷開指定 Client（Server端專用），會觸發 DisconnectedEvent
+        /// </summary>
+        /// <param name="endpoint">Client 的 IP:Port</param>
+        /// <returns>0：成功；-1：例外錯誤；-2：非 Server 模式；-3：找不到該 Client；-4：Socket 未建立</returns>
+        public int DisconnectClient(string endpoint)
+        {
+            var oSocket = mSocket;
+            if (oSocket == null) return -4;
+            return oSocket.DisconnectClient(endpoint);
+        }
+
+        public delegate void ClientDataReceivedEventHandler(string source, int length);
+        /// <summary>
+        /// 收到原始資料時觸發（尚未組成完整訊息），source 為 IP:Port，供連線監控使用
+        /// </summary>
+        public event ClientDataReceivedEventHandler ClientDataReceivedEvent;
 
         public delegate void ReceivedEventHandler(ASI.Wanda.CMFT.Message.Message CMFTmessage);
         /// <summary>
@@ -68,6 +104,18 @@ namespace ASI.Wanda.CMFT
         /// Socket Server專用，Socket Client斷線的事件
         /// </summary>
         public event DisconnectedEventHandler DisconnectedEvent;
+
+        public delegate void ErrorEventHandler(Exception exception);
+        /// <summary>
+        /// Socket發生錯誤的事件
+        /// </summary>
+        public event ErrorEventHandler ErrorEvent;
+
+        /// <summary>
+        /// 最近一次Socket錯誤。Initial/SocketConnect回傳-1時，由此取得實際的例外原因
+        /// （例如Bind失敗：位址非本機IP、通訊埠已被占用）。
+        /// </summary>
+        public Exception LastError { get; private set; }
 
         /// <summary>
         /// 連線是否建立
@@ -120,6 +168,7 @@ namespace ASI.Wanda.CMFT
             }
             catch (System.Exception ex)
             {
+                LastError = ex;
                 ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
                 return -1;
             }
@@ -403,6 +452,7 @@ namespace ASI.Wanda.CMFT
             int iOpenResult = 0;
             try
             {
+                LastError = null;
                 mSocket = new Lib.Comm.Socket.SocketLib();
 
                 mSocket.ConnectionString = connStr;
@@ -425,7 +475,7 @@ namespace ASI.Wanda.CMFT
                     }
                     else
                     {
-                        ASI.Lib.Log.DebugLog.Log(mProcName, $"Socket Server開啟失敗! 失敗碼:{iOpenResult} ； ConnectionString = {mSocket.ConnectionString}");
+                        ASI.Lib.Log.DebugLog.Log(mProcName, $"Socket Server開啟失敗! 失敗碼:{iOpenResult} ； ConnectionString = {mSocket.ConnectionString} ； 錯誤訊息 = {LastError?.Message}");
                     }
                 }
                 else
@@ -442,7 +492,7 @@ namespace ASI.Wanda.CMFT
                     }
                     else
                     {
-                        ASI.Lib.Log.DebugLog.Log(mProcName, $"Socket 連線失敗! 失敗碼:{iOpenResult} ； ConnectionString = {mSocket.ConnectionString}");
+                        ASI.Lib.Log.DebugLog.Log(mProcName, $"Socket 連線失敗! 失敗碼:{iOpenResult} ； ConnectionString = {mSocket.ConnectionString} ； 錯誤訊息 = {LastError?.Message}");
                     }
                 }
 
@@ -450,6 +500,7 @@ namespace ASI.Wanda.CMFT
             }
             catch (System.Exception ex)
             {
+                LastError = ex;
                 ASI.Lib.Log.ErrorLog.Log(mProcName, ex);
                 return -1;
             }
@@ -484,6 +535,7 @@ namespace ASI.Wanda.CMFT
             {
                 if (dataBytes != null)
                 {
+                    ClientDataReceivedEvent?.Invoke(source, dataBytes.Length);
                     lock (mByteMessage)
                     {
                         mByteMessage.InputMessage(dataBytes);
@@ -519,7 +571,9 @@ namespace ASI.Wanda.CMFT
 
         private void Socket_ErrorEvent(Exception exception)
         {
-
+            LastError = exception;
+            ASI.Lib.Log.ErrorLog.Log(mProcName, exception);
+            ErrorEvent?.Invoke(exception);
         }
         private void Socket_CloseEvent(string source)
         {

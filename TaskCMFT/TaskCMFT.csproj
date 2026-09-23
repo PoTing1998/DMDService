@@ -83,9 +83,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Npgsql">
-      <Version>7.0.4</Version>
-    </PackageReference>
+    <!-- 與 DMD_DB / CMFT_DB / DCU_DB 參考同一顆 common\Npgsql.dll (7.0.2.0)。
+         原本此處為 PackageReference 7.0.4，與部署目錄的 7.0.2 版本不符，
+         會在執行期丟 FileLoadException (0x80131040)。 -->
+    <Reference Include="Npgsql">
+      <HintPath>..\common\Npgsql.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
